@@ -1,10 +1,15 @@
-//
-//  fio.c
-//  biointerchange
-//
-//  Created by Joachim Baran on 2015-03-30.
-//
-//
+/*
+ * Copyright (c) 2015 CODAMONO, Ontario, Canada
+ *
+ * This Source Code Form is subject to the terms of the accompanying
+ * LICENSE.txt file, or, available via the following URLs:
+ *
+ *   As text: http://www.codamono.com/license/biointerchange-l1.txt
+ *
+ *   As PDF:  http://www.codamono.com/license/biointerchange-l1.pdf
+ *
+ *   As DOCX: http://www.codamono.com/license/biointerchange-l1.docx
+ */
 
 #include "fio.h"
 
@@ -23,6 +28,11 @@ int fio_opn(const char* path)
 void fio_cls(int fd)
 {
     close(fd);
+}
+
+size_t fio_len(int fd)
+{
+    return (size_t)lseek(fd, 0, SEEK_END);
 }
 
 fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
@@ -49,8 +59,8 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
     }
     
     // Adjust len, in case it exceeds the maximum size:
-    if (len > mem->mx)
-        len = mem->mx;
+    if (off + len > mem->mx)
+        len = mem->mx - off;
     
     mem->pg = mmap(0, len, PROT_READ, MAP_FILE | MAP_SHARED, mem->fd, off);
 
@@ -78,27 +88,34 @@ inline char* fio_rd(fio_mem* mem, size_t len, off_t off)
         off >= mem->off + mem->ln ||
         off + len >= mem->off + mem->ln)
     {
-        fio_mmap(mem, 0, 0, len, off);
+        // TODO Error handling.
+        mem = fio_mmap(mem, 0, 0, len, off);
     }
     
-    return (char*)(mem->pg + off);
+    return (char*)(mem->pg + (off - mem->off));
 }
 
 inline size_t fio_lnlen(fio_mem* mem, off_t off)
 {
+    bool lend = false;
     off_t cur = off;
     
-    while (cur < mem->ln)
+    while (cur < mem->off + mem->ln)
     {
-        char* ptr = (char*)(mem->pg + cur);
+        char* ptr = (char*)(mem->pg + (cur - mem->off));
         
-        if (*ptr == '\n' || *ptr == '\r')
+        if (lend && !(*ptr == '\n' || *ptr == '\r'))
             return cur - off;
-        else if (cur + 1 == mem->ln && mem->off + mem->ln == mem->mx)
-            return mem->ln - cur - 1; // TODO Verify.
+        if (*ptr == '\n' || *ptr == '\r')
+            lend = true;
+        else if (cur + 1 >= mem->mx)
+            return mem->mx - off;
         
         cur++;
     }
+    
+    if (cur == mem->mx)
+        return cur - off;
     
     return 0;
 }
