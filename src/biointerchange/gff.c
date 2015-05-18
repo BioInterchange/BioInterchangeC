@@ -25,11 +25,33 @@ static const char* GFF_C6  = "score";
 static const char* GFF_C7  = "strand";
 static const char* GFF_C8  = "phase";
 
-static const char* GEN_LOCUS = "locus";
 static const char* GEN_ATTRS = "user";
+static const char* GEN_BUILD = "build";
+static const char* GEN_COMMENT = "comment";
+static const char* GEN_END = "end";
+static const char* GEN_LOCUS = "locus";
+static const char* GEN_SEQUENCE = "sequence";
+static const char* GEN_START = "start";
+static const char* GEN_SOURCE = "source";
 
 static const char* GEN_NULL = "null";
 static const char* GEN_TRUE = "true";
+
+static ldoc_vis_nde_ord_t* json_vis_nde;
+static ldoc_vis_ent_t* json_vis_ent;
+
+void gen_init()
+{
+    json_vis_nde = ldoc_vis_nde_ord_new();
+    json_vis_nde->vis_setup = ldoc_vis_setup_json;
+    json_vis_nde->vis_teardown = ldoc_vis_teardown_json;
+    ldoc_vis_nde_uni(&(json_vis_nde->pre), ldoc_vis_nde_pre_json);
+    ldoc_vis_nde_uni(&(json_vis_nde->infx), ldoc_vis_nde_infx_json);
+    ldoc_vis_nde_uni(&(json_vis_nde->post), ldoc_vis_nde_post_json);
+    
+    json_vis_ent = ldoc_vis_ent_new();
+    ldoc_vis_ent_uni(json_vis_ent, ldoc_vis_ent_json);
+}
 
 static inline void gen_lwr(char* str)
 {
@@ -45,7 +67,94 @@ static inline void gen_lwr(char* str)
 static inline bi_attr gen_kwd(char* str)
 {
     if (*str >= 'A' && *str <= 'Z')
+    {
+        if (*str == 'A')
+        {
+            str++;
+            if (*str == 'l')
+            {
+                str++;
+                if (*str == 'i')
+                {
+                    str++;
+                    if (!strcmp(str, "as"))
+                        return BI_CSEP;
+                }
+            }
+        }
+        else if (*str == 'D')
+        {
+            str++;
+            if (*str == 'b')
+            {
+                str++;
+                if (*str == 'x')
+                {
+                    str++;
+                    if (!strcmp(str, "ref"))
+                        return BI_CSEP;
+                }
+            }
+        }
+        else if (*str == 'G')
+        {
+            str++;
+            if (*str == 'a')
+            {
+                str++;
+                if (*str == 'p')
+                {
+                    str++;
+                    if (!*str)
+                        return BI_XCIG;
+                }
+            }
+        }
+        else if (*str == 'N')
+        {
+            str++;
+            if (*str == 'o')
+            {
+                str++;
+                if (*str == 't')
+                {
+                    str++;
+                    if (!strcmp(str, "e"))
+                        return BI_CSEP;
+                }
+            }
+        }
+        else if (*str == 'O')
+        {
+            str++;
+            if (*str == 'n')
+            {
+                str++;
+                if (*str == 't')
+                {
+                    str++;
+                    if (!strcmp(str, "ology_term"))
+                        return BI_CSEP;
+                }
+            }
+        }
+        else if (*str == 'P')
+        {
+            str++;
+            if (*str == 'a')
+            {
+                str++;
+                if (*str == 'r')
+                {
+                    str++;
+                    if (!strcmp(str, "ent"))
+                        return BI_CSEP;
+                }
+            }
+        }
+        
         return BI_VAL;
+    }
     
     return BI_NKW;
 }
@@ -70,6 +179,11 @@ static inline char gen_inv(char c)
     }
 }
 
+static inline void gff_attr()
+{
+    
+}
+
 static inline void gff_ky(char* attr, char** val)
 {
     while (*attr)
@@ -87,6 +201,37 @@ static inline void gff_ky(char* attr, char** val)
     
     // No value assignment; just a key.
     *val = NULL;
+}
+
+static inline char* gen_nxt_ws(char* str)
+{
+    while (*str != ' ' &&
+           *str != '\t')
+    {
+        if (!*str || *str == '\n')
+            return NULL;
+        
+        str++;
+    }
+    
+    // Remember where to place string terminator -- if this function is successful:
+    char* sep = str;
+    
+    while (*str == ' ' ||
+           *str == '\t')
+    {
+        if (!*str || *str == '\n')
+            return NULL;
+        
+        str++;
+    }
+    
+    if (!*str || *str == '\n')
+        return NULL;
+    
+    *sep = 0;
+    
+    return str;
 }
 
 void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs)
@@ -126,17 +271,11 @@ void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs)
             if (!*attr)
                 return;
             
-            ldoc_ent_t* kv = ldoc_ent_new(LDOC_ENT_OR);
-            
-            if (!kv)
-            {
-                // TODO Error handling.
-            }
-            
             // Key/value assignment, or, key-only handling:
             ldoc_nde_t* dst;
             bi_attr kind;
-            if (kind = gen_kwd(attr))
+            // Yes, this is an assignment. Do not '=='!
+            if ((kind = gen_kwd(attr)))
             {
                 dst = ftr;
                 
@@ -150,9 +289,66 @@ void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs)
                     val = (char*)GEN_TRUE;
             }
             
-            kv->pld.pair.anno.str = attr;
-            kv->pld.pair.dtm.str = val;
-            ldoc_nde_ent_push(dst, kv);
+            char* val_cmp;
+            ldoc_nde_t* kv_nde;
+            ldoc_ent_t* kv_ent;
+            switch (kind)
+            {
+                case BI_CSEP:
+                    kv_nde = ldoc_nde_new(LDOC_NDE_OL);
+                    
+                    if (!kv_nde)
+                    {
+                        // TODO Error handling.
+                    }
+
+                    kv_nde->mkup.anno.str = attr;
+                    
+                    val_cmp = val;
+                    do
+                    {
+                        // Check: this should always work, since strlen(val) > 0; but check!?
+                        val++;
+                        
+                        if (*val == ',' || !*val)
+                        {
+                            *val = 0;
+                            
+                            kv_ent = ldoc_ent_new(LDOC_ENT_TXT);
+                            
+                            if (!kv_ent)
+                            {
+                                // TODO Error handling.
+                            }
+                            
+                            kv_ent->pld.pair.anno.str = attr;
+                            kv_ent->pld.pair.dtm.str = val_cmp;
+                            ldoc_nde_ent_push(kv_nde, kv_ent);
+                            
+                            val_cmp = val;
+                        }
+                    } while (*val);
+                    
+                    ldoc_nde_dsc_push(dst, kv_nde);
+                    
+                    break;
+                default:
+                    kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                    
+                    if (!kv_ent)
+                    {
+                        // TODO Error handling.
+                    }
+                    
+                    if (kind == BI_XCIG)
+                        gen_xcig(val);
+                    
+                    kv_ent->pld.pair.anno.str = attr;
+                    kv_ent->pld.pair.dtm.str = val;
+                    ldoc_nde_ent_push(dst, kv_ent);
+                    
+                    break;
+            }
             
             // Attribute EOS reached earlier -- break condition 2:
             if (brk)
@@ -166,12 +362,7 @@ void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs)
     } while (true); // See "break condition 1" and "break condition 2".
 }
 
-void gff_proc_prgm(char* ln, size_t lnlen)
-{
-
-}
-
-static inline ldoc_doc_t* gff_proc_ftr(char* ln, size_t lnlen)
+static inline ldoc_doc_t* gff_proc_cmt(char* ln, size_t lnlen)
 {
     ldoc_doc_t* doc = ldoc_doc_new();
     
@@ -180,11 +371,281 @@ static inline ldoc_doc_t* gff_proc_ftr(char* ln, size_t lnlen)
         // TODO Error handling.
     }
     
-    // Remove trailing line breaks:`
-    off_t off = lnlen - 1;
-    while ((ln[off] == '\n' || ln[off] == '\r') && off > 0) {
-        ln[off--] = 0;
+    // Skip initial character that marks the comment:
+    ln++;
+    lnlen--;
+    
+    while (*ln == ' ' || *ln == '\t')
+    {
+        ln++;
+        lnlen--;
     }
+    
+    // "Raw" comment, i.e. leading white space removed:
+    char* cln = strndup(ln, lnlen);
+    
+    ldoc_ent_t* cmt = ldoc_ent_new(LDOC_ENT_OR);
+    cmt->pld.pair.anno.str = (char*)GEN_COMMENT;
+    cmt->pld.pair.dtm.str = cln;
+    ldoc_nde_ent_push(doc->rt, cmt);
+    
+    return doc;
+}
+
+static inline void gff_proc_gbld(ldoc_nde_t* nde, char* val)
+{
+    // Source:
+    char* src = val;
+    
+    // Build:
+    char* bld = gen_nxt_ws(val);
+    
+    if (!bld)
+    {
+        // TODO Error handling.
+    }
+    
+    // Allocate node and entities upfront, so that strdup's do
+    // not need to be freed if any of this fails.
+    
+    ldoc_ent_t* ent_bld = ldoc_ent_new(LDOC_ENT_OR);
+    
+    if (!ent_bld)
+    {
+        // TODO Error handling.
+    }
+    
+    ent_bld->pld.pair.anno.str = strdup(src);
+    ent_bld->pld.pair.dtm.str = strdup(bld);
+    
+    ldoc_nde_ent_push(nde, ent_bld);
+}
+
+static inline ldoc_nde_t* gff_proc_sregion(char* val)
+{
+    // Landmark identifier:
+    char* id = val;
+
+    // Start coordinate:
+    char* st = gen_nxt_ws(val);
+
+    if (!st)
+    {
+        // TODO Error handling.
+    }
+    
+    // End coordinate:
+    char* en = gen_nxt_ws(st);
+    
+    if (!en)
+    {
+        // TODO Error handling.
+    }
+    
+    // Allocate node and entities upfront, so that strdup's do
+    // not need to be freed if any of this fails.
+    
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
+
+    if (!nde)
+    {
+        // TODO Error handling.
+    }
+
+    ldoc_ent_t* ent_st = ldoc_ent_new(LDOC_ENT_OR);
+    
+    if (!ent_st)
+    {
+        // TODO Error handling.
+    }
+    
+    ldoc_ent_t* ent_en = ldoc_ent_new(LDOC_ENT_OR);
+    
+    if (!ent_en)
+    {
+        // TODO Error handling.
+        
+    }
+    
+    nde->mkup.anno.str = strdup(id);
+    
+    ent_st->pld.pair.anno.str = strdup(GEN_START);
+    ent_st->pld.pair.dtm.str = strdup(st);
+    
+    ent_en->pld.pair.anno.str = strdup(GEN_END);
+    ent_en->pld.pair.dtm.str = strdup(en);
+    
+    ldoc_nde_ent_push(nde, ent_st);
+    ldoc_nde_ent_push(nde, ent_en);
+    
+    return nde;
+}
+
+static inline ldoc_struct_t gff_prgm_tpe(char* ky)
+{
+    if (*ky == 'g')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'n')
+            {
+                ky++;
+                if (!strcmp(ky, "ome-build"))
+                    return LDOC_NDE_OL;
+            }
+        } else if (*ky == 'f')
+        {
+            ky++;
+            if (*ky == 'f')
+            {
+                ky++;
+                if (!strcmp(ky, "-version"))
+                    return LDOC_NDE_UA;
+            }
+        }
+    }
+    else if (*ky == 's')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'q')
+            {
+                ky++;
+                if (!strcmp(ky, "uence-region"))
+                    return LDOC_NDE_OO;
+            }
+        }
+        else if (*ky == 'p')
+        {
+            ky++;
+            if (*ky == 'e')
+            {
+                ky++;
+                if (!strcmp(ky, "cies"))
+                    return LDOC_NDE_UA;
+            }
+        }
+    }
+    
+    return LDOC_NDE_OL;
+}
+
+static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen)
+{
+    // Skip leading markup:
+    ln += 2;
+    
+    // Remove trailing line breaks and white space (account for skip ahead above):
+    off_t off = lnlen - 3;
+    while ((ln[off] == '\n' || ln[off] == '\r' || ln[off] == ' ' || ln[off] == '\t') && off > 0)
+        ln[off--] = 0;
+    
+    
+    // Separate key and value:
+    char* val = ln;
+    while (*val &&
+           *val != ' ' &&
+           *val != '\t')
+        val++;
+    
+    // Value empty? In any case: terminate key string:
+    if (!*val)
+    {
+        val = NULL;
+    }
+    else
+    {
+        *val = 0;
+        val++;
+        
+        // Skip trailing whitespace in values:
+        while (*val == ' ' ||
+               *val == '\t')
+            val++;
+    }
+    
+    ldoc_nde_t* stmt = NULL;
+    TAILQ_FOREACH(stmt, &(doc->rt->dscs), ldoc_nde_entries)
+    {
+        if (!strcmp(stmt->mkup.anno.str, ln))
+            break;
+    }
+
+    ldoc_struct_t tpe = gff_prgm_tpe(ln);
+    if (!stmt)
+    {
+        if (tpe == LDOC_NDE_UA)
+        {
+            ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+            ent->pld.pair.anno.str = strdup(ln);
+            ent->pld.pair.dtm.str = strdup(val);
+            
+            ldoc_nde_ent_push(doc->rt, ent);
+        }
+        else
+        {
+            // TODO Use own types, so that this conversion is not necessary:
+            stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
+            stmt->mkup.anno.str = strdup(ln);
+            
+            ldoc_nde_dsc_push(doc->rt, stmt);
+        }
+    }
+    
+    if (tpe == LDOC_NDE_OO)
+    {
+        // Fine with string comparisons here, since this case
+        // will (hopefully) not be true many times.
+        if (!strcmp(ln, "sequence-region"))
+        {
+            ldoc_nde_t* nde = gff_proc_sregion(val);
+            
+            ldoc_nde_dsc_push(stmt, nde);
+        }
+        else
+        {
+            // TODO Internal error.
+        }
+    }
+    else if (tpe == LDOC_NDE_OL)
+    {
+        if (!strcmp(ln, "genome-build"))
+        {
+            gff_proc_gbld(stmt, val);
+        }
+        else
+        {
+            // TODO Internal error.
+        }
+    }
+    else if (tpe != LDOC_NDE_UA)
+    {
+        ldoc_ent_t* ntry = ldoc_ent_new(LDOC_ENT_OR);
+        ntry->pld.str = strdup(val);
+        
+        ldoc_nde_ent_push(stmt, ntry);
+    }
+    
+    return doc;
+}
+
+static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen)
+{
+    ldoc_doc_t* doc = ldoc_doc_new();
+    
+    if (!doc)
+    {
+        // TODO Error handling.
+    }
+    
+    // Remove trailing line breaks:
+    off_t off = lnlen - 1;
+    while ((ln[off] == '\n' || ln[off] == '\r') && off > 0)
+        ln[off--] = 0;
     
     // Note: this can be optimized by creating the entities in the for-loop!
     off = 0;
@@ -217,6 +678,20 @@ static inline ldoc_doc_t* gff_proc_ftr(char* ln, size_t lnlen)
     // 6 : strand
     // 7 : 7
     // 8 : attr
+    
+    // See if landmark has a sequence:
+    char* seq;
+    if (idx)
+    {
+        bool rv = coff[6][0] == '+' ? true : false;
+        uint64_t fst = strtoull(coff[3], NULL, 10); // TODO Add second parameter to figure out errors.
+        uint64_t fen = strtoull(coff[4], NULL, 10); // TODO Ditto.
+        seq = gff_seq(fd, mx, idx, coff[0], fst, fen, rv);
+    }
+    else
+    {
+        seq = NULL;
+    }
 
     ldoc_nde_t* ftr = doc->rt;
     
@@ -267,6 +742,15 @@ static inline ldoc_doc_t* gff_proc_ftr(char* ln, size_t lnlen)
     ph->pld.pair.anno.str = (char*)GFF_C8;
     ph->pld.pair.dtm.str = coff[7];
 
+    // Add sequence information -- if available:
+    if (seq)
+    {
+        ldoc_ent_t* sq = ldoc_ent_new(LDOC_ENT_OR);
+        sq->pld.pair.anno.str = (char*)GEN_SEQUENCE;
+        sq->pld.pair.dtm.str = seq;
+        ldoc_nde_ent_push(ftr, sq);
+    }
+    
     gff_splt_attrs(ftr, attrs, coff[8]);
     
     // JSON-LD context:
@@ -286,17 +770,15 @@ static inline ldoc_doc_t* gff_proc_ftr(char* ln, size_t lnlen)
     
     ldoc_nde_ent_push(ftr, lm);
     ldoc_nde_dsc_push(ftr, lc);
-    ldoc_nde_dsc_push(ftr, attrs);
+    
+    // Do not add user defined sub-tree if it is empty:
+    if (attrs->dsc_cnt || attrs->ent_cnt)
+        ldoc_nde_dsc_push(ftr, attrs);
 
     return doc;
 }
 
 void gff_proc_fa(char* ln, size_t lnlen)
-{
-    
-}
-
-void gff_proc_cmt(char* ln, size_t lnlen)
 {
     
 }
@@ -607,13 +1089,13 @@ ldoc_trie_t* gff_idx_fa(int fd, gen_fstat* stat, off_t mx)
     // Find beginning of first FASTA line:
     off_t fa = gff_fnd_fa(fd, stat, mx);
     
-    // "Step back" a character, so that the code for finding identifiers
-    // is universal below (no special treatment of any lines; character
-    // added due to the `fa--` should be a newline):
-    fa--;
-    
     if (fa != BI_NFOUND)
     {
+        // "Step back" a character, so that the code for finding identifiers
+        // is universal below (no special treatment of any lines; character
+        // added due to the `fa--` should be a newline):
+        fa--;
+
         ldoc_trie_t* fa_trie = ldoc_trie_new();
         const size_t pg_size = getpagesize();
         const off_t fa_pg = fa / pg_size;
@@ -644,9 +1126,9 @@ void gff_idx_release(ldoc_trie_t* trie)
     ldoc_trie_free(trie);
 }
 
-static inline void gff_proc_ln(char* ln, size_t lnlen, gen_prsr_t* st)
+static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st)
 {
-    ldoc_doc_t* doc = NULL;
+    ldoc_doc_t* ldoc = NULL;
     
     if (lnlen > 3)
     {
@@ -668,6 +1150,11 @@ static inline void gff_proc_ln(char* ln, size_t lnlen, gen_prsr_t* st)
                 {
                     st->fa_sct = true;
                 }
+                else
+                {
+                    // Nope, real meta line:
+                    gff_proc_prgm(fdoc, ln, lnlen);
+                }
             }
             else
             {
@@ -681,23 +1168,13 @@ static inline void gff_proc_ln(char* ln, size_t lnlen, gen_prsr_t* st)
         else
         {
             // Feature:
-            doc = gff_proc_ftr(ln, lnlen);
+            ldoc = gff_proc_ftr(fd, mx, idx, ln, lnlen);
         }
     }
     
-    if (doc)
+    if (ldoc)
     {
-        ldoc_vis_nde_ord_t* vis_nde = ldoc_vis_nde_ord_new();
-        vis_nde->vis_setup = ldoc_vis_setup_json;
-        vis_nde->vis_teardown = ldoc_vis_teardown_json;
-        ldoc_vis_nde_uni(&(vis_nde->pre), ldoc_vis_nde_pre_json);
-        ldoc_vis_nde_uni(&(vis_nde->infx), ldoc_vis_nde_infx_json);
-        ldoc_vis_nde_uni(&(vis_nde->post), ldoc_vis_nde_post_json);
-        
-        ldoc_vis_ent_t* vis_ent = ldoc_vis_ent_new();
-        ldoc_vis_ent_uni(vis_ent, ldoc_vis_ent_json);
-
-        ldoc_ser_t* ser = ldoc_format(doc, vis_nde, vis_ent);
+        ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
         
         printf("%s\n", ser->sclr.str);
     }
@@ -736,8 +1213,15 @@ char* gff_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, o
     return ln;
 }
 
-void gff_rd(int fd, off_t mx)
+void gff_rd(int fd, off_t mx, ldoc_trie_t* idx)
 {
+    ldoc_doc_t* fdoc = ldoc_doc_new();
+    
+    if (!fdoc)
+    {
+        // TODO Error handling.
+    }
+    
     off_t off = 0;
     fio_mem* mem = NULL;
     int incr = 0;
@@ -775,7 +1259,7 @@ void gff_rd(int fd, off_t mx)
             // Current line:
             mem_cpy = gff_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
             
-            gff_proc_ln(mem_cpy, lnlen, &st);
+            gff_proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st);
             
             // Next line:
             off += lnlen;
@@ -789,6 +1273,14 @@ void gff_rd(int fd, off_t mx)
     
     if (mem)
         fio_munmap(mem);
+    
+    // Meta information about the file and its data contents:
+    
+    ldoc_ser_t* ser = ldoc_format(fdoc, json_vis_nde, json_vis_ent);
+    
+    // Only output non-empty documents:
+    if (fdoc->rt->dsc_cnt > 0 || fdoc->rt->ent_cnt > 0)
+        printf("%s\n", ser->sclr.str);
 }
 
 char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_t en, bool rv)
@@ -801,18 +1293,23 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     
     // TODO Check annotation type.
     
+    // Adjust start coordinate to match 0-based memory indexing:
+    st--;
+    
     const gen_fa_ntry_t* ntry = fa->anno.pld;
     const size_t pg_size = getpagesize();
     const off_t seq_pg = ntry->seq / pg_size;
-    
-    off_t seq_pg_off = ntry->seq - (seq_pg * pg_size);
+    const off_t seq_pg_off = ntry->seq - (seq_pg * pg_size);
     
     fio_mem* mem = NULL;
-    mem = fio_mmap(mem, fd, mx, (en / pg_size + 1) * pg_size, seq_pg * pg_size);
+    size_t lraw = en;
+    size_t lbrk = (lraw / ntry->llen) * ntry->lbrk;
+    size_t mlen = (((lraw + lbrk + seq_pg_off) / pg_size) + 1) * pg_size;
+    mem = fio_mmap(mem, fd, mx, mlen, seq_pg * pg_size);
     
     // TODO Error check.
     
-    size_t slen = en - st + 1;
+    size_t slen = en - st;
     char* seq = (char*)malloc(slen + 1);
     
     if (!seq)
@@ -831,6 +1328,17 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     char* dst = rv ? seq + (slen - 1) : seq;
     while (slen)
     {
+        // Sanity check, in case sequence boundaries were not specified:
+        if (mx < (off_t)src - (off_t)mem->pg + mem->off ||
+            *src == '>' ||
+            *src == ';')
+        {
+            free(seq);
+            fio_munmap(mem);
+            
+            return NULL;
+        }
+        
         if (*src == '\n' ||
             *src == '\r')
             src++;
@@ -843,6 +1351,8 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
             slen--;
         }
     }
+    
+    fio_munmap(mem);
     
     return seq;
 }

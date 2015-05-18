@@ -63,54 +63,31 @@ typedef enum
 typedef enum
 {
     BI_NKW = 0,
+    /**
+     * String value.
+     */
     BI_VAL,
+    /**
+     * Comma separated values.
+     */
+    BI_CSEP,
+    /**
+     * CIGAR string in GFF3 format (needs reformatting to match actual CIGAR specification).
+     */
+    BI_XCIG,
     BI_STRUCT
 } bi_attr;
     
-typedef struct gen_fstat
-{
-    /**
-     * Number of meta-information lines.
-     */
-    uint32_t meta;
-    /**
-     * Number of feature lines.
-     */
-    uint32_t ftrs;
-    /**
-     * Number of comment lines.
-     */
-    uint32_t comms;
-    /**
-     * Offset to which the statistics are valid.
-     */
-    off_t off;
-} gen_fstat;
-    
-typedef struct gen_fa_ntry_t
-{
-    off_t off;
-    off_t seq;
-    size_t llen;
-    size_t lbrk;
-} gen_fa_ntry_t;
-
-/**
- * @brief Parser state.
- */
-typedef struct gen_prsr_t
-{
-    bool fa_sct;
-} gen_prsr_t;
+void gen_init();
     
 off_t gff_fnd_fa(int fd, gen_fstat* stat, off_t mx);
 
 ldoc_trie_t* gff_idx_fa(int fd, gen_fstat* stat, off_t mx);
 
-void gff_rd(int fd, off_t mx);
+void gff_rd(int fd, off_t mx, ldoc_trie_t* idx);
     
 char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_t en, bool rv);
-    
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -97,11 +97,11 @@ TEST(gff, fa_idx_seq)
     EXPECT_NE((ldoc_trie_t*)NULL, idx);
     
     char* seq = gff_seq(fd, mx, idx, GFF_GFF_FA_NME1, 140, 149, false);
-    EXPECT_STREQ("AGTCTACAAA", seq);
+    EXPECT_STREQ("TAGTCTACAA", seq);
     free(seq);
 
     seq = gff_seq(fd, mx, idx, GFF_GFF_FA_NME1, 140, 149, true);
-    EXPECT_STREQ("TTTGTAGACT", seq);
+    EXPECT_STREQ("TTGTAGACTA", seq);
     free(seq);
     
     fio_cls(fd);
@@ -115,11 +115,11 @@ TEST(gff, fa_idx_seq_lbrk)
     EXPECT_NE((ldoc_trie_t*)NULL, idx);
     
     char* seq = gff_seq(fd, mx, idx, GFF_GFF_FA_NME1, 177, 182, false);
-    EXPECT_STREQ("GTATTT", seq);
+    EXPECT_STREQ("AGTATT", seq);
     free(seq);
     
     seq = gff_seq(fd, mx, idx, GFF_GFF_FA_NME1, 177, 182, true);
-    EXPECT_STREQ("AAATAC", seq);
+    EXPECT_STREQ("AATACT", seq);
     free(seq);
     
     fio_cls(fd);
@@ -127,10 +127,14 @@ TEST(gff, fa_idx_seq_lbrk)
 
 TEST(gff, gff_rd)
 {
+    gen_init();
+    
     int fd = fio_opn(GFF_GFF_SMALL);
     size_t mx = fio_len(fd);
+    ldoc_trie_t* idx = gff_idx_fa(fd, NULL, mx);
+    EXPECT_NE((ldoc_trie_t*)NULL, idx);
     
-    gff_rd(fd, mx);
+    gff_rd(fd, mx, idx);
     
     fio_cls(fd);
 }

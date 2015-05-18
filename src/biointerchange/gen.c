@@ -32,3 +32,36 @@ const char* JSONLD_GFF3 = "http://www.biointerchange.org/jsonld/gff3.json";
 const char* JSONLD_GTF = "http://www.biointerchange.org/jsonld/gtf.json";
 const char* JSONLD_GVF = "http://www.biointerchange.org/jsonld/gvf.json";
 const char* JSONLD_VCF = "http://www.biointerchange.org/jsonld/vcf.json";
+
+void gen_xcig(char* str)
+{
+    char* wptr = str;
+    
+    char c = 0;
+    while (*str)
+    {
+        if (*str >= '0' && *str <= '9')
+        {
+            *(wptr++) = *str;
+        }
+        else if (*str == ' ' && c)
+        {
+            *(wptr++) = c;
+            c = 0;
+        }
+        else
+        {
+            if (c)
+                *(wptr++) = c;
+            
+            c = *str;
+        }
+        
+        str++;
+    }
+    
+    if (c)
+        *(wptr++) = c;
+    
+    *wptr = 0;
+}

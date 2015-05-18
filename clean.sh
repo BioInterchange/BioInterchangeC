@@ -20,9 +20,13 @@ rm -rf CMakeCache.txt \
        biointerchange.xcodeproj \
        libdocument-lib-prefix \
        googletest-lib-prefix \
+       curl-lib-prefix \
+       openssl-lib-prefix \
        CMakeScripts \
        src/doxygen \
        src/googletest \
        src/libdocument \
+       src/curl \
+       src/openssl \
        Debug
 
