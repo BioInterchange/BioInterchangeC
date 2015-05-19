@@ -165,7 +165,8 @@ size_t function(char* ptr, size_t size, size_t nmemb, void* userdata)
     }
     
     // Check whether the license is valid:
-    if (!strncmp((char*)ptr, "{\"valid\": true}", 12))
+    if (!strncmp((char*)ptr, "{\"valid\":true}", 14) ||
+        !strncmp((char*)ptr, "{\"valid\": true}", 15))
     {
         *status_ptr = LICENSE_OK;
         

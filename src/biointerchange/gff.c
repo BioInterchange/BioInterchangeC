@@ -362,20 +362,15 @@ void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs)
     } while (true); // See "break condition 1" and "break condition 2".
 }
 
-static inline ldoc_doc_t* gff_proc_cmt(char* ln, size_t lnlen)
+static inline char* gff_proc_cmt(char* ln, size_t lnlen)
 {
-    ldoc_doc_t* doc = ldoc_doc_new();
-    
-    if (!doc)
-    {
-        // TODO Error handling.
-    }
-    
     // Skip initial character that marks the comment:
     ln++;
     lnlen--;
-    
-    while (*ln == ' ' || *ln == '\t')
+
+    // If there is a whitespace, skip over this one too, but
+    // leave further whitespace characters as they are:
+    if (*ln == ' ' || *ln == '\t')
     {
         ln++;
         lnlen--;
@@ -384,12 +379,7 @@ static inline ldoc_doc_t* gff_proc_cmt(char* ln, size_t lnlen)
     // "Raw" comment, i.e. leading white space removed:
     char* cln = strndup(ln, lnlen);
     
-    ldoc_ent_t* cmt = ldoc_ent_new(LDOC_ENT_OR);
-    cmt->pld.pair.anno.str = (char*)GEN_COMMENT;
-    cmt->pld.pair.dtm.str = cln;
-    ldoc_nde_ent_push(doc->rt, cmt);
-    
-    return doc;
+    return cln;
 }
 
 static inline void gff_proc_gbld(ldoc_nde_t* nde, char* val)
@@ -421,7 +411,7 @@ static inline void gff_proc_gbld(ldoc_nde_t* nde, char* val)
     ldoc_nde_ent_push(nde, ent_bld);
 }
 
-static inline ldoc_nde_t* gff_proc_sregion(char* val)
+static inline ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
 {
     // Landmark identifier:
     char* id = val;
@@ -477,6 +467,11 @@ static inline ldoc_nde_t* gff_proc_sregion(char* val)
     
     ldoc_nde_ent_push(nde, ent_st);
     ldoc_nde_ent_push(nde, ent_en);
+    
+    if (cid)
+    {
+        *cid = strdup(id);
+    }
     
     return nde;
 }
@@ -534,7 +529,7 @@ static inline ldoc_struct_t gff_prgm_tpe(char* ky)
     return LDOC_NDE_OL;
 }
 
-static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen)
+static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     // Skip leading markup:
     ln += 2;
@@ -596,13 +591,16 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen)
         }
     }
     
+    // Possible identifier for use in the comment section:
+    char* id = NULL;
+    
     if (tpe == LDOC_NDE_OO)
     {
         // Fine with string comparisons here, since this case
         // will (hopefully) not be true many times.
         if (!strcmp(ln, "sequence-region"))
         {
-            ldoc_nde_t* nde = gff_proc_sregion(val);
+            ldoc_nde_t* nde = gff_proc_sregion(val, &id);
             
             ldoc_nde_dsc_push(stmt, nde);
         }
@@ -630,10 +628,72 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen)
         ldoc_nde_ent_push(stmt, ntry);
     }
     
+    // Add comments in a separate section:
+    if (*cmt)
+    {
+        // Find previous comment section (if it exists):
+        ldoc_nde_t* c = NULL;
+        ldoc_nde_t* iter;
+        TAILQ_FOREACH(iter, &(doc->rt->dscs), ldoc_nde_entries)
+        {
+            if (!strcmp(iter->mkup.anno.str, GEN_COMMENT))
+            {
+                c = iter;
+                break;
+            }
+        }
+        
+        // If no comment section exists, create one now:
+        if (!c)
+        {
+            c = ldoc_nde_new(LDOC_NDE_OO);
+            c->mkup.anno.str = strdup(GEN_COMMENT);
+            
+            ldoc_nde_dsc_push(doc->rt, c);
+        }
+        
+        // Find whether the meta information has been commented on already:
+        ldoc_nde_t* cpgm = NULL;
+        TAILQ_FOREACH(iter, &(c->dscs), ldoc_nde_entries)
+        {
+            if (!strcmp(iter->mkup.anno.str, ln))
+            {
+                cpgm = iter;
+                break;
+            }
+        }
+        
+        // No comment for the meta information present yet? Create a new node:
+        if (!cpgm)
+        {
+            cpgm = ldoc_nde_new(LDOC_NDE_OL);
+            cpgm->mkup.anno.str = strdup(ln);
+            
+            ldoc_nde_dsc_push(c, cpgm);
+
+        }
+        
+        // Now add the actual comment:
+        ldoc_ent_t* cent = ldoc_ent_new(id ? LDOC_ENT_OR : LDOC_ENT_TXT);;
+        if (id)
+        {
+            cent->pld.pair.anno.str = id;
+            cent->pld.pair.dtm.str = *cmt;
+        }
+        else
+        {
+            cent->pld.str = *cmt;
+        }
+        ldoc_nde_ent_push(cpgm, cent);
+        
+        // Erase comment, but it is not released (free'd) yet:
+        *cmt = NULL;
+    }
+    
     return doc;
 }
 
-static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen)
+static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, char** cmt)
 {
     ldoc_doc_t* doc = ldoc_doc_new();
     
@@ -742,6 +802,18 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ph->pld.pair.anno.str = (char*)GFF_C8;
     ph->pld.pair.dtm.str = coff[7];
 
+    // Add comment lines -- if available:
+    if (*cmt)
+    {
+        ldoc_ent_t* c = ldoc_ent_new(LDOC_ENT_OR);
+        c->pld.pair.anno.str = (char*)GEN_COMMENT;
+        c->pld.pair.dtm.str = *cmt;
+        ldoc_nde_ent_push(ftr, c);
+        
+        // Erase comment, but it is not released (free'd) yet:
+        *cmt = NULL;
+    }
+    
     // Add sequence information -- if available:
     if (seq)
     {
@@ -1126,7 +1198,7 @@ void gff_idx_release(ldoc_trie_t* trie)
     ldoc_trie_free(trie);
 }
 
-static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st)
+static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt)
 {
     ldoc_doc_t* ldoc = NULL;
     
@@ -1153,12 +1225,29 @@ static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* 
                 else
                 {
                     // Nope, real meta line:
-                    gff_proc_prgm(fdoc, ln, lnlen);
+                    gff_proc_prgm(fdoc, ln, lnlen, cmt);
                 }
             }
             else
             {
                 // Comment:
+                char* ccmt = gff_proc_cmt(ln, lnlen);
+                
+                // Append to existing comment, or, create a new one:
+                if (*cmt)
+                {
+                    size_t ccmtlen = strlen(ccmt);
+                    size_t cmtlen = strlen(*cmt) + ccmtlen;
+                    *cmt = realloc(*cmt, cmtlen + 1);
+
+                    // TODO Error handling.
+                    
+                    strncat(*cmt, ccmt, ccmtlen);
+                    
+                    free(ccmt);
+                }
+                else
+                    *cmt = ccmt;
             }
         }
         else if (st->fa_sct)
@@ -1168,7 +1257,7 @@ static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* 
         else
         {
             // Feature:
-            ldoc = gff_proc_ftr(fd, mx, idx, ln, lnlen);
+            ldoc = gff_proc_ftr(fd, mx, idx, ln, lnlen, cmt);
         }
     }
     
@@ -1229,6 +1318,7 @@ void gff_rd(int fd, off_t mx, ldoc_trie_t* idx)
     gen_prsr_t st;
     st.fa_sct = false;
     
+    char* cmt = NULL;
     char* mem_cpy = NULL;
     size_t mem_len = 0;
     size_t lnlen;
@@ -1259,7 +1349,7 @@ void gff_rd(int fd, off_t mx, ldoc_trie_t* idx)
             // Current line:
             mem_cpy = gff_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
             
-            gff_proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st);
+            gff_proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt);
             
             // Next line:
             off += lnlen;
