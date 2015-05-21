@@ -674,7 +674,7 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         
         // Now add the actual comment:
-        ldoc_ent_t* cent = ldoc_ent_new(id ? LDOC_ENT_OR : LDOC_ENT_TXT);;
+        ldoc_ent_t* cent = ldoc_ent_new(LDOC_ENT_OR);;
         if (id)
         {
             cent->pld.pair.anno.str = id;
@@ -682,7 +682,9 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         else
         {
-            cent->pld.str = gen_escstr(*cmt);
+            cent->pld.pair.anno.str = strdup(val);
+            cent->pld.pair.dtm.str = gen_escstr(*cmt);
+
         }
         ldoc_nde_ent_push(cpgm, cent);
         
