@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #ifdef __cplusplus
@@ -67,6 +68,8 @@ typedef struct gen_prsr_t
 
 void gen_xcig(char* str);
 
+char* gen_escstr(char* str);
+    
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

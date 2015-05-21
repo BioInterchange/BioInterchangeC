@@ -678,11 +678,11 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         if (id)
         {
             cent->pld.pair.anno.str = id;
-            cent->pld.pair.dtm.str = *cmt;
+            cent->pld.pair.dtm.str = gen_escstr(*cmt);
         }
         else
         {
-            cent->pld.str = *cmt;
+            cent->pld.str = gen_escstr(*cmt);
         }
         ldoc_nde_ent_push(cpgm, cent);
         
@@ -807,7 +807,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     {
         ldoc_ent_t* c = ldoc_ent_new(LDOC_ENT_OR);
         c->pld.pair.anno.str = (char*)GEN_COMMENT;
-        c->pld.pair.dtm.str = *cmt;
+        c->pld.pair.dtm.str = gen_escstr(*cmt);
         ldoc_nde_ent_push(ftr, c);
         
         // Erase comment, but it is not released (free'd) yet:

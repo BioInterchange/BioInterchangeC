@@ -65,3 +65,78 @@ void gen_xcig(char* str)
     
     *wptr = 0;
 }
+
+static inline bool gen_escchr(char* cptr)
+{
+    if (*cptr == '\n' ||
+        *cptr == '"' ||
+        *cptr == '\r' ||
+        *cptr == '\t' ||
+        *cptr == '\b' ||
+        *cptr == '\f')
+        return true;
+    
+    return false;
+}
+
+char* gen_escstr(char* str)
+{
+    size_t escchr = 0;
+    
+    // Count number of characters that need escaping:
+    char* ptr = str;
+    while (*ptr)
+        if (gen_escchr(ptr++))
+            escchr++;
+    
+    // Walk backwards and remove trailing newlines/carriage returns:
+    while (ptr-- > str)
+        if (*ptr == '\n' ||
+            *ptr == '\r')
+            *ptr = 0;
+        else
+            break;
+    
+    str = realloc(str, strlen(str) + escchr + 1);
+    
+    // TODO Error handling.
+    
+    // Escape characters:
+    char c;
+    ptr = str;
+    while ((c = *ptr))
+        if (gen_escchr(ptr))
+        {
+            *(ptr++) = '\\';
+            
+            switch (c)
+            {
+                case '"':
+                    *(ptr++) = '"';
+                    break;
+                case '\n':
+                    *(ptr++) = 'n';
+                    break;
+                case '\r':
+                    *(ptr++) = 'r';
+                    break;
+                case '\t':
+                    *(ptr++) = 't';
+                    break;
+                case '\b':
+                    *(ptr++) = 'b';
+                    break;
+                case '\f':
+                    *(ptr++) = 'f';
+                    break;
+                default:
+                    // TODO Error handling. Internal error.
+                    break;
+            }
+        }
+        else
+            *(ptr++) = c;
+    *ptr = 0;
+    
+    return str;
+}
