@@ -382,6 +382,29 @@ static inline char* gff_proc_cmt(char* ln, size_t lnlen)
     return cln;
 }
 
+/**
+ * Optional value handling; duplicates string.
+ */
+static inline char* gff_proc_optval(char* str)
+{
+    if (*str == '.' && *(str + 1) == 0)
+        return NULL;
+    
+    // TODO Error handling.
+    return strdup(str);
+}
+
+/**
+ * Optional value handling; keeps string.
+ */
+static inline char* gff_proc_optvalx(char* str)
+{
+    if (*str == '.' && *(str + 1) == 0)
+        return NULL;
+    
+    return str;
+}
+
 static inline void gff_proc_gbld(ldoc_nde_t* nde, char* val)
 {
     // Source:
@@ -442,14 +465,14 @@ static inline ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
         // TODO Error handling.
     }
 
-    ldoc_ent_t* ent_st = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* ent_st = ldoc_ent_new(LDOC_ENT_NR);
     
     if (!ent_st)
     {
         // TODO Error handling.
     }
     
-    ldoc_ent_t* ent_en = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* ent_en = ldoc_ent_new(LDOC_ENT_NR);
     
     if (!ent_en)
     {
@@ -460,10 +483,10 @@ static inline ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
     nde->mkup.anno.str = strdup(id);
     
     ent_st->pld.pair.anno.str = strdup(GEN_START);
-    ent_st->pld.pair.dtm.str = strdup(st);
+    ent_st->pld.pair.dtm.str = gff_proc_optval(st);
     
     ent_en->pld.pair.anno.str = strdup(GEN_END);
-    ent_en->pld.pair.dtm.str = strdup(en);
+    ent_en->pld.pair.dtm.str = gff_proc_optval(en);
     
     ldoc_nde_ent_push(nde, ent_st);
     ldoc_nde_ent_push(nde, ent_en);
@@ -727,6 +750,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         coff[col] = ln + off + 1;
 
         // Handling of "unknown" values ("." values):
+        // Note: more efficient than using gff_proc_optvalx below.
         if (coff[col - 1][0] == '.' && coff[col - 1][1] == 0)
             coff[col - 1] = NULL;
     }
@@ -743,7 +767,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     
     // See if landmark has a sequence:
     char* seq;
-    if (idx)
+    if (idx && coff[3] && coff[4])
     {
         bool rv = coff[6][0] == '+' ? true : false;
         uint64_t fst = strtoull(coff[3], NULL, 10); // TODO Add second parameter to figure out errors.
@@ -784,11 +808,11 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     tpe->pld.pair.anno.str = (char*)GFF_C3;
     tpe->pld.pair.dtm.str = coff[2];
 
-    ldoc_ent_t* st = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* st = ldoc_ent_new(LDOC_ENT_NR);
     st->pld.pair.anno.str = (char*)GFF_C4;
     st->pld.pair.dtm.str = coff[3];
     
-    ldoc_ent_t* en = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* en = ldoc_ent_new(LDOC_ENT_NR);
     en->pld.pair.anno.str = (char*)GFF_C5;
     en->pld.pair.dtm.str = coff[4];
 
