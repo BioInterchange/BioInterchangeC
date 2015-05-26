@@ -11,12 +11,8 @@
  *   As DOCX: http://www.codamono.com/license/biointerchange-l1.docx
  */
 
-#ifndef __biointerchange__vcf__
-#define __biointerchange__vcf__
-
-#include <stdio.h>
-
-#include "document.h"
+#ifndef biointerchange_gvf_h
+#define biointerchange_gvf_h
 
 #include "gen.h"
 #include "gff.h"
@@ -25,16 +21,10 @@
 extern "C" {
 #endif
     
-typedef enum
-{
-    BI_VCF_OTHER,
-    BI_VCF_GT
-} bi_vcf_info;
-
-void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
-
+void gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
+    
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* defined(__biointerchange__vcf__) */
+#endif

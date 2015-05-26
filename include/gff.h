@@ -33,9 +33,6 @@ extern "C" {
     
 #define BI_NFOUND -1
 
-// Number of memory pages that should reside in memory when reading a genomics file:
-#define BI_GEN_PG_MUL 4096
-
 // Note: Needs to be at least 2, or otherwise, search operations will not overlap:
 #define BI_FA_IDX_MUL 1024
 
@@ -60,34 +57,22 @@ typedef enum
     BI_FASTA_REF
 } bi_idx_ntry;
     
-typedef enum
-{
-    BI_NKW = 0,
-    /**
-     * String value.
-     */
-    BI_VAL,
-    /**
-     * Comma separated values.
-     */
-    BI_CSEP,
-    /**
-     * CIGAR string in GFF3 format (needs reformatting to match actual CIGAR specification).
-     */
-    BI_XCIG,
-    BI_STRUCT
-} bi_attr;
-    
-void gen_init();
-    
 off_t gff_fnd_fa(int fd, gen_fstat* stat, off_t mx);
 
 ldoc_trie_t* gff_idx_fa(int fd, gen_fstat* stat, off_t mx);
-
-void gff_rd(int fd, off_t mx, ldoc_trie_t* idx);
     
 char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_t en, bool rv);
 
+char* gff_proc_cmt(char* ln, size_t lnlen);
+    
+void gff_proc_gbld(ldoc_nde_t* nde, char* val);
+ldoc_nde_t* gff_proc_sregion(char* val, char** cid);
+    
+ldoc_struct_t gff_prgm_tpe(char* ky);
+void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs);
+    
+void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
+    
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

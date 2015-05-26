@@ -18,18 +18,16 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 
+// External (license *will* be external eventually):
 #include "document.h"
-#include "fio.h"
-#include "gff.h"
 #include "license.h"
 
-typedef enum
-{
-    GEN_FMT_GFF3,
-    GEN_FMT_GTF,
-    GEN_FMT_GVF,
-    GEN_FMT_VCF
-} gen_filetype_t;
+// Internal headers (part of BioInterchange):
+#include "gen.h"
+#include "fio.h"
+#include "gff.h"
+#include "gvf.h"
+#include "vcf.h"
 
 #define MAIN_SUCCESS  0
 
@@ -41,6 +39,8 @@ typedef enum
 #define MAIN_ERR_PARA 4
 #define MAIN_ERR_LISZ 5
 #define MAIN_ERR_LICF 6
+#define MAIN_ERR_FNME 7
+#define MAIN_ERR_FEXT 8
 
 #define MIN_PAGESIZE 2048
 
@@ -53,6 +53,21 @@ typedef enum
 #define ASSERT_CONCAT(a, b) ASSERT_CONCAT_(a, b)
 #define ct_assert(e) enum { ASSERT_CONCAT(assert_line_, __LINE__) = 1/(!!(e)) }
 ct_assert(sizeof(int)>=4);
+
+static void gff_cbcks(gen_cbcks_t* cbcks)
+{
+    cbcks->proc_ln = &gff_proc_ln;
+}
+
+static void gvf_cbcks(gen_cbcks_t* cbcks)
+{
+    cbcks->proc_ln = &gvf_proc_ln;
+}
+
+static void vcf_cbcks(gen_cbcks_t* cbcks)
+{
+    cbcks->proc_ln = &vcf_proc_ln;
+}
 
 int main(int argc, char* argv[])
 {
@@ -98,6 +113,39 @@ int main(int argc, char* argv[])
         
         exit(MAIN_ERR_PARA);
     }
+    
+    char* fname = argv[1];
+    size_t fname_len = strlen(fname);
+    if (fname_len < 5)
+    {
+        fprintf(stderr, "Filename too short. Needs to be at least one character followed by\n");
+        fprintf(stderr, "one of the following extensions: .gff .gtf .gvf .vcf\n");
+        
+        exit(MAIN_ERR_FNME);
+    }
+    
+    // Determine filetype by extension:
+    gen_filetype_t ftype;
+    char* ext_s = &fname[fname_len - 4];
+    char* ext_l = &fname[fname_len - 5]; // Still works with fname_len above, but means that the basename could be an empty string.
+    if (!strcmp(ext_s, ".gff") || !strcmp(ext_l, ".gff3"))
+        ftype = GEN_FMT_GFF3;
+    else if (!strcmp(ext_s, ".gtf"))
+        ftype = GEN_FMT_GTF;
+    else if (!strcmp(ext_s, ".gvf"))
+        ftype = GEN_FMT_GVF;
+    else if (!strcmp(ext_s, ".vcf"))
+        ftype = GEN_FMT_VCF;
+    else
+    {
+        fprintf(stderr, "Cannot determine filetype by filename extension.\n");
+        fprintf(stderr, "Known filename extensions: .gff .gtf .gvf .vcf\n");
+        
+        exit(MAIN_ERR_FEXT);
+    }
+    
+
+
     
     // See if the file can be opened; still not check the license:
     int fd = fio_opn(argv[1]);
@@ -172,7 +220,18 @@ int main(int argc, char* argv[])
     
     gen_fstat stat = { 0, 0, 0, 0 };
     size_t mx = fio_len(fd);
-    ldoc_trie_t* idx = gff_idx_fa(fd, &stat, mx);
+    
+    ldoc_trie_t* idx = NULL;
+    switch (ftype)
+    {
+        case GEN_FMT_GFF3:
+        case GEN_FMT_GVF:
+            gff_idx_fa(fd, &stat, mx);
+            break;
+        default:
+            // Do nothing.
+            break;
+    }
 
     // Check the license now; send stats too:
     lic_status_t status = lic_valid(lid, &stat);
@@ -184,7 +243,30 @@ int main(int argc, char* argv[])
         // Everything fine!
     }
     
-    gff_rd(fd, mx, idx);
+    gen_cbcks_t cbcks;
+    
+    switch (ftype)
+    {
+        case GEN_FMT_GFF3:
+            gff_cbcks(&cbcks);
+            break;
+        case GEN_FMT_GTF:
+            // TODO
+            gff_cbcks(&cbcks);
+            break;
+        case GEN_FMT_GVF:
+            gvf_cbcks(&cbcks);
+            break;
+        case GEN_FMT_VCF:
+            // TODO
+            vcf_cbcks(&cbcks);
+            break;
+        default:
+            // TODO Internal error.
+            break;
+    }
+    
+    gen_rd(fd, mx, idx, &cbcks);
     
     fio_cls(fd);
     

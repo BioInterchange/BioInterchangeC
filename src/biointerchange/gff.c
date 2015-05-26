@@ -16,7 +16,7 @@
 const char* GFF_FA = "\n##FASTA";
 const char* GFF_FA_PFX = "##FASTA";
 
-static const char* GFF_C1  = "seqid";
+static const char* GFF_C1  = "landmark";
 static const char* GFF_C2  = "source";
 static const char* GFF_C3  = "type";
 static const char* GFF_C4  = "start";
@@ -25,182 +25,9 @@ static const char* GFF_C6  = "score";
 static const char* GFF_C7  = "strand";
 static const char* GFF_C8  = "phase";
 
-static const char* GEN_ATTRS = "user";
-static const char* GEN_BUILD = "build";
-static const char* GEN_COMMENT = "comment";
-static const char* GEN_END = "end";
-static const char* GEN_LOCUS = "locus";
-static const char* GEN_SEQUENCE = "sequence";
-static const char* GEN_START = "start";
-static const char* GEN_SOURCE = "source";
-
-static const char* GEN_NULL = "null";
-static const char* GEN_TRUE = "true";
-
-static ldoc_vis_nde_ord_t* json_vis_nde;
-static ldoc_vis_ent_t* json_vis_ent;
-
-void gen_init()
-{
-    json_vis_nde = ldoc_vis_nde_ord_new();
-    json_vis_nde->vis_setup = ldoc_vis_setup_json;
-    json_vis_nde->vis_teardown = ldoc_vis_teardown_json;
-    ldoc_vis_nde_uni(&(json_vis_nde->pre), ldoc_vis_nde_pre_json);
-    ldoc_vis_nde_uni(&(json_vis_nde->infx), ldoc_vis_nde_infx_json);
-    ldoc_vis_nde_uni(&(json_vis_nde->post), ldoc_vis_nde_post_json);
-    
-    json_vis_ent = ldoc_vis_ent_new();
-    ldoc_vis_ent_uni(json_vis_ent, ldoc_vis_ent_json);
-}
-
-static inline void gen_lwr(char* str)
-{
-    while (*str)
-    {
-        if (*str >= 'A' && *str <= 'Z')
-            *str = *str - 'A' + 'a';
-        
-        str++;
-    }
-}
-
-static inline bi_attr gen_kwd(char* str)
-{
-    if (*str >= 'A' && *str <= 'Z')
-    {
-        if (*str == 'A')
-        {
-            str++;
-            if (*str == 'l')
-            {
-                str++;
-                if (*str == 'i')
-                {
-                    str++;
-                    if (!strcmp(str, "as"))
-                        return BI_CSEP;
-                }
-            }
-        }
-        else if (*str == 'D')
-        {
-            str++;
-            if (*str == 'b')
-            {
-                str++;
-                if (*str == 'x')
-                {
-                    str++;
-                    if (!strcmp(str, "ref"))
-                        return BI_CSEP;
-                }
-            }
-        }
-        else if (*str == 'G')
-        {
-            str++;
-            if (*str == 'a')
-            {
-                str++;
-                if (*str == 'p')
-                {
-                    str++;
-                    if (!*str)
-                        return BI_XCIG;
-                }
-            }
-        }
-        else if (*str == 'N')
-        {
-            str++;
-            if (*str == 'o')
-            {
-                str++;
-                if (*str == 't')
-                {
-                    str++;
-                    if (!strcmp(str, "e"))
-                        return BI_CSEP;
-                }
-            }
-        }
-        else if (*str == 'O')
-        {
-            str++;
-            if (*str == 'n')
-            {
-                str++;
-                if (*str == 't')
-                {
-                    str++;
-                    if (!strcmp(str, "ology_term"))
-                        return BI_CSEP;
-                }
-            }
-        }
-        else if (*str == 'P')
-        {
-            str++;
-            if (*str == 'a')
-            {
-                str++;
-                if (*str == 'r')
-                {
-                    str++;
-                    if (!strcmp(str, "ent"))
-                        return BI_CSEP;
-                }
-            }
-        }
-        
-        return BI_VAL;
-    }
-    
-    return BI_NKW;
-}
-
-static inline char gen_inv(char c)
-{
-    switch (c)
-    {
-        case 'A':
-            return 'T';
-        case 'C':
-            return 'G';
-        case 'G':
-            return 'C';
-        case 'N':
-            return 'N';
-        case 'T':
-            return 'A';
-        default:
-            // TODO Error.
-            break;
-    }
-}
-
 static inline void gff_attr()
 {
     
-}
-
-static inline void gff_ky(char* attr, char** val)
-{
-    while (*attr)
-    {
-        if (*attr == '=')
-        {
-            *attr = 0;
-            *val = ++attr;
-            
-            return;
-        }
-        else
-            attr++;
-    }
-    
-    // No value assignment; just a key.
-    *val = NULL;
 }
 
 static inline char* gen_nxt_ws(char* str)
@@ -234,135 +61,7 @@ static inline char* gen_nxt_ws(char* str)
     return str;
 }
 
-void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs)
-{
-    /* Ruby prototype:
-        attributes = {}
-        hashes = attribute_string.split(';').map { |assignment|
-            match = assignment.match(/([^=]+)=(.+)/) ;
-            { match[1].strip => match[2].split(',').map { |value| URI.decode(value.strip) } }
-        }
-        hashes.map { |hash|
-            hash.each_pair { |tag,list|
-                attributes[tag] = list
-            }
-        }
-        attributes
-    */
-    char* attr = attrs;
-    do
-    {
-        if (!*attrs || *attrs == ';')
-        {
-            bool brk = false;
-            
-            // If this is the end of the string, then make sure to bail out next:
-            if (!*attrs)
-                brk = true;
-            
-            // Isolate attribute assignment by making it an isolated string:
-            *attrs = 0;
-            
-            // Isolate key/value:
-            char* val;
-            gff_ky(attr, &val);
-         
-            // Nothing to handle -- break condition 1:
-            if (!*attr)
-                return;
-            
-            // Key/value assignment, or, key-only handling:
-            ldoc_nde_t* dst;
-            bi_attr kind;
-            // Yes, this is an assignment. Do not '=='!
-            if ((kind = gen_kwd(attr)))
-            {
-                dst = ftr;
-                
-                gen_lwr(attr);
-            }
-            else
-            {
-                dst = usr;
-                
-                if (!val)
-                    val = (char*)GEN_TRUE;
-            }
-            
-            char* val_cmp;
-            ldoc_nde_t* kv_nde;
-            ldoc_ent_t* kv_ent;
-            switch (kind)
-            {
-                case BI_CSEP:
-                    kv_nde = ldoc_nde_new(LDOC_NDE_OL);
-                    
-                    if (!kv_nde)
-                    {
-                        // TODO Error handling.
-                    }
-
-                    kv_nde->mkup.anno.str = attr;
-                    
-                    val_cmp = val;
-                    do
-                    {
-                        // Check: this should always work, since strlen(val) > 0; but check!?
-                        val++;
-                        
-                        if (*val == ',' || !*val)
-                        {
-                            *val = 0;
-                            
-                            kv_ent = ldoc_ent_new(LDOC_ENT_TXT);
-                            
-                            if (!kv_ent)
-                            {
-                                // TODO Error handling.
-                            }
-                            
-                            kv_ent->pld.pair.anno.str = attr;
-                            kv_ent->pld.pair.dtm.str = val_cmp;
-                            ldoc_nde_ent_push(kv_nde, kv_ent);
-                            
-                            val_cmp = val;
-                        }
-                    } while (*val);
-                    
-                    ldoc_nde_dsc_push(dst, kv_nde);
-                    
-                    break;
-                default:
-                    kv_ent = ldoc_ent_new(LDOC_ENT_OR);
-                    
-                    if (!kv_ent)
-                    {
-                        // TODO Error handling.
-                    }
-                    
-                    if (kind == BI_XCIG)
-                        gen_xcig(val);
-                    
-                    kv_ent->pld.pair.anno.str = attr;
-                    kv_ent->pld.pair.dtm.str = val;
-                    ldoc_nde_ent_push(dst, kv_ent);
-                    
-                    break;
-            }
-            
-            // Attribute EOS reached earlier -- break condition 2:
-            if (brk)
-                return;
-            
-            // Next attribute will have to start here:
-            attr = attrs + 1;
-        }
-        
-        attrs++;
-    } while (true); // See "break condition 1" and "break condition 2".
-}
-
-static inline char* gff_proc_cmt(char* ln, size_t lnlen)
+char* gff_proc_cmt(char* ln, size_t lnlen)
 {
     // Skip initial character that marks the comment:
     ln++;
@@ -405,7 +104,7 @@ static inline char* gff_proc_optvalx(char* str)
     return str;
 }
 
-static inline void gff_proc_gbld(ldoc_nde_t* nde, char* val)
+void gff_proc_gbld(ldoc_nde_t* nde, char* val)
 {
     // Source:
     char* src = val;
@@ -434,7 +133,7 @@ static inline void gff_proc_gbld(ldoc_nde_t* nde, char* val)
     ldoc_nde_ent_push(nde, ent_bld);
 }
 
-static inline ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
+ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
 {
     // Landmark identifier:
     char* id = val;
@@ -499,7 +198,7 @@ static inline ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
     return nde;
 }
 
-static inline ldoc_struct_t gff_prgm_tpe(char* ky)
+ldoc_struct_t gff_prgm_tpe(char* ky)
 {
     if (*ky == 'g')
     {
@@ -640,7 +339,16 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         else
         {
-            // TODO Internal error.
+            // Unknown pragmas:
+            ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_TXT);
+            
+            // TODO Error handling.
+            
+            ent->pld.str = strdup(val);
+            
+            // TODO Error handling.
+            
+            ldoc_nde_ent_push(stmt, ent);
         }
     }
     else if (tpe != LDOC_NDE_UA)
@@ -755,16 +463,6 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
             coff[col - 1] = NULL;
     }
     
-    // 0 : landmark
-    // 1 : 1
-    // 2 : 2
-    // 3 : start
-    // 4 : end
-    // 5 : 5
-    // 6 : strand
-    // 7 : 7
-    // 8 : attr
-    
     // See if landmark has a sequence:
     char* seq;
     if (idx && coff[3] && coff[4])
@@ -849,7 +547,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         ldoc_nde_ent_push(ftr, sq);
     }
     
-    gff_splt_attrs(ftr, attrs, coff[8]);
+    gen_splt_attrs(ftr, attrs, NULL, coff[8]);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
@@ -1224,7 +922,7 @@ void gff_idx_release(ldoc_trie_t* trie)
     ldoc_trie_free(trie);
 }
 
-static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt)
+void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt)
 {
     ldoc_doc_t* ldoc = NULL;
     
@@ -1293,110 +991,6 @@ static inline void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* 
         
         printf("%s\n", ser->sclr.str);
     }
-}
-
-char* gff_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, off_t off)
-{
-    if (!ln)
-    {
-        *ln_len = llen;
-        ln = (char*)malloc(*ln_len + 1);
-    }
-    
-    if (!ln)
-    {
-        // TODO Error handling. Initial alloc failed.
-    }
-    
-    if (llen > *ln_len)
-    {
-        ln = realloc(ln, llen + 1);
-        *ln_len = llen;
-    }
-
-    if (!ln)
-    {
-        // TODO Error handling. Realloc failed.
-    }
-
-    // Copy line (including newline characters):
-    memcpy(ln, mem->pg + (off - mem->off), *ln_len);
-    
-    // Terminate string:
-    ln[*ln_len] = 0;
-    
-    return ln;
-}
-
-void gff_rd(int fd, off_t mx, ldoc_trie_t* idx)
-{
-    ldoc_doc_t* fdoc = ldoc_doc_new();
-    
-    if (!fdoc)
-    {
-        // TODO Error handling.
-    }
-    
-    off_t off = 0;
-    fio_mem* mem = NULL;
-    int incr = 0;
-    
-    gen_prsr_t st;
-    st.fa_sct = false;
-    
-    char* cmt = NULL;
-    char* mem_cpy = NULL;
-    size_t mem_len = 0;
-    size_t lnlen;
-    uint64_t ln_no = 0;
-    while (!mem || mem->off + mem->ln < mx)
-    {
-    // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
-    gff_rd_incr_mem:
-        mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
-        
-        // TODO Error checking.
-        
-        // Figure out if (at least) one line can be read (based on current pointer):
-        lnlen = fio_lnlen(mem, mem->off);
-        
-        // Handle case where no line ending is visible:
-        if (!lnlen && mem->off + mem->ln < mx)
-        {
-            incr++;
-            goto gff_rd_incr_mem;
-        }
-        
-        // Still no line ending visible? Then read to the end of the buffer (this is implicit; check fio_mmap behavior):
-        if (!lnlen)
-            lnlen = mem->mx - mem->off;
-        
-        do {
-            // Current line:
-            mem_cpy = gff_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
-            
-            gff_proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt);
-            
-            // Next line:
-            off += lnlen;
-            ln_no++;
-            lnlen = fio_lnlen(mem, off);
-            
-            //printf("%lu: %lu\n", ln_no, lnlen);
-            //printf("%s", mem_cpy);
-        } while (lnlen);
-    }
-    
-    if (mem)
-        fio_munmap(mem);
-    
-    // Meta information about the file and its data contents:
-    
-    ldoc_ser_t* ser = ldoc_format(fdoc, json_vis_nde, json_vis_ent);
-    
-    // Only output non-empty documents:
-    if (fdoc->rt->dsc_cnt > 0 || fdoc->rt->ent_cnt > 0)
-        printf("%s\n", ser->sclr.str);
 }
 
 char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_t en, bool rv)
