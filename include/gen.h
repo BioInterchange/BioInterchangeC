@@ -162,6 +162,12 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
 
 void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks);
 
+char* qk_alloc(size_t n);
+void qk_free();
+void qk_purge();
+char* qk_strdup(const char* s1);
+char* qk_strndup(const char* s1, size_t n);
+    
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

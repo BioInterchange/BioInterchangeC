@@ -746,6 +746,9 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
             
             cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt);
             
+            // Reset quick memory:
+            qk_purge();
+            
             // Next line:
             off += lnlen;
             ln_no++;
@@ -755,6 +758,9 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
             //printf("%s", mem_cpy);
         } while (lnlen);
     }
+    
+    if (mem_cpy)
+        free(mem_cpy);
     
     if (mem)
         fio_munmap(mem);
@@ -767,3 +773,61 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
     if (fdoc->rt->dsc_cnt > 0 || fdoc->rt->ent_cnt > 0)
         printf("%s\n", ser->sclr.str);
 }
+
+/// Quick SINGLE THREADED string operations
+
+static size_t qk_size;
+static char* qk_heap;
+static char* qk_ptr;
+
+char* qk_alloc(size_t n)
+{
+    qk_heap = (char*)malloc(n);
+    
+    qk_ptr = qk_heap;
+    qk_size = n;
+    
+    return qk_heap;
+}
+
+void qk_free()
+{
+    free(qk_heap);
+}
+
+void qk_purge()
+{
+    qk_ptr = qk_heap;
+}
+
+char* qk_strdup(const char* s1)
+{
+    size_t len = strlen(s1);
+    
+    // Out of quick memory:
+    if (qk_ptr - qk_heap + len + 1 > qk_size)
+        return NULL;
+    
+    off_t cpy = qk_ptr;
+    memcpy(qk_ptr, s1, len + 1);
+    
+    qk_ptr += len + 1;
+    
+    return cpy;
+}
+
+char* qk_strndup(const char* s1, size_t n)
+{
+    // Out of quick memory:
+    if (qk_ptr - qk_heap + n + 1 > qk_size)
+        return NULL;
+    
+    off_t cpy = qk_ptr;
+    memcpy(qk_ptr, s1, n);
+    qk_ptr[n] = 0;
+    
+    qk_ptr += n + 1;
+    
+    return cpy;
+}
+

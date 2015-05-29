@@ -83,6 +83,14 @@ int main(int argc, char* argv[])
         exit(MAIN_ERR_PGSZ);
     }
     
+    // Allocate quick memory heap (10MB):
+    if (!qk_alloc(10*1024*1024))
+    {
+        fprintf(stderr, "Sorry, there is not enough memory available to fire up the software.\n\n");
+        
+        exit(MAIN_ERR_PGSZ); // TODO
+    }
+    
     // Get home directory:
     struct passwd *pws;
     pws = getpwuid(geteuid());
@@ -269,6 +277,8 @@ int main(int argc, char* argv[])
     gen_rd(fd, mx, idx, &cbcks);
     
     fio_cls(fd);
+    
+    qk_free();
     
     return MAIN_SUCCESS;
 }

@@ -326,12 +326,13 @@ static inline ldoc_nde_t* vcf_proc_gle(char* val, size_t len, char* ref, char** 
             
             ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
             
+            // TODO Ignore this strdup for now. Since GLE most likely unused.
             ent->pld.pair.anno.str = strdup(gt);
             
             if (val - (cln + 1) == 1 && *(cln + 1) == '.')
                 ent->pld.pair.dtm.str = NULL;
             else
-                ent->pld.pair.dtm.str = strndup(v, val - (cln + 1));
+                ent->pld.pair.dtm.str = strndup(v, val - (cln + 1)); // TODO Same, ignore for now. GLE unlikely to be used.
             
             ldoc_nde_ent_push(nde, ent);
             
@@ -369,7 +370,7 @@ static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
             if (val - v == 1 && *v == '.')
                 ent->pld.pair.dtm.str = NULL;
             else
-                ent->pld.pair.dtm.str = strndup(v, len ? val - v : val - v + 1);
+                ent->pld.pair.dtm.str = qk_strndup(v, len ? val - v : val - v + 1);
             
             ldoc_nde_ent_push(nde, ent);
             
@@ -444,7 +445,7 @@ static inline ldoc_nde_t* vcf_proc_gt(char* val, size_t len, char* ref, char** v
     ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
     
     ent->pld.pair.anno.str = (char*)VCF_ALLELES;
-    ent->pld.pair.dtm.str = strdup(gt);
+    ent->pld.pair.dtm.str = qk_strdup(gt);
     
     ldoc_nde_ent_push(nde, ent);
     
@@ -462,12 +463,12 @@ static inline ldoc_ent_t* vcf_proc_num(char* val, size_t len, char* lbl, size_t 
 {
     ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
     
-    ent->pld.pair.anno.str = strndup(lbl, lbllen);
+    ent->pld.pair.anno.str = qk_strndup(lbl, lbllen);
     
     if (len == 1 && *val == '.')
         ent->pld.pair.dtm.str = NULL;
     else
-        ent->pld.pair.dtm.str = strndup(val, len);
+        ent->pld.pair.dtm.str = qk_strndup(val, len);
     
     return ent;
 }
@@ -482,7 +483,7 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
     
     ldoc_nde_t* s = ldoc_nde_new(LDOC_NDE_UA);
     
-    s->mkup.anno.str = strdup(stt->vcf_hdr_off[i]);
+    s->mkup.anno.str = qk_strdup(stt->vcf_hdr_off[i]);
     
     // TODO Error handling.
 
@@ -556,8 +557,8 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         else
         {
             // Default: add simple key/value pair
-            anno->pld.pair.anno.str = strndup(id, fmt - id);
-            anno->pld.pair.dtm.str = strndup(val, smpl - val);
+            anno->pld.pair.anno.str = qk_strndup(id, fmt - id);
+            anno->pld.pair.dtm.str = qk_strndup(val, smpl - val);
             
             ldoc_nde_ent_push(s, anno);
         }
@@ -713,7 +714,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
                 
                 // TODO Error handling.
                 
-                smpl_null->pld.pair.anno.str = strdup(stt->vcf_hdr_off[i - 9]);
+                smpl_null->pld.pair.anno.str = qk_strdup(stt->vcf_hdr_off[i - 9]);
                 smpl_null->pld.pair.dtm.str = NULL;
                 
                 ldoc_nde_ent_push(smpls, smpl_null);
@@ -829,5 +830,7 @@ void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
         ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
         
         printf("%s\n", ser->sclr.str);
+        
+        ldoc_doc_free(ldoc);
     }
 }
