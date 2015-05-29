@@ -27,7 +27,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+    
 // Number of memory pages that should reside in memory when reading a genomics file:
 #define BI_GEN_PG_MUL 4096
 
@@ -52,6 +52,19 @@ extern const char* GEN_TRUE;
 extern ldoc_vis_nde_ord_t* json_vis_nde;;
 extern ldoc_vis_ent_t* json_vis_ent;
     
+// Letters in the alphabet; restriction for labelling alleles (A, B, C, etc.):
+#define GEN_MAX_ALT       26
+// Two characters needed to encode for the value '26':
+#define GEN_MAX_ALT_CHARS  2
+    
+// Characters to step over when encoding for allele labels:
+// Note -- assumes VCF_MAX_ALT <= 26, so that only one character is
+//         required to encode for the allele.
+#define GEN_STEP 3
+    
+extern char GEN_ALLELE[GEN_MAX_ALT * 2];
+extern char GEN_ALLELES[GEN_STEP * (((GEN_MAX_ALT * (GEN_MAX_ALT + 1) / 2) + GEN_MAX_ALT + 1))];
+    
 typedef enum
 {
     BI_NKW = 0,
@@ -59,6 +72,10 @@ typedef enum
      * String value.
      */
     BI_VAL,
+    /**
+     * Number value.
+     */
+    BI_NUM,
     /**
      * Comma separated values.
      */
@@ -141,7 +158,7 @@ size_t gen_csplit(char* str, char c);
 
 void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* attrs);
 
-ldoc_nde_t* gen_variants(char* seq, char sep);
+ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
 
 void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks);
 

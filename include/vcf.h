@@ -14,6 +14,7 @@
 #ifndef __biointerchange__vcf__
 #define __biointerchange__vcf__
 
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "document.h"
@@ -30,7 +31,7 @@ typedef enum
     BI_VCF_OTHER,
     BI_VCF_GT
 } bi_vcf_info;
-
+    
 void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
 
 #ifdef __cplusplus

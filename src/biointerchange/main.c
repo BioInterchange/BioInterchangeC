@@ -215,9 +215,9 @@ int main(int argc, char* argv[])
     
     munmap(ltxt, msize);
     
-    // Index file first to get stats:
     gen_init();
     
+    // Index file first to get stats:
     gen_fstat stat = { 0, 0, 0, 0 };
     size_t mx = fio_len(fd);
     

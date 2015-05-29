@@ -22,6 +22,12 @@ static const char* VCF_C4   = "reference";
 static const char* VCF_C6   = "score";
 static const char* VCF_C7   = "filter";
 
+static const char* VCF_ALLELES = "alleles";
+static const char* VCF_GENOTYPE = "genotype";
+static const char* VCF_GENOLHOOD = "gl";
+static const char* VCF_GENOLHOODE = "gle";
+static const char* VCF_PHREDLHOOD = "pl";
+static const char* VCF_PHASED = "phased";
 static const char* VCF_SAMPLES = "samples";
 
 void vcf_splt_inf(char* inf)
@@ -245,7 +251,228 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     return doc;
 }
 
-static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, char* fmt, char* smpl)
+static inline ldoc_nde_t* vcf_proc_gle(char* val, size_t len, char* ref, char** vseqs, size_t vnum)
+{
+    /*
+     On May 28, 2015 at 11:06:25 AM, Erik Garrison (erik.garrison@gmail.com) wrote:
+     
+     
+     I contributed this and think it is broken (and unused). It is now mostly dealt with by the extension of the GL field to allow for arbitrary ploidy.
+     */
+
+    // Example:
+    // GLE=0:-75.22,1:-223.42,0/0:-323.03,1/0:-99.29,1/1:-802.53
+    
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
+    
+    nde->mkup.anno.str = (char*)VCF_GENOLHOODE;
+    
+    size_t n = 0;
+    char* v = val;
+    
+    // Need to be large enough to account for the values of idx1 and idx2:
+    uint16_t idx1_, idx2_;
+    char idx1[GEN_MAX_ALT_CHARS + 1];
+    char idx2[GEN_MAX_ALT_CHARS + 1];
+    while (len--)
+    {
+        // TODO Check whether val - v is larger than VCF_MAX_ALT_CHARS - 1.
+        
+        if (!len || *val == ',')
+        {
+            // Adjust val pointer, if len reached:
+            if (!len)
+                val++;
+            
+            // Find colon and optional forward slash:
+            char* cln = v;
+            char* slsh = NULL;
+            while (*cln != ':' && cln < val)
+            {
+                if (*cln == '/')
+                {
+                    // TODO Could check format by testing whether slsh is NULL.
+                    slsh = cln;
+                    
+                    *slsh = 0;
+                }
+                
+                cln++;
+            }
+            
+            if (cln >= val)
+            {
+                // TODO Format error.
+            }
+            
+            *cln = 0;
+            
+            // Convert indexes:
+            size_t ilen = slsh ? slsh - v : cln - v;
+            memcpy(idx1, v, ilen);
+            idx1[ilen] = 0;
+            idx1_ = 2 * strtol(idx1, NULL, 10);
+            if (slsh)
+            {
+                ilen = cln - (slsh + 1);
+                memcpy(idx2, slsh + 1, ilen);
+                idx2[ilen] = 0;
+                idx2_ = 2* strtol(idx2, NULL, 10);
+            }
+            else
+                idx2_ = 1; // Null byte.
+            
+            char gt[3] = { &GEN_ALLELE[idx1_], &GEN_ALLELE[idx2_], 0 };
+            
+            ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
+            
+            ent->pld.pair.anno.str = strdup(gt);
+            
+            if (val - (cln + 1) == 1 && *(cln + 1) == '.')
+                ent->pld.pair.dtm.str = NULL;
+            else
+                ent->pld.pair.dtm.str = strndup(v, val - (cln + 1));
+            
+            ldoc_nde_ent_push(nde, ent);
+            
+            n++;
+            v = val + 1;
+        }
+        
+        val++;
+    }
+    
+    return nde;
+}
+
+static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
+{
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
+    
+    if (pl)
+        nde->mkup.anno.str = (char*)VCF_PHREDLHOOD;
+    else
+        nde->mkup.anno.str = (char*)VCF_GENOLHOOD;
+    
+    size_t n = 0;
+    char* v = val;
+    while (len--)
+    {
+        // TODO Check whether val - v is larger than VCF_MAX_ALT_CHARS - 1.
+        
+        if (!len || *val == ',')
+        {
+            ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
+            
+            ent->pld.pair.anno.str = &GEN_ALLELES[n * GEN_STEP];
+            
+            if (val - v == 1 && *v == '.')
+                ent->pld.pair.dtm.str = NULL;
+            else
+                ent->pld.pair.dtm.str = strndup(v, len ? val - v : val - v + 1);
+            
+            ldoc_nde_ent_push(nde, ent);
+            
+            n++;
+            v = val + 1;
+        }
+        
+        val++;
+    }
+    
+    return nde;
+}
+
+static inline ldoc_nde_t* vcf_proc_gt(char* val, size_t len, char* ref, char** vseqs, size_t vnum)
+{
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
+    ldoc_nde_t* nde_seq = ldoc_nde_new(LDOC_NDE_OL);
+    
+    nde->mkup.anno.str = (char*)VCF_GENOTYPE;
+    
+    nde_seq->mkup.anno.str = (char*)GEN_SEQUENCE;
+    
+    char* v = val;
+    uint16_t idx_; // Needs to be large enough to account for the value in idx.
+    char idx[GEN_MAX_ALT_CHARS + 1];
+    bool phased = false;
+    char gt[len + 1]; // Genotype alleles. Size overapproximation.
+    char* g = gt;
+    while (len--)
+    {
+        // TODO Check whether val - v is larger than VCF_MAX_ALT_CHARS - 1.
+        
+        if (!len || *val == '/' || *val == '|')
+        {
+            ldoc_ent_t* ent_seq = ldoc_ent_new(LDOC_ENT_TXT);
+            
+            if (*val == '|')
+                phased = true;
+            
+            if (!len)
+                val++;
+            
+            // Isolate number:
+            memcpy(idx, v, val - v);
+            idx[val - v] = 0;
+            
+            // Convert number string to an actual number:
+            idx_ = strtol(idx, NULL, 10);
+            
+            if (!idx_)
+            {
+                ent_seq->pld.str = ref;
+                *(g++) = 'A';
+            }
+            else
+            {
+                ent_seq->pld.str = vseqs[idx_ - 1];
+                *(g++) = 'A' + idx_;
+            }
+            
+            ldoc_nde_ent_push(nde_seq, ent_seq);
+            
+            v = val + 1;
+        }
+        
+        val++;
+    }
+    *g = 0;
+    
+    ldoc_nde_dsc_push(nde, nde_seq);
+
+    ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+    
+    ent->pld.pair.anno.str = (char*)VCF_ALLELES;
+    ent->pld.pair.dtm.str = strdup(gt);
+    
+    ldoc_nde_ent_push(nde, ent);
+    
+    ent = ldoc_ent_new(LDOC_ENT_OR);
+    
+    ent->pld.pair.anno.str = (char*)VCF_PHASED;
+    ent->pld.pair.dtm.str = phased ? "true" : "false";
+    
+    ldoc_nde_ent_push(nde, ent);
+    
+    return nde;
+}
+
+static inline ldoc_ent_t* vcf_proc_num(char* val, size_t len, char* lbl, size_t lbllen)
+{
+    ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
+    
+    ent->pld.pair.anno.str = strndup(lbl, lbllen);
+    
+    if (len == 1 && *val == '.')
+        ent->pld.pair.dtm.str = NULL;
+    else
+        ent->pld.pair.dtm.str = strndup(val, len);
+    
+    return ent;
+}
+
+static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, char* fmt, char* smpl, char* ref, char** vseqs, size_t vnum)
 {
     // Note: Going through fmt character-by-character, because the names
     //       are so short that it might be as efficient as looking up a
@@ -277,10 +504,63 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         
         // TODO Error handling.
         
-        anno->pld.pair.anno.str = strndup(id, fmt - id);
-        anno->pld.pair.dtm.str = strndup(val, smpl - val);
-        
-        ldoc_nde_ent_push(s, anno);
+        // TODO Optimization.
+        //   1. could be optimized by not checking length multiple times.
+        //   2. could be optimized by not checking prefixes multiple times.
+        if (fmt - id == 2 && id[0] == 'G' && id[1] == 'T')
+        {
+            // GT: genotype
+            ldoc_nde_t* gt = vcf_proc_gt(val, smpl - val, ref, vseqs, vnum);
+            
+            ldoc_nde_dsc_push(s, gt);
+        }
+        else if (fmt - id == 2 && id[0] == 'G' && id[1] == 'L')
+        {
+            // PL: phred-scaled genotype likelihoods
+            ldoc_nde_t* gl = vcf_proc_glpl(val, smpl - val, false);
+            
+            ldoc_nde_dsc_push(s, gl);
+        }
+        else if (fmt - id == 3 && id[0] == 'G' && id[1] == 'L' && id[2] == 'E')
+        {
+            // GLE: genotype likelihoods
+            ldoc_nde_t* gt = vcf_proc_gle(val, smpl - val, ref, vseqs, vnum);
+            
+            ldoc_nde_dsc_push(s, gt);
+        }
+        else if (fmt - id == 2 && id[0] == 'P' && id[1] == 'L')
+        {
+            // PL: phred-scaled genotype likelihoods
+            ldoc_nde_t* pl = vcf_proc_glpl(val, smpl - val, true);
+            
+            ldoc_nde_dsc_push(s, pl);
+        }
+        else if ((fmt - id == 2 &&
+                  ((id[0] == 'A' && id[1] == 'N') ||
+                   (id[0] == 'B' && id[1] == 'Q') ||
+                   (id[0] == 'D' && id[1] == 'P') ||
+                   (id[0] == 'G' && id[1] == 'P') || // TODO Double check if this is not a comma separated list.
+                   (id[0] == 'G' && id[1] == 'Q') ||
+                   (id[0] == 'M' && id[1] == 'Q') ||
+                   (id[0] == 'N' && id[1] == 'S') ||
+                   (id[0] == 'P' && id[1] == 'Q'))) ||
+                 (fmt - id == 3 &&
+                  ((id[0] == 'E' && id[1] == 'N' && id[2] == 'D') ||
+                   (id[0] == 'M' && id[1] == 'Q' && id[2] == '0'))))
+        {
+            // Numeric fields with a single value.
+            ldoc_ent_t* num = vcf_proc_num(val, smpl - val, id, fmt - id);
+            
+            ldoc_nde_ent_push(s, num);
+        }
+        else
+        {
+            // Default: add simple key/value pair
+            anno->pld.pair.anno.str = strndup(id, fmt - id);
+            anno->pld.pair.dtm.str = strndup(val, smpl - val);
+            
+            ldoc_nde_ent_push(s, anno);
+        }
         
         if (*smpl)
             smpl++;
@@ -358,11 +638,14 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     id->pld.pair.anno.str = (char*)VCF_C3;
     id->pld.pair.dtm.str = coff[2];
     
-    ldoc_ent_t* ref = ldoc_ent_new(LDOC_ENT_NR);
+    ldoc_ent_t* ref = ldoc_ent_new(LDOC_ENT_OR);
     ref->pld.pair.anno.str = (char*)VCF_C4;
     ref->pld.pair.dtm.str = coff[3];
     
-    ldoc_nde_t* vars = gen_variants(coff[4], ',');
+    // Note: assume that no more than VCF_MAX_ALT variants are observed:
+    size_t vnum = 0;
+    char* vseqs[GEN_MAX_ALT];
+    ldoc_nde_t* vars = gen_variants(coff[4], ',', vseqs, &vnum);
     
     ldoc_ent_t* scr = ldoc_ent_new(LDOC_ENT_OR);
     scr->pld.pair.anno.str = (char*)VCF_C6;
@@ -404,6 +687,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_dsc_push(ftr, lc);
     
     // Reference & variants:
+    ldoc_nde_ent_push(ftr, ref);
     ldoc_nde_dsc_push(ftr, vars);
     
     // Do not add user defined sub-tree if it is empty:
@@ -422,7 +706,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         for (size_t i = 9; i < stt->vcf_col; i++)
         {
             if (coff[i])
-                vcf_proc_smpl(smpls, stt, i - 9, coff[8], coff[i]);
+                vcf_proc_smpl(smpls, stt, i - 9, coff[8], coff[i], coff[3], vseqs, vnum);
             else
             {
                 ldoc_ent_t* smpl_null = ldoc_ent_new(LDOC_ENT_OR);

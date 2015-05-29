@@ -51,6 +51,26 @@ const char* GEN_FREQUENCY = "frequency";
 ldoc_vis_nde_ord_t* json_vis_nde;
 ldoc_vis_ent_t* json_vis_ent;
 
+// Assumes VCF_MAX_ALT <= 26; one character for an allele.
+char GEN_ALLELE[GEN_MAX_ALT * 2];
+
+// Assumes VCF_MAX_ALT <= 26; one character for an allele, so encoding of
+// AA, AB, AC, is only VCF_STEP characters wide (allele 1, allel 2, null terminator).
+char GEN_ALLELES[GEN_STEP * (((GEN_MAX_ALT * (GEN_MAX_ALT + 1) / 2) + GEN_MAX_ALT + 1))];
+
+static inline void gen_allele_lbl(char* s, size_t j, size_t k)
+{
+    // Note: requires j <= k
+    // Based on: https://samtools.github.io/hts-specs/VCFv4.2.pdf
+    // Index formula: F(j/k) = (k*(k+1)/2)+j
+    // Bi-allelic example: AA, AB, BB
+    // Tri-allelic example: AA, AB, BB, AC, BC, CC
+    off_t idx = GEN_STEP * (( k * ( k + 1 ) / 2 ) + j);
+    GEN_ALLELES[idx] = 'A' + j;
+    GEN_ALLELES[idx + 1] = 'A' + k;
+    GEN_ALLELES[idx + 2] = 0;
+}
+
 void gen_init()
 {
     json_vis_nde = ldoc_vis_nde_ord_new();
@@ -62,6 +82,18 @@ void gen_init()
     
     json_vis_ent = ldoc_vis_ent_new();
     ldoc_vis_ent_uni(json_vis_ent, ldoc_vis_ent_json);
+    
+    char* s = GEN_ALLELES;
+    
+    for (size_t j = 0; j < GEN_MAX_ALT; j++)
+    {
+        GEN_ALLELE[2 * j] = 'A' + j;
+        GEN_ALLELE[2 * j + 1] = 0;
+        
+        for (size_t k = 0; k < GEN_MAX_ALT; k++)
+            if (j <= k)
+                gen_allele_lbl(s, j, k);
+    }
 }
 
 static inline void gen_ky(char* attr, char** val)
@@ -113,6 +145,12 @@ inline bi_attr gen_kwd(char* str)
                 if (!*str)
                     return BI_CSEPVAR; // VCF: AF, allele frequency
             }
+            else if (*str == 'N')
+            {
+                str++;
+                if (!*str)
+                    return BI_NUM; // VCF: AN, total number of alleles in called genotypes
+            }
             else if (*str == 'l')
             {
                 str++;
@@ -124,10 +162,26 @@ inline bi_attr gen_kwd(char* str)
                 }
             }
         }
+        else if (*str == 'B')
+        {
+            str++;
+            if (*str == 'Q')
+            {
+                str++;
+                if (!*str)
+                    return BI_NUM; // VCF: BQ, RMS base quality
+            }
+        }
         else if (*str == 'D')
         {
             str++;
-            if (*str == 'b')
+            if (*str == 'P')
+            {
+                str++;
+                if (!*str)
+                    return BI_NUM; // VCF: DP, depth across samples
+            }
+            else if (*str == 'b')
             {
                 str++;
                 if (*str == 'x')
@@ -135,6 +189,20 @@ inline bi_attr gen_kwd(char* str)
                     str++;
                     if (!strcmp(str, "ref")) // GFF3: Dbxref
                         return BI_CSEP;
+                }
+            }
+        }
+        else if (*str == 'E')
+        {
+            str++;
+            if (*str == 'N')
+            {
+                str++;
+                if (*str == 'D')
+                {
+                    str++;
+                    if (!*str)
+                        return BI_NUM; // VCF: END, end position of variant description
                 }
             }
         }
@@ -152,10 +220,32 @@ inline bi_attr gen_kwd(char* str)
                 }
             }
         }
+        else if (*str == 'M')
+        {
+            str++;
+            if (*str == 'Q')
+            {
+                str++;
+                if (!*str)
+                    return BI_NUM; // VCF: MQ, mapping quality
+                else if (*str == '0')
+                {
+                    str++;
+                    if (!*str)
+                        return BI_NUM; // VCF: MQ0, mapping quality == 0
+                }
+            }
+        }
         else if (*str == 'N')
         {
             str++;
-            if (*str == 'o')
+            if (*str == 'S')
+            {
+                str++;
+                if (!*str)
+                    return BI_NUM; // VCF: NS, number of samples with data
+            }
+            else if (*str == 'o')
             {
                 str++;
                 if (*str == 't')
@@ -415,7 +505,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* at
                     
                     break;
                 default:
-                    kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                    kv_ent = ldoc_ent_new(kind == BI_NUM ? LDOC_ENT_NR : LDOC_ENT_OR);
                     
                     if (!kv_ent)
                     {
@@ -444,9 +534,9 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* at
     } while (true); // See "break condition 1" and "break condition 2".
 }
 
-ldoc_nde_t* gen_variants(char* seq, char sep)
+ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
 {
-    ldoc_nde_t* vars = ldoc_nde_new(LDOC_NDE_OL);
+    ldoc_nde_t* vars = ldoc_nde_new(LDOC_NDE_UA);
     
     // TODO Error handling.
     
@@ -484,6 +574,10 @@ ldoc_nde_t* gen_variants(char* seq, char sep)
         
         seq_i->pld.pair.anno.str = (char*)GEN_SEQUENCE;
         seq_i->pld.pair.dtm.str = v;
+        
+        vseqs[(*vnum)++] = v;
+        
+        var->mkup.anno.str = &GEN_ALLELE[2 * *vnum];
         
         ldoc_nde_ent_push(var, seq_i);
         
