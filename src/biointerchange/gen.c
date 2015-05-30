@@ -37,6 +37,7 @@ const char* GEN_BUILD = "build";
 const char* GEN_COMMENT = "comment";
 const char* GEN_END = "end";
 const char* GEN_LOCUS = "locus";
+const char* GEN_REFERENCE = "reference";
 const char* GEN_SEQUENCE = "sequence";
 const char* GEN_START = "start";
 const char* GEN_SOURCE = "source";
@@ -284,6 +285,34 @@ inline bi_attr gen_kwd(char* str)
                 }
             }
         }
+        else if (*str == 'R')
+        {
+            str++;
+            if (*str == 'e')
+            {
+                str++;
+                if (*str == 'f')
+                {
+                    str++;
+                    if (!strcmp(str, "erence_seq"))
+                        return BI_IGN;
+                }
+            }
+        }
+        else if (*str == 'V')
+        {
+            str++;
+            if (*str == 'a')
+            {
+                str++;
+                if (*str == 'r')
+                {
+                    str++;
+                    if (!strcmp(str, "iant_seq"))
+                        return BI_IGN; // GVF: Variant_seq
+                }
+            }
+        }
         
         return BI_VAL;
     }
@@ -504,6 +533,9 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* at
                     }
                     
                     break;
+                case BI_IGN:
+                    // Ignore. Key/value pair has been processed already.
+                    break;
                 default:
                     kv_ent = ldoc_ent_new(kind == BI_NUM ? LDOC_ENT_NR : LDOC_ENT_OR);
                     
@@ -558,6 +590,12 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
             {
                 *(seq++) = 0;
                 cnt = true;
+                break;
+            }
+            else if (*seq == ';')
+            {
+                // VCF attribute separator.
+                *(seq++) = 0;
                 break;
             }
             

@@ -42,6 +42,7 @@ extern const char* GEN_BUILD;
 extern const char* GEN_COMMENT;
 extern const char* GEN_END;
 extern const char* GEN_LOCUS;
+extern const char* GEN_REFERENCE;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_START;
 extern const char* GEN_SOURCE;
@@ -67,7 +68,14 @@ extern char GEN_ALLELES[GEN_STEP * (((GEN_MAX_ALT * (GEN_MAX_ALT + 1) / 2) + GEN
     
 typedef enum
 {
+    /**
+     * Unknown keyword ("no keyword").
+     */
     BI_NKW = 0,
+    /**
+     * Ignore. This key/value pair has been processed already.
+     */
+    BI_IGN,
     /**
      * String value.
      */
@@ -84,6 +92,10 @@ typedef enum
      * Comma separated information about variants.
      */
     BI_CSEPVAR,
+    /**
+     * Information about reference sequences. (GVF attribute)
+     */
+    BI_REFSEQ,
     /**
      * CIGAR string in GFF3 format (needs reformatting to match actual CIGAR specification).
      */

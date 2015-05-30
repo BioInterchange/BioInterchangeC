@@ -638,10 +638,14 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_ent_t* id = ldoc_ent_new(LDOC_ENT_NR);
     id->pld.pair.anno.str = (char*)VCF_C3;
     id->pld.pair.dtm.str = coff[2];
+
+    ldoc_nde_t* ref = ldoc_nde_new(LDOC_NDE_UA);
+    ref->mkup.anno.str = (char*)VCF_C4;
     
-    ldoc_ent_t* ref = ldoc_ent_new(LDOC_ENT_OR);
-    ref->pld.pair.anno.str = (char*)VCF_C4;
-    ref->pld.pair.dtm.str = coff[3];
+    ldoc_ent_t* ref_seq = ldoc_ent_new(LDOC_ENT_OR);
+    ref_seq->pld.pair.anno.str = (char*)GEN_SEQUENCE;
+    ref_seq->pld.pair.dtm.str = coff[3];
+    ldoc_nde_ent_push(ref, ref_seq);
     
     // Note: assume that no more than VCF_MAX_ALT variants are observed:
     size_t vnum = 0;
@@ -688,7 +692,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_dsc_push(ftr, lc);
     
     // Reference & variants:
-    ldoc_nde_ent_push(ftr, ref);
+    ldoc_nde_dsc_push(ftr, ref);
     ldoc_nde_dsc_push(ftr, vars);
     
     // Do not add user defined sub-tree if it is empty:

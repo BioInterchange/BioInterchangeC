@@ -165,8 +165,69 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         ldoc_nde_ent_push(ftr, sq);
     }
     
-    // Re-use GFF3 implementation:
-    gen_splt_attrs(ftr, attrs, NULL, coff[8]);
+    // Find Reference_seq and Variant_seq and create respective nodes.
+    // Note 1: Without X_seq, other X_* entries will be ignored.
+    // Note 2: Assume that no more than VCF_MAX_ALT variants are observed.
+    ldoc_nde_t* ref = NULL;
+    size_t vnum = 0;
+    char* vseqs[GEN_MAX_ALT];
+    ldoc_nde_t* vars = NULL;
+    char* xseq = coff[8];
+    gvf_prs_seq prs = GVF_PRS_NONE;
+    while (xseq - ln < lnlen)
+    {
+        if (*xseq == 'R' && *(xseq + 1) == 'e' && !strncmp(xseq + 2, "ference_seq=", 12))
+        {
+            xseq += 14;
+            prs = GVF_PRS_REF;
+        }
+        else if (*xseq == 'V' && *(xseq + 1) == 'a' && !strncmp(xseq + 2, "riant_seq=", 10))
+        {
+            xseq += 12;
+            prs = GVF_PRS_VAR;
+        }
+        
+        if (prs)
+        {
+            char *xseq_ = xseq;
+            while (xseq_ - ln < lnlen && *xseq_ != ';')
+                xseq_++;
+            
+            char* val = qk_strndup(xseq, xseq_ - xseq);
+            
+            switch (prs)
+            {
+                case GVF_PRS_REF:
+                    ref = ldoc_nde_new(LDOC_NDE_UA);
+                    ref->mkup.anno.str = (char*)GEN_REFERENCE;
+                    
+                    ldoc_ent_t* ref_seq = ldoc_ent_new(LDOC_ENT_OR);
+                    ref_seq->pld.pair.anno.str = (char*)GEN_SEQUENCE;
+                    ref_seq->pld.pair.dtm.str = val;
+                    ldoc_nde_ent_push(ref, ref_seq);
+                    
+                    break;
+                case GVF_PRS_VAR:
+                    vars = gen_variants(val, ',', vseqs, &vnum);
+                    
+                    break;
+                default:
+                    // TODO Internal error.
+                    break;
+            }
+            
+            prs = GVF_PRS_NONE;
+        }
+        
+        
+        if (ref && vars)
+            break;
+        
+        xseq++;
+    }
+    
+    // Generic implementation for parsing attributes:
+    gen_splt_attrs(ftr, attrs, vars, coff[8]);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
@@ -184,6 +245,10 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     
     ldoc_nde_ent_push(ftr, lm);
     ldoc_nde_dsc_push(ftr, lc);
+
+    // Reference & variants:
+    ldoc_nde_dsc_push(ftr, ref);
+    ldoc_nde_dsc_push(ftr, vars);
     
     // Do not add user defined sub-tree if it is empty:
     if (attrs->dsc_cnt || attrs->ent_cnt)

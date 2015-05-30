@@ -20,6 +20,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum
+{
+    GVF_PRS_NONE = 0,
+    GVF_PRS_REF,
+    GVF_PRS_VAR
+} gvf_prs_seq;
     
 void gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
     
