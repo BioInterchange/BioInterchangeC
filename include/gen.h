@@ -93,7 +93,7 @@ typedef enum
      */
     BI_CSEPVAR,
     /**
-     * Information about reference sequences. (GVF attribute)
+     * Information about the reference sequence.
      */
     BI_REFSEQ,
     /**
@@ -168,7 +168,7 @@ char* gen_escstr(char* str);
     
 size_t gen_csplit(char* str, char c);
 
-void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* attrs);
+void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs);
 
 ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
 

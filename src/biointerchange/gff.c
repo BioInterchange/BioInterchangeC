@@ -547,7 +547,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         ldoc_nde_ent_push(ftr, sq);
     }
     
-    gen_splt_attrs(ftr, attrs, NULL, coff[8]);
+    gen_splt_attrs(ftr, attrs, NULL, NULL, coff[8]);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.

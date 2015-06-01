@@ -296,6 +296,8 @@ inline bi_attr gen_kwd(char* str)
                     str++;
                     if (!strcmp(str, "erence_seq"))
                         return BI_IGN;
+                    else if (!strcmp(str, "erence_codon"))
+                        return BI_REFSEQ;
                 }
             }
         }
@@ -393,7 +395,7 @@ size_t gen_csplit(char* str, char c)
     return n;
 }
 
-void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* attrs)
+void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs)
 {
     /* Ruby prototype:
      attributes = {}
@@ -535,6 +537,19 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* vars, char* at
                     break;
                 case BI_IGN:
                     // Ignore. Key/value pair has been processed already.
+                    break;
+                case BI_REFSEQ:
+                    kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                    
+                    if (!kv_ent)
+                    {
+                        // TODO Error handling.
+                    }
+                    
+                    kv_ent->pld.pair.anno.str = attr;
+                    kv_ent->pld.pair.dtm.str = val;
+                    ldoc_nde_ent_push(ref, kv_ent);
+                    
                     break;
                 default:
                     kv_ent = ldoc_ent_new(kind == BI_NUM ? LDOC_ENT_NR : LDOC_ENT_OR);

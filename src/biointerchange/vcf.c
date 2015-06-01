@@ -675,7 +675,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
     
-    gen_splt_attrs(ftr, attrs, vars, coff[7]);
+    gen_splt_attrs(ftr, attrs, ref, vars, coff[7]);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.

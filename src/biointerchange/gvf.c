@@ -227,7 +227,7 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     }
     
     // Generic implementation for parsing attributes:
-    gen_splt_attrs(ftr, attrs, vars, coff[8]);
+    gen_splt_attrs(ftr, attrs, ref, vars, coff[8]);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
