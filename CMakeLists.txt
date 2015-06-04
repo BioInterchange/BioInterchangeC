@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.0.2)
 
 project(biointerchange VERSION 2.0.0 LANGUAGES C CXX)
 
+set(PYTHON_VERSION "3.4")
+set(PYTHON_PATCH "3")
+set(PYTHON_SUFFIX "m")
+
 file(GLOB_RECURSE biointerchange_SRC
     FOLLOW_SYMLINKS
     "include/*.h"
@@ -52,9 +56,20 @@ ExternalProject_Add(openssl-lib
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 
+ExternalProject_Add(python
+    HG_REPOSITORY https://hg.python.org/cpython
+    HG_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
+    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
+    CONFIGURE_COMMAND ./configure
+    BUILD_COMMAND ${MAKE}
+    INSTALL_COMMAND true)
+
 include_directories(include)
 include_directories(src/googletest/include)
 include_directories(src/curl/include/curl)
+include_directories(src/python)
+include_directories(src/python/Include)
 include_directories(src/libdocument/include)
 
 link_directories(lib)
@@ -67,6 +82,10 @@ add_library(libcurl-static STATIC IMPORTED)
 set_target_properties(libcurl-static PROPERTIES
     IMPORTED_LOCATION src/curl/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+add_library(libpython-static STATIC IMPORTED)
+set_target_properties(libpython-static PROPERTIES
+    IMPORTED_LOCATION src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
+
 add_library(libcrypto-static STATIC IMPORTED)
 set_target_properties(libcrypto-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -76,16 +95,19 @@ set_target_properties(libssl-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_library(biointerchange-static STATIC ${biointerchange_SRC})
-add_dependencies(biointerchange-static libdocument-static)
 set_target_properties(biointerchange-static PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY lib
     LIBRARY_OUTPUT_DIRECTORY_DEBUG lib
     LIBRARY_OUTPUT_DIRECTORY_RELEASE lib
     IMPORT_LOCATION lib/${CMAKE_CFG_INTDIR}/biointerchange${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static)
+#add_dependencies(biointerchange-static libdocument-lib openssl-lib curl-lib python)
+add_dependencies(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
+
+target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
 
 add_executable(biointerchange src/biointerchange/main.c)
+add_dependencies(biointerchange biointerchange-static)
 
 add_executable(tests ${test_SRC})
 add_dependencies(tests biointerchange-static googletest-lib)

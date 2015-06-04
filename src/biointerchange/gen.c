@@ -824,7 +824,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
     
     // Only output non-empty documents:
     if (fdoc->rt->dsc_cnt > 0 || fdoc->rt->ent_cnt > 0)
-        printf("%s\n", ser->sclr.str);
+        printf("%s\n", ser->pld.str);
 }
 
 /// Quick SINGLE THREADED string operations

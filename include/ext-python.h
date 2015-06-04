@@ -11,27 +11,17 @@
  *   As DOCX: http://www.codamono.com/license/biointerchange-l1.docx
  */
 
-#ifndef biointerchange_gvf_h
-#define biointerchange_gvf_h
+#ifndef biointerchange_python_h
+#define biointerchange_python_h
 
-#include "gen.h"
-#include "gff.h"
+#include <Python.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+    
+void python_ftr();
 
-typedef enum
-{
-    GVF_PRS_NONE = 0,
-    GVF_PRS_REF,
-    GVF_PRS_VAR
-} gvf_prs_seq;
-    
-void gvf_cbcks(gen_cbcks_t* cbcks);
-    
-void gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
-    
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

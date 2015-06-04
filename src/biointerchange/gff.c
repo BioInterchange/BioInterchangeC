@@ -25,6 +25,11 @@ static const char* GFF_C6  = "score";
 static const char* GFF_C7  = "strand";
 static const char* GFF_C8  = "phase";
 
+void gff_cbcks(gen_cbcks_t* cbcks)
+{
+    cbcks->proc_ln = &gff_proc_ln;
+}
+
 static inline void gff_attr()
 {
     
@@ -989,7 +994,7 @@ void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
     {
         ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
         
-        printf("%s\n", ser->sclr.str);
+        printf("%s\n", ser->pld.str);
     }
 }
 

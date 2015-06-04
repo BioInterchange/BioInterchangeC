@@ -21,12 +21,16 @@ rm -rf CMakeCache.txt \
        libdocument-lib-prefix \
        googletest-lib-prefix \
        curl-lib-prefix \
+       python-prefix \
+       test-data/simplepy/__pycache__ \
+       test-data/__pycache__ \
        openssl-lib-prefix \
        CMakeScripts \
        src/doxygen \
        src/googletest \
        src/libdocument \
        src/curl \
+       src/python \
        src/openssl \
        Debug
 

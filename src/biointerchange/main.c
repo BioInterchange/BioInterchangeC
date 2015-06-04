@@ -23,6 +23,7 @@
 #include "license.h"
 
 // Internal headers (part of BioInterchange):
+#include "ext-python.h"
 #include "gen.h"
 #include "fio.h"
 #include "gff.h"
@@ -53,21 +54,6 @@
 #define ASSERT_CONCAT(a, b) ASSERT_CONCAT_(a, b)
 #define ct_assert(e) enum { ASSERT_CONCAT(assert_line_, __LINE__) = 1/(!!(e)) }
 ct_assert(sizeof(int)>=4);
-
-static void gff_cbcks(gen_cbcks_t* cbcks)
-{
-    cbcks->proc_ln = &gff_proc_ln;
-}
-
-static void gvf_cbcks(gen_cbcks_t* cbcks)
-{
-    cbcks->proc_ln = &gvf_proc_ln;
-}
-
-static void vcf_cbcks(gen_cbcks_t* cbcks)
-{
-    cbcks->proc_ln = &vcf_proc_ln;
-}
 
 int main(int argc, char* argv[])
 {

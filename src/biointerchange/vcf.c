@@ -30,6 +30,11 @@ static const char* VCF_PHREDLHOOD = "pl";
 static const char* VCF_PHASED = "phased";
 static const char* VCF_SAMPLES = "samples";
 
+void vcf_cbcks(gen_cbcks_t* cbcks)
+{
+    cbcks->proc_ln = &vcf_proc_ln;
+}
+
 void vcf_splt_inf(char* inf)
 {
     char* ntry = inf;
@@ -833,7 +838,7 @@ void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
     {
         ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
         
-        printf("%s\n", ser->sclr.str);
+        printf("%s\n", ser->pld.str);
         
         ldoc_doc_free(ldoc);
     }

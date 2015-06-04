@@ -134,7 +134,10 @@ TEST(gff, gff_rd)
     ldoc_trie_t* idx = gff_idx_fa(fd, NULL, mx);
     EXPECT_NE((ldoc_trie_t*)NULL, idx);
     
-    gff_rd(fd, mx, idx);
+    gen_cbcks_t cbcks;
+    gff_cbcks(&cbcks);
+    
+    gen_rd(fd, mx, idx, &cbcks);
     
     fio_cls(fd);
 }

@@ -57,6 +57,8 @@ typedef enum
     BI_FASTA_REF
 } bi_idx_ntry;
     
+void gff_cbcks(gen_cbcks_t* cbcks);
+    
 off_t gff_fnd_fa(int fd, gen_fstat* stat, off_t mx);
 
 ldoc_trie_t* gff_idx_fa(int fd, gen_fstat* stat, off_t mx);
