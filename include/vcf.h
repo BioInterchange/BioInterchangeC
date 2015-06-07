@@ -34,7 +34,7 @@ typedef enum
     
 void vcf_cbcks(gen_cbcks_t* cbcks);
 
-void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
+ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
 
 #ifdef __cplusplus
 } /* extern "C" */

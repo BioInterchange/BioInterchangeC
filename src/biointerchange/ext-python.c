@@ -16,76 +16,145 @@
 const char* test_python_fn = "multiply";
 const char* test_python_impl = "simplepy.simple";
 
-void python_ftr()
+const char* py_fn_setup = "setup";
+const char* py_fn_cleanup = "cleanup";
+const char* py_fn_process = "process_feature";
+
+static PyObject* ext_mod;
+static PyObject* ext_setup;
+static PyObject* ext_cleanup;
+static PyObject* ext_process;
+
+static inline ldoc_ser_t* ldoc2py(ldoc_doc_t* doc)
 {
-    PyObject *pName, *pModule, *pDict, *pFunc;
-    PyObject *pArgs, *pValue;
-    int i;
+    ldoc_vis_nde_ord_t* vis_nde = ldoc_vis_nde_ord_new();
+    vis_nde->vis_setup = ldoc_vis_setup_py;
+    vis_nde->vis_teardown = ldoc_vis_teardown_py;
+    ldoc_vis_nde_uni(&(vis_nde->pre), ldoc_vis_nde_pre_py);
+    ldoc_vis_nde_uni(&(vis_nde->infx), ldoc_vis_nde_infx_py);
+    ldoc_vis_nde_uni(&(vis_nde->post), ldoc_vis_nde_post_py);
+    
+    ldoc_vis_ent_t* vis_ent = ldoc_vis_ent_new();
+    ldoc_vis_ent_uni(vis_ent, ldoc_vis_ent_py);
+    
+    ldoc_ser_t* ser = ldoc_format(doc, vis_nde, vis_ent);
+    
+    return ser;
+}
+
+static void py_fn(PyObject* mod, char* fn, PyObject** fn_ptr)
+{
+    PyObject* py_fn = PyObject_GetAttrString(mod, fn);
+    
+    if (py_fn && PyCallable_Check(py_fn))
+    {
+        *fn_ptr = py_fn;
+    }
+    else
+    {
+        if (PyErr_Occurred())
+            PyErr_Print();
+        fprintf(stderr, "Cannot find function \"%s\"\n", test_python_fn);
+    }
+}
+
+void py_init(char* pypath)
+{
+    PyObject* name;
     
     Py_Initialize();
     
-    pName = PyUnicode_FromString(test_python_impl);
-    /* Error checking of pName left out */
+    name = PyUnicode_FromString(pypath);
+    ext_mod = PyImport_Import(name);
+    Py_DECREF(name);
     
-    pModule = PyImport_Import(pName);
-    Py_DECREF(pName);
-    
-    if (pModule != NULL)
+    if (ext_mod)
     {
-        pFunc = PyObject_GetAttrString(pModule, test_python_fn);
-        /* pFunc is a new reference */
-        
-        if (pFunc && PyCallable_Check(pFunc))
-        {
-            pArgs = PyTuple_New(2);
-            for (i = 0; i < 2; ++i)
-            {
-                pValue = PyLong_FromLong((i + 3) * 2);
-                if (!pValue)
-                {
-                    Py_DECREF(pArgs);
-                    Py_DECREF(pModule);
-                    fprintf(stderr, "Cannot convert argument\n");
-                    
-                    return 1;
-                }
-                /* pValue reference stolen here: */
-                PyTuple_SetItem(pArgs, i, pValue);
-            }
-            pValue = PyObject_CallObject(pFunc, pArgs);
-            Py_DECREF(pArgs);
-            if (pValue != NULL)
-            {
-                printf("Result of call: %ld\n", PyLong_AsLong(pValue));
-                Py_DECREF(pValue);
-            }
-            else
-            {
-                Py_DECREF(pFunc);
-                Py_DECREF(pModule);
-                PyErr_Print();
-                fprintf(stderr,"Call failed\n");
-                return 1;
-            }
-        }
-        else
-        {
-            if (PyErr_Occurred())
-                PyErr_Print();
-            fprintf(stderr, "Cannot find function \"%s\"\n", test_python_fn);
-        }
-        Py_XDECREF(pFunc);
-        Py_DECREF(pModule);
+        py_fn(ext_mod, (char*)py_fn_setup, &ext_setup);
+        py_fn(ext_mod, (char*)py_fn_cleanup, &ext_cleanup);
+        py_fn(ext_mod, (char*)py_fn_process, &ext_process);
     }
     else
     {
         PyErr_Print();
         fprintf(stderr, "Failed to load \"%s\"\n", "TODO");
         
-        return 1;
+        exit(1);
     }
+}
+
+void py_free()
+{
+    Py_DECREF(ext_setup);
+    Py_DECREF(ext_cleanup);
+    Py_DECREF(ext_process);
+    Py_DECREF(ext_mod);
     
     Py_Finalize();
+}
+
+static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
+{
+    ldoc_ser_t* ser1 = ldoc2py(d1);
     
-    return 0;
+    if (!ser1)
+    {
+        // TODO Error handling.
+    }
+    
+    PyObject* py_d1 = ser1->pld.py.dtm;
+    
+    PyObject* dict;
+    if (!d2)
+        dict = PyObject_CallFunctionObjArgs(fn, py_d1, NULL);
+    else
+    {
+        ldoc_ser_t* ser2 = ldoc2py(d2);
+        
+        if (!ser2)
+        {
+            // TODO Error handling;
+        }
+        
+        PyObject* py_d2 = ser2->pld.py.dtm;
+        
+        dict = PyObject_CallFunctionObjArgs(fn, py_d1, py_d2, NULL);
+        
+        Py_DECREF(py_d2);
+        free(ser2);
+    }
+    
+    Py_DECREF(py_d1);
+    free(ser1);
+    
+    if (!dict)
+    {
+        // TODO Error handling.
+        exit(123);
+    }
+    
+    ldoc_doc_t* ret = NULL;
+    if (dict != Py_None)
+    {
+        ret = ldoc_pydict2doc(dict);
+    
+        Py_DECREF(dict);
+    }
+    
+    return ret;
+}
+
+ldoc_doc_t* py_setup(ldoc_doc_t* ctxt, ldoc_doc_t* meta)
+{
+    return py_call(ext_setup, ctxt, meta);
+}
+
+ldoc_doc_t* py_cleanup(ldoc_doc_t* stats)
+{
+    return py_call(ext_cleanup, stats, NULL);
+}
+
+ldoc_doc_t* py_process(ldoc_doc_t* ftr)
+{
+    return py_call(ext_process, ftr, NULL);
 }

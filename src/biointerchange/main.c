@@ -42,6 +42,7 @@
 #define MAIN_ERR_LICF 6
 #define MAIN_ERR_FNME 7
 #define MAIN_ERR_FEXT 8
+#define MAIN_ERR_FACC 9
 
 #define MIN_PAGESIZE 2048
 
@@ -54,6 +55,17 @@
 #define ASSERT_CONCAT(a, b) ASSERT_CONCAT_(a, b)
 #define ct_assert(e) enum { ASSERT_CONCAT(assert_line_, __LINE__) = 1/(!!(e)) }
 ct_assert(sizeof(int)>=4);
+
+void usage(char* bname, int err)
+{
+    fprintf(stderr, "Usage: %s genomicsfile [jsonfile]\n\n", bname);
+    fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON-LD.\n");
+    fprintf(stderr, "    Output will be written to \"jsonfile\", if given, or printed\n");
+    fprintf(stderr, "    on the console otherwise.\n");
+    fprintf(stderr, "    The output consists of one JSON document per-line.\n");
+    
+    exit(err);
+}
 
 int main(int argc, char* argv[])
 {
@@ -96,10 +108,43 @@ int main(int argc, char* argv[])
     char* licpath = (char*)malloc(licpath_len + 1);
     snprintf(licpath, licpath_len + 1, "%s%s", pws->pw_dir, MAIN_LICPATH);
     
-    // Parameter check; do not check license before the software is called correctly:
-    if (argc < 2 || argc > 3)
+    // Execution context -- set defaults:
+    gen_ctxt_t ctxt;
+    ctxt.fname = NULL;
+    ctxt.fout = stdout;
+    ctxt.py = false;
+    
+    // Parameter check 1: use getopt to fetch optional parameters:
+    int c;
+    char* py_opt = NULL;
+    
+    while ((c = getopt(argc, argv, "o:p:u:")) != -1)
     {
-        fprintf(stderr, "Usage: %s genomicsfile [jsonfile]\n\n", bname);
+        switch (c)
+        {
+            case 'o':
+                ctxt.fname = strdup(optarg);
+                break;
+            case 'p':
+                py_opt = strdup(optarg);
+                ctxt.py = true;
+                ctxt.pycall = py_opt; // TODO Cleanup.
+                break;
+            case 'u':
+                ctxt.usr = strdup(optarg);
+                break;
+            case '?':
+            default:
+                usage(bname, MAIN_ERR_PARA);
+        }
+    }
+    argc -= optind;
+    argv += optind;
+    
+    // Parameter check 2; do not check license before the software is called correctly:
+    if (argc != 1)
+    {
+        fprintf(stderr, "Usage: %s genomicsfile\n\n", bname);
         fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON-LD.\n");
         fprintf(stderr, "    Output will be written to \"jsonfile\", if given, or printed\n");
         fprintf(stderr, "    on the console otherwise.\n");
@@ -108,7 +153,8 @@ int main(int argc, char* argv[])
         exit(MAIN_ERR_PARA);
     }
     
-    char* fname = argv[1];
+    char* fname = argv[0];
+    ctxt.fgen = fname; // TODO Cleanup.
     size_t fname_len = strlen(fname);
     if (fname_len < 5)
     {
@@ -119,17 +165,16 @@ int main(int argc, char* argv[])
     }
     
     // Determine filetype by extension:
-    gen_filetype_t ftype;
     char* ext_s = &fname[fname_len - 4];
     char* ext_l = &fname[fname_len - 5]; // Still works with fname_len above, but means that the basename could be an empty string.
     if (!strcmp(ext_s, ".gff") || !strcmp(ext_l, ".gff3"))
-        ftype = GEN_FMT_GFF3;
+        ctxt.tpe = GEN_FMT_GFF3;
     else if (!strcmp(ext_s, ".gtf"))
-        ftype = GEN_FMT_GTF;
+        ctxt.tpe = GEN_FMT_GTF;
     else if (!strcmp(ext_s, ".gvf"))
-        ftype = GEN_FMT_GVF;
+        ctxt.tpe = GEN_FMT_GVF;
     else if (!strcmp(ext_s, ".vcf"))
-        ftype = GEN_FMT_VCF;
+        ctxt.tpe = GEN_FMT_VCF;
     else
     {
         fprintf(stderr, "Cannot determine filetype by filename extension.\n");
@@ -138,16 +183,26 @@ int main(int argc, char* argv[])
         exit(MAIN_ERR_FEXT);
     }
     
-
-
-    
     // See if the file can be opened; still not check the license:
-    int fd = fio_opn(argv[1]);
+    int fd = fio_opn(fname);
     
     if (fd == -1)
     {
-        // TODO
-        exit(1234);
+        fprintf(stderr, "Cannot access: %s\n", fname);
+        
+        exit(MAIN_ERR_FACC);
+    }
+    
+    // See if the output should go to stdout, or, a file:
+    if (ctxt.fname)
+    {
+        ctxt.fout = fopen(ctxt.fname, "w");
+    }
+    
+    // Initialize Python -- if needed; not checking license yet:
+    if (py_opt)
+    {
+        py_init(py_opt);
     }
 
     // Now, everything is in place; go and check whether the software is licensed:
@@ -216,7 +271,7 @@ int main(int argc, char* argv[])
     size_t mx = fio_len(fd);
     
     ldoc_trie_t* idx = NULL;
-    switch (ftype)
+    switch (ctxt.tpe)
     {
         case GEN_FMT_GFF3:
         case GEN_FMT_GVF:
@@ -237,9 +292,9 @@ int main(int argc, char* argv[])
         // Everything fine!
     }
     
+    // Set up callback functions based on the file type:
     gen_cbcks_t cbcks;
-    
-    switch (ftype)
+    switch (ctxt.tpe)
     {
         case GEN_FMT_GFF3:
             gff_cbcks(&cbcks);
@@ -260,11 +315,19 @@ int main(int argc, char* argv[])
             break;
     }
     
-    gen_rd(fd, mx, idx, &cbcks);
+    gen_rd(fd, mx, idx, &cbcks, &ctxt);
     
     fio_cls(fd);
     
     qk_free();
+    
+    if (py_opt)
+        py_free();
+    
+    // Wrap up output -- do not close it if no file name given (stdout used in that case):
+    fflush(ctxt.fout);
+    if (ctxt.fname)
+        fclose(ctxt.fout);
     
     return MAIN_SUCCESS;
 }

@@ -927,7 +927,7 @@ void gff_idx_release(ldoc_trie_t* trie)
     ldoc_trie_free(trie);
 }
 
-void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt)
+ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat)
 {
     ldoc_doc_t* ldoc = NULL;
     
@@ -955,12 +955,14 @@ void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
                 {
                     // Nope, real meta line:
                     gff_proc_prgm(fdoc, ln, lnlen, cmt);
+                    stat->meta++;
                 }
             }
             else
             {
                 // Comment:
                 char* ccmt = gff_proc_cmt(ln, lnlen);
+                stat->comms++;
                 
                 // Append to existing comment, or, create a new one:
                 if (*cmt)
@@ -987,15 +989,11 @@ void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
         {
             // Feature:
             ldoc = gff_proc_ftr(fd, mx, idx, ln, lnlen, cmt);
+            stat->ftrs++;
         }
     }
     
-    if (ldoc)
-    {
-        ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
-        
-        printf("%s\n", ser->pld.str);
-    }
+    return ldoc;
 }
 
 char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_t en, bool rv)

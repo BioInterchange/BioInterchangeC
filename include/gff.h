@@ -73,7 +73,7 @@ ldoc_nde_t* gff_proc_sregion(char* val, char** cid);
 ldoc_struct_t gff_prgm_tpe(char* ky);
 void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs);
     
-void gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
+ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
     
 #ifdef __cplusplus
 } /* extern "C" */

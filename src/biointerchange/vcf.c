@@ -736,7 +736,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     return doc;
 }
 
-void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt)
+ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat)
 {
     ldoc_doc_t* ldoc = NULL;
     
@@ -751,6 +751,7 @@ void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
                 
                 // Meta line (pragma statement):
                 vcf_proc_prgm(fdoc, ln, lnlen, cmt);
+                stat->meta++;
             }
             else
             {
@@ -804,6 +805,7 @@ void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
                 {
                     // Comment -- note that officially VCF files do not have comments, so re-use GFF3 implementation:
                     char* ccmt = gff_proc_cmt(ln, lnlen);
+                    stat->comms++;
                     
                     // Append to existing comment, or, create a new one:
                     if (*cmt)
@@ -827,6 +829,7 @@ void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
         {
             // Feature:
             ldoc = vcf_proc_ftr(fd, mx, idx, ln, lnlen, st, cmt);
+            stat->ftrs++;
         }
         else
         {
@@ -834,12 +837,5 @@ void vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
         }
     }
     
-    if (ldoc)
-    {
-        ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
-        
-        printf("%s\n", ser->pld.str);
-        
-        ldoc_doc_free(ldoc);
-    }
+    return ldoc;
 }

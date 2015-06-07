@@ -41,6 +41,7 @@ const char* GEN_REFERENCE = "reference";
 const char* GEN_SEQUENCE = "sequence";
 const char* GEN_START = "start";
 const char* GEN_SOURCE = "source";
+const char* GEN_VARIANTS = "variants";
 
 const char* GEN_NULL = "null";
 const char* GEN_TRUE = "true";
@@ -95,6 +96,42 @@ void gen_init()
             if (j <= k)
                 gen_allele_lbl(s, j, k);
     }
+}
+
+inline void gen_nde_dsc_opt(ldoc_nde_t* nde, ldoc_nde_t* dsc, char* lbl)
+{
+    if (dsc)
+    {
+        ldoc_nde_dsc_push(nde, dsc);
+        
+        return;
+    }
+    
+    ldoc_ent_t* dsc_null = ldoc_ent_new(LDOC_ENT_OR);
+    
+    dsc_null->pld.pair.anno.str = lbl;
+    dsc_null->pld.pair.dtm.str = NULL;
+    
+    ldoc_nde_ent_push(nde, dsc_null);
+}
+
+inline char* gen_term_crnl(char* s)
+{
+    char* b = s;
+    
+    while (*s)
+    {
+        if (*s == '\n' || *s == '\r')
+        {
+            *s = 0;
+            
+            return b;
+        }
+        
+        s++;
+    }
+    
+    return b;
 }
 
 static inline void gen_ky(char* attr, char** val)
@@ -587,7 +624,7 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
     
     // TODO Error handling.
     
-    vars->mkup.anno.str = "variants";
+    vars->mkup.anno.str = (char*)GEN_VARIANTS;
     
     if (!seq)
         return vars;
@@ -748,9 +785,12 @@ char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, o
     return ln;
 }
 
-void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
+void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* ctxt)
 {
+    time_t tm_s = time(NULL);
+    
     ldoc_doc_t* fdoc = ldoc_doc_new();
+    ldoc_doc_t* ldoc;
     
     if (!fdoc)
     {
@@ -766,11 +806,13 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
     st.vcf_ftr_sct = false;
     st.vcf_col = 0;
     
+    bool fdoc_purged = false;
     char* cmt = NULL;
     char* mem_cpy = NULL;
     size_t mem_len = 0;
     size_t lnlen;
     uint64_t ln_no = 0;
+    gen_fstat stat = { 0, 0, 0, false, 0, 0 };
     while (!mem || mem->off + mem->ln < mx)
     {
         // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
@@ -797,7 +839,78 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
             // Current line:
             mem_cpy = gen_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
             
-            cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt);
+            ldoc = cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt, &stat);
+            
+            if (ldoc)
+            {
+                if (!fdoc_purged)
+                {
+                    // Meta information about the file and its data contents:
+                    
+                    ldoc_doc_t* cdoc = ldoc_doc_new();
+                    
+                    ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup("input-file");
+                    ent->pld.pair.dtm.str = strdup(ctxt->fgen);
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+                    
+                    ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup("output-file");
+                    if (ctxt->fname)
+                        ent->pld.pair.dtm.str = strdup(ctxt->fname);
+                    else
+                        ent->pld.pair.dtm.str = NULL;
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+
+                    ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup("input-filetype");
+                    switch (ctxt->tpe)
+                    {
+                        case GEN_FMT_GFF3:
+                            ent->pld.pair.dtm.str = strdup("GFF3");
+                            break;
+                        case GEN_FMT_GTF:
+                            ent->pld.pair.dtm.str = strdup("GTF");
+                            break;
+                        case GEN_FMT_GVF:
+                            ent->pld.pair.dtm.str = strdup("GVF");
+                            break;
+                        case GEN_FMT_VCF:
+                            ent->pld.pair.dtm.str = strdup("VCF");
+                            break;
+                        default:
+                            // TODO Internal error.
+                            break;
+                    }
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+                    
+                    ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup("user-parameters");
+                    if (ctxt->usr)
+                        ent->pld.pair.dtm.str = strdup(ctxt->usr);
+                    else
+                        ent->pld.pair.dtm.str = NULL;
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+
+                    ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup("python-callback");
+                    if (ctxt->pycall)
+                        ent->pld.pair.dtm.str = strdup(ctxt->pycall);
+                    else
+                        ent->pld.pair.dtm.str = NULL;
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+                    
+                    gen_ser(ctxt, GEN_CTPE_SETUP, cdoc, fdoc, &stat);
+                    
+                    ldoc_doc_free(cdoc);
+                    
+                    fdoc_purged = true;
+                }
+                
+                gen_ser(ctxt, GEN_CTPE_PROCESS, ldoc, NULL, &stat);
+                
+                ldoc_doc_free(ldoc);
+            }
             
             // Reset quick memory:
             qk_purge();
@@ -806,9 +919,6 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
             off += lnlen;
             ln_no++;
             lnlen = fio_lnlen(mem, off);
-            
-            //printf("%lu: %lu\n", ln_no, lnlen);
-            //printf("%s", mem_cpy);
         } while (lnlen);
     }
     
@@ -818,13 +928,130 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks)
     if (mem)
         fio_munmap(mem);
     
-    // Meta information about the file and its data contents:
+    // Wrap up:
+    time_t tm_e = time(NULL);
+    char* tm_sstr = strdup(ctime(&tm_s));
+    char* tm_estr = strdup(ctime(&tm_e));
     
-    ldoc_ser_t* ser = ldoc_format(fdoc, json_vis_nde, json_vis_ent);
+    ldoc_doc_t* sdoc = ldoc_doc_new();
     
-    // Only output non-empty documents:
-    if (fdoc->rt->dsc_cnt > 0 || fdoc->rt->ent_cnt > 0)
-        printf("%s\n", ser->pld.str);
+    ldoc_nde_t* fstat = ldoc_nde_new(LDOC_NDE_UA);
+    fstat->mkup.anno.str = strdup("statistics");
+    ldoc_nde_dsc_push(sdoc->rt, fstat);
+
+    char num[21]; // Space for a 64-bit number plus null-byte.
+    
+    sprintf(num, "%u", stat.comms);
+    ldoc_ent_t* ent_stat = ldoc_ent_new(LDOC_ENT_NR);
+    ent_stat->pld.pair.anno.str = strdup("comment-lines");
+    ent_stat->pld.pair.dtm.str = strdup(num);
+    ldoc_nde_ent_push(fstat, ent_stat);
+
+    sprintf(num, "%u", stat.meta);
+    ent_stat = ldoc_ent_new(LDOC_ENT_NR);
+    ent_stat->pld.pair.anno.str = strdup("meta-lines");
+    ent_stat->pld.pair.dtm.str = strdup(num);
+    ldoc_nde_ent_push(fstat, ent_stat);
+
+    ent_stat = ldoc_ent_new(LDOC_ENT_BR);
+    ent_stat->pld.pair.anno.str = strdup("meta-lines-filtered");
+    ent_stat->pld.pair.dtm.bl = stat.cbk_meta_fltr;
+    ldoc_nde_ent_push(fstat, ent_stat);
+    
+    sprintf(num, "%u", stat.ftrs);
+    ent_stat = ldoc_ent_new(LDOC_ENT_NR);
+    ent_stat->pld.pair.anno.str = strdup("features");
+    ent_stat->pld.pair.dtm.str = strdup(num);
+    ldoc_nde_ent_push(fstat, ent_stat);
+
+    sprintf(num, "%u", stat.cbk_ftrs_fltr);
+    ent_stat = ldoc_ent_new(LDOC_ENT_NR);
+    ent_stat->pld.pair.anno.str = strdup("features-filtered");
+    ent_stat->pld.pair.dtm.str = strdup(num);
+    ldoc_nde_ent_push(fstat, ent_stat);
+    
+    ldoc_nde_t* rntm = ldoc_nde_new(LDOC_NDE_UA);
+    rntm->mkup.anno.str = strdup("runtime");
+    ldoc_nde_dsc_push(sdoc->rt, rntm);
+    
+    ldoc_ent_t* ent_tm_s = ldoc_ent_new(LDOC_ENT_OR);
+    ent_tm_s->pld.pair.anno.str = strdup("invocation");
+    ent_tm_s->pld.pair.dtm.str = gen_term_crnl(tm_sstr);
+    ldoc_nde_ent_push(rntm, ent_tm_s);
+
+    ldoc_ent_t* ent_tm_e = ldoc_ent_new(LDOC_ENT_OR);
+    ent_tm_e->pld.pair.anno.str = strdup("finish");
+    ent_tm_e->pld.pair.dtm.str = gen_term_crnl(tm_estr);
+    ldoc_nde_ent_push(rntm, ent_tm_e);
+
+    sprintf(num, "%lu", tm_e - tm_s);
+    ldoc_ent_t* ent_tm = ldoc_ent_new(LDOC_ENT_OR);
+    ent_tm->pld.pair.anno.str = strdup("lapsed-seconds");
+    ent_tm->pld.pair.dtm.str = strdup(num);
+    ldoc_nde_ent_push(rntm, ent_tm);
+    
+    gen_ser(ctxt, GEN_CTPE_CLEANUP, sdoc, NULL, &stat);
+    
+    ldoc_doc_free(sdoc);
+}
+
+inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt, gen_fstat* stat)
+{
+    if (!doc)
+        return;
+    
+    ldoc_ser_t* ser;
+
+    if (ctxt->py)
+    {
+        ldoc_doc_t* ldoc_anno = NULL;
+        
+        switch (ctpe)
+        {
+            case GEN_CTPE_SETUP:
+                ldoc_anno = py_setup(doc, opt);
+                
+                ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
+                
+                fprintf(ctxt->fout, "%s\n", ser->pld.str);
+                
+                free(ser);
+                
+                if (!ldoc_anno)
+                    stat->cbk_meta_fltr = true;
+                
+                break;
+            case GEN_CTPE_CLEANUP:
+                ldoc_anno = py_cleanup(doc);
+                break;
+            case GEN_CTPE_PROCESS:
+                ldoc_anno = py_process(doc);
+                
+                if (!ldoc_anno)
+                    stat->cbk_ftrs_fltr++;
+                break;
+            default:
+                // TODO Internal error.
+                break;
+        }
+        
+        if (ldoc_anno)
+        {
+            ser = ldoc_format(ldoc_anno, json_vis_nde, json_vis_ent);
+            
+            fprintf(ctxt->fout, "%s\n", ser->pld.str);
+            
+            free(ser);
+        }
+    }
+    else
+    {
+        ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
+        
+        fprintf(ctxt->fout, "%s\n", ser->pld.str);
+        
+        free(ser);
+    }
 }
 
 /// Quick SINGLE THREADED string operations

@@ -213,7 +213,8 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
                     
                     break;
                 case GVF_PRS_VAR:
-                    vars = gen_variants(val, ',', vseqs, &vnum);
+                    if (*val != '.')
+                        vars = gen_variants(val, ',', vseqs, &vnum);
                     
                     break;
                 default:
@@ -252,8 +253,8 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_dsc_push(ftr, lc);
 
     // Reference & variants:
-    ldoc_nde_dsc_push(ftr, ref);
-    ldoc_nde_dsc_push(ftr, vars);
+    gen_nde_dsc_opt(ftr, ref, (char*)GEN_REFERENCE);
+    gen_nde_dsc_opt(ftr, vars, (char*)GEN_VARIANTS);
     
     // Do not add user defined sub-tree if it is empty:
     if (attrs->dsc_cnt || attrs->ent_cnt)
@@ -261,7 +262,6 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     
     return doc;
 }
-
 
 static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
@@ -438,7 +438,7 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     return doc;
 }
 
-void gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt)
+ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat)
 {
     ldoc_doc_t* ldoc = NULL;
     
@@ -466,12 +466,14 @@ void gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
                 {
                     // Nope, real meta line:
                     gvf_proc_prgm(fdoc, ln, lnlen, cmt);
+                    stat->meta++;
                 }
             }
             else
             {
                 // Comment:
                 char* ccmt = gff_proc_cmt(ln, lnlen);
+                stat->comms++;
                 
                 // Append to existing comment, or, create a new one:
                 if (*cmt)
@@ -498,13 +500,9 @@ void gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln,
         {
             // Feature:
             ldoc = gvf_proc_ftr(fd, mx, idx, ln, lnlen, cmt);
+            stat->ftrs++;
         }
     }
     
-    if (ldoc)
-    {
-        ldoc_ser_t* ser = ldoc_format(ldoc, json_vis_nde, json_vis_ent);
-        
-        printf("%s\n", ser->pld.str);
-    }
+    return ldoc;
 }

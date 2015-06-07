@@ -18,10 +18,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <document.h>
 
+#include "ext-python.h"
 #include "fio.h"
 
 #ifdef __cplusplus
@@ -46,7 +48,8 @@ extern const char* GEN_REFERENCE;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_START;
 extern const char* GEN_SOURCE;
-
+extern const char* GEN_VARIANTS;
+    
 extern const char* GEN_NULL;
 extern const char* GEN_TRUE;
 
@@ -111,6 +114,13 @@ typedef enum
     GEN_FMT_VCF
 } gen_filetype_t;
 
+typedef enum
+{
+    GEN_CTPE_SETUP,
+    GEN_CTPE_CLEANUP,
+    GEN_CTPE_PROCESS
+} gen_ctpe_t;
+    
 typedef struct gen_fstat
 {
     /**
@@ -125,6 +135,14 @@ typedef struct gen_fstat
      * Number of comment lines.
      */
     uint32_t comms;
+    /**
+     * Indicates whether the meta information was filtered.
+     */
+    bool cbk_meta_fltr;
+    /**
+     * Number of filtered feature lines.
+     */
+    uint32_t cbk_ftrs_fltr;
     /**
      * Offset to which the statistics are valid.
      */
@@ -153,11 +171,25 @@ typedef struct gen_prsr_t
     
 typedef struct gen_cbcks_t
 {
-    void (*proc_ln)(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt);
+    ldoc_doc_t* (*proc_ln)(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
 } gen_cbcks_t;
 
+typedef struct gen_ctxt_t
+{
+    gen_filetype_t tpe;
+    bool py;
+    char* fgen;
+    char* pycall;
+    char* fname;
+    FILE* fout;
+    char* usr;
+} gen_ctxt_t;
+    
 void gen_init();
     
+void gen_nde_dsc_opt(ldoc_nde_t* nde, ldoc_nde_t* dsc, char* lbl);
+    
+char* gen_term_crnl(char* s);
 void gen_lwr(char* str);
 bi_attr gen_kwd(char* str);
 char gen_inv(char c);
@@ -172,8 +204,10 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
 
 ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
 
-void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks);
+void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* ctxt);
 
+void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt, gen_fstat* stat);
+    
 char* qk_alloc(size_t n);
 void qk_free();
 void qk_purge();

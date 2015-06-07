@@ -16,11 +16,19 @@
 
 #include <Python.h>
 
+#include <document.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
     
-void python_ftr();
+void py_init(char* pypath);
+
+void py_free();
+    
+ldoc_doc_t* py_setup(ldoc_doc_t* ctxt, ldoc_doc_t* meta);
+ldoc_doc_t* py_cleanup(ldoc_doc_t* stats);
+ldoc_doc_t* py_process(ldoc_doc_t* ftr);
 
 #ifdef __cplusplus
 } /* extern "C" */
