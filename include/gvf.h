@@ -20,6 +20,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+    
+extern const char* GVF_C1;
+extern const char* GVF_C2;
+extern const char* GVF_C3;
+extern const char* GVF_C4;
+extern const char* GVF_C5;
+extern const char* GVF_C6;
+extern const char* GVF_C7;
 
 typedef enum
 {
@@ -32,6 +40,8 @@ void gvf_cbcks(gen_cbcks_t* cbcks);
     
 ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
     
+char* gvf_proc_doc(ldoc_doc_t* doc);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

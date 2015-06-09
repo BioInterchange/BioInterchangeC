@@ -690,10 +690,10 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_ent_push(ftr, scr);
     
     // Coordinates, assigned to a locus:
+    ldoc_nde_ent_push(lc, lm);
     ldoc_nde_ent_push(lc, st);
     ldoc_nde_ent_push(lc, en);
     
-    ldoc_nde_ent_push(ftr, lm);
     ldoc_nde_dsc_push(ftr, lc);
     
     // Reference & variants:

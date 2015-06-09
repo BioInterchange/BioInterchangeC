@@ -42,6 +42,15 @@ extern "C" {
 
 #define GFF_FA_PFX_LEN 7
 
+extern const char* GFF_C1;
+extern const char* GFF_C2;
+extern const char* GFF_C3;
+extern const char* GFF_C4;
+extern const char* GFF_C5;
+extern const char* GFF_C6;
+extern const char* GFF_C7;
+extern const char* GFF_C8;
+    
 extern const char* GFF_FA;
 extern const char* GFF_FA_PFX;
     
@@ -74,6 +83,9 @@ ldoc_struct_t gff_prgm_tpe(char* ky);
 void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs);
     
 ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
+    
+char* gff_proc_doc_ftr(ldoc_nde_t* ftr);
+char* gff_proc_doc(ldoc_doc_t* doc);
     
 #ifdef __cplusplus
 } /* extern "C" */

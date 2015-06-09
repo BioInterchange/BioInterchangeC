@@ -73,7 +73,7 @@ TEST(gvf, gvf_serialize_ftr)
     sq->pld.pair.dtm.str = (char*)"TATA";
     ldoc_nde_ent_push(ftr, sq);
     
-    char* attrs_str = strdup("ID=DDB0220064;Parent=DDB_G0294346;Name=DDB0220064;description=BFNV1_0C0011_07644: Obtained from Geneid output run by Dictyostelium Genome Consortium at The Welcome Trust Sanger Institute;translation_start=1;Dbxref=Protein Accession Version:EAL60309.1,Inparanoid V. 5.1:DDB0220064,Protein Accession Number:EAL60309.1,Protein GI Number:60462053,UniProt:Q54AM3,Genome V. 2.0 ID:BFNV1_0C0011_07644;qualifier=Partial%2C 3%27 missing");
+    char* attrs_str = strdup("ID=1;Variant_seq=A;Variant_effect=upstream_gene_variant 0 transcript YAL067W-A,upstream_gene_variant 0 transcript YAL069W,upstream_gene_variant 0 transcript YAL068W-A,downstream_gene_variant 0 transcript YAL068C;Dbxref=SGRP:s01-84;Reference_seq=G");
     gen_splt_attrs(ftr, attrs, NULL, NULL, attrs_str);
     
     // JSON-LD context:

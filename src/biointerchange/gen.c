@@ -43,8 +43,10 @@ const char* GEN_START = "start";
 const char* GEN_SOURCE = "source";
 const char* GEN_VARIANTS = "variants";
 
+const char* GEN_EMPTY = "";
 const char* GEN_NULL = "null";
 const char* GEN_TRUE = "true";
+const char* GEN_UNKNOWN = ".";
 
 const char* GEN_COUNT = "count";
 const char* GEN_DEPTH = "depth";
@@ -151,6 +153,42 @@ static inline void gen_ky(char* attr, char** val)
     
     // No value assignment; just a key.
     *val = NULL;
+}
+
+inline char* gen_res_opt(ldoc_res_t* res)
+{
+    if (!res)
+        return (char*)GEN_UNKNOWN;
+    
+    if (res->nde)
+    {
+        // TODO Internal error.
+    }
+    
+    // TODO Should handle various entity types?
+    if (res->info.ent->pld.pair.dtm.str)
+        return res->info.ent->pld.pair.dtm.str;
+    
+    return (char*)GEN_UNKNOWN;
+}
+
+inline char* gen_res_optx(ldoc_res_t* res)
+{
+    if (!res)
+        return (char*)GEN_EMPTY;
+    
+    return gen_res_req(res);
+}
+
+char* gen_res_req(ldoc_res_t* res)
+{
+    // TODO Does this cover all used entity types?
+    if (!res || res->nde || res->info.ent->pld.pair.dtm.str)
+    {
+        // TODO Data error.
+    }
+    
+    return res->info.ent->pld.pair.dtm.str;
 }
 
 inline void gen_lwr(char* str)
@@ -430,6 +468,62 @@ size_t gen_csplit(char* str, char c)
     }
     
     return n;
+}
+
+static inline bool gen_join_attrs_key(char* id, ldoc_nde_t* nde, ldoc_ent_t* ent, char* attrs)
+{
+    char* attr_id;
+    
+    if (id)
+        attr_id = id;
+    else if (nde)
+        attr_id = nde->mkup.anno.str;
+    else
+        attr_id = ent->pld.pair.anno.str;
+    
+    // Add attribute separator, if other attributes are present:
+    if (qk_working_ptr() != attrs)
+        qk_strcat(";");
+    
+    qk_strcat(attr_id);
+    qk_strcat("=");
+    
+    return true;
+}
+
+inline bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs)
+{
+    if (!ent)
+        return true;
+    
+    gen_join_attrs_key(id, NULL, ent, attrs);
+    
+    qk_strcat(ent->pld.pair.dtm.str);
+    
+    return true;
+}
+
+inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
+{
+    if (!nde)
+        return true;
+    
+    gen_join_attrs_key(id, nde, NULL, attrs);
+    
+    bool fst = true;
+    ldoc_ent_t* ent;
+    TAILQ_FOREACH(ent, &(nde->ents), ldoc_ent_entries)
+    {
+        if (fst)
+            fst = false;
+        else
+            qk_strcat(",");
+        
+        // TODO Account for different node types?
+        qk_strcat(ent->pld.pair.dtm.str);
+    }
+    
+    return true;
 }
 
 void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs)
@@ -1075,12 +1169,27 @@ void qk_free()
     free(qk_heap);
 }
 
-void qk_purge()
+inline char* qk_heap_ptr()
+{
+    return qk_heap;
+}
+
+inline char* qk_working_ptr()
+{
+    return qk_ptr;
+}
+
+inline bool qk_heap_empty()
+{
+    return qk_heap == qk_ptr;
+}
+
+inline void qk_purge()
 {
     qk_ptr = qk_heap;
 }
 
-char* qk_strdup(const char* s1)
+inline char* qk_strdup(const char* s1)
 {
     size_t len = strlen(s1);
     
@@ -1096,7 +1205,7 @@ char* qk_strdup(const char* s1)
     return cpy;
 }
 
-char* qk_strndup(const char* s1, size_t n)
+inline char* qk_strndup(const char* s1, size_t n)
 {
     // Out of quick memory:
     if (qk_ptr - qk_heap + n + 1 > qk_size)
@@ -1109,5 +1218,25 @@ char* qk_strndup(const char* s1, size_t n)
     qk_ptr += n + 1;
     
     return cpy;
+}
+
+inline bool qk_strcat(const char* s1)
+{
+    size_t len = strlen(s1);
+    
+    // Out of quick memory (+1 required in case heap is empty):
+    if (qk_ptr - qk_heap + len + 1 > qk_size)
+        return false;
+    
+    // Reposition qk_ptr to null-byte of previous string:
+    if (qk_ptr > qk_heap)
+        qk_ptr--;
+
+    off_t cpy = qk_ptr;
+    memcpy(qk_ptr, s1, len + 1);
+    
+    qk_ptr += len + 1;
+    
+    return true;
 }
 

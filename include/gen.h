@@ -49,9 +49,11 @@ extern const char* GEN_SEQUENCE;
 extern const char* GEN_START;
 extern const char* GEN_SOURCE;
 extern const char* GEN_VARIANTS;
-    
+
+extern const char* GEN_EMPTY;
 extern const char* GEN_NULL;
 extern const char* GEN_TRUE;
+extern const char* GEN_UNKNOWN;
 
 extern ldoc_vis_nde_ord_t* json_vis_nde;;
 extern ldoc_vis_ent_t* json_vis_ent;
@@ -189,6 +191,10 @@ void gen_init();
     
 void gen_nde_dsc_opt(ldoc_nde_t* nde, ldoc_nde_t* dsc, char* lbl);
     
+char* gen_res_opt(ldoc_res_t* res);
+char* gen_res_optx(ldoc_res_t* res);
+char* gen_res_req(ldoc_res_t* res);
+    
 char* gen_term_crnl(char* s);
 void gen_lwr(char* str);
 bi_attr gen_kwd(char* str);
@@ -200,6 +206,8 @@ char* gen_escstr(char* str);
     
 size_t gen_csplit(char* str, char c);
 
+bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs);
+bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs);
 void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs);
 
 ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
@@ -210,9 +218,13 @@ void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt
     
 char* qk_alloc(size_t n);
 void qk_free();
+char* qk_heap_ptr();
+char* qk_working_ptr();
+bool qk_heap_empty();
 void qk_purge();
 char* qk_strdup(const char* s1);
 char* qk_strndup(const char* s1, size_t n);
+bool qk_strcat(const char* s1);
     
 #ifdef __cplusplus
 } /* extern "C" */

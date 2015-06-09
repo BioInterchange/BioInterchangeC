@@ -16,14 +16,14 @@
 const char* GFF_FA = "\n##FASTA";
 const char* GFF_FA_PFX = "##FASTA";
 
-static const char* GFF_C1  = "landmark";
-static const char* GFF_C2  = "source";
-static const char* GFF_C3  = "type";
-static const char* GFF_C4  = "start";
-static const char* GFF_C5  = "end";
-static const char* GFF_C6  = "score";
-static const char* GFF_C7  = "strand";
-static const char* GFF_C8  = "phase";
+const char* GFF_C1  = "landmark";
+const char* GFF_C2  = "source";
+const char* GFF_C3  = "type";
+const char* GFF_C4  = "start";
+const char* GFF_C5  = "end";
+const char* GFF_C6  = "score";
+const char* GFF_C7  = "strand";
+const char* GFF_C8  = "phase";
 
 void gff_cbcks(gen_cbcks_t* cbcks)
 {
@@ -566,10 +566,10 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_ent_push(ftr, ph);
 
     // Coordinates, assigned to a locus:
+    ldoc_nde_ent_push(lc, lm);
     ldoc_nde_ent_push(lc, st);
     ldoc_nde_ent_push(lc, en);
     
-    ldoc_nde_ent_push(ftr, lm);
     ldoc_nde_dsc_push(ftr, lc);
     
     // Do not add user defined sub-tree if it is empty:
@@ -1068,4 +1068,69 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     fio_munmap(mem);
     
     return seq;
+}
+
+inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
+{
+    const char* lc_id[] = { "locus" };
+    ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
+
+    ldoc_res_t* lm = ldoc_find_anno_ent(lc->info.nde, (char*)GFF_C1);
+    ldoc_res_t* src = ldoc_find_anno_ent(ftr, (char*)GFF_C2);
+    ldoc_res_t* tpe = ldoc_find_anno_ent(ftr, (char*)GFF_C3);
+    ldoc_res_t* st = ldoc_find_anno_ent(lc->info.nde, (char*)GFF_C4);
+    ldoc_res_t* en = ldoc_find_anno_ent(lc->info.nde, (char*)GFF_C5);
+    ldoc_res_t* scr = ldoc_find_anno_ent(ftr, (char*)GFF_C6);
+    ldoc_res_t* strnd = ldoc_find_anno_ent(ftr, (char*)GFF_C7);
+    ldoc_res_t* ph = ldoc_find_anno_ent(ftr, (char*)GFF_C8);
+    
+    qk_strcat(gen_res_req(lm));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(src));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(tpe));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(st));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(en));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(scr));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(strnd));
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(ph));
+    qk_strcat("\t");
+    
+    ldoc_res_t* id = ldoc_find_anno_ent(ftr, "id");
+    ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
+    
+    const char* prnt_pth[] = { "parent" };
+    ldoc_res_t* prnt = ldoc_find_anno_nde(ftr, (char**)prnt_pth, 1);
+    
+    char* attrs = qk_working_ptr();
+    
+    if (id && !id->nde)
+        gen_join_attrs_ent("ID", id->info.ent, attrs);
+    
+    if (nme && !nme->nde)
+        gen_join_attrs_ent("Name", nme->info.ent, attrs);
+    
+    if (prnt && prnt->nde)
+        gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
+    
+    return NULL;
+}
+
+char* gff_proc_doc(ldoc_doc_t* doc)
+{
+    // Attributes are joined on the quick heap:
+    qk_purge();
+    
+    // Make sure that the quick heap contains a valid string even
+    // in the case where no attributes might be present at all:
+    qk_strcat("");
+    
+    gff_proc_doc_ftr(doc->rt);
+    
+    printf("%s\n", qk_heap_ptr());
 }

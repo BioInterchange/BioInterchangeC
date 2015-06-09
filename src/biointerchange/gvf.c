@@ -13,13 +13,13 @@
 
 #include "gvf.h"
 
-static const char* GVF_C1  = "seqid";
-static const char* GVF_C2  = "source";
-static const char* GVF_C3  = "type";
-static const char* GVF_C4  = "start";
-static const char* GVF_C5  = "end";
-static const char* GVF_C6  = "score";
-static const char* GVF_C7  = "strand";
+const char* GVF_C1  = "landmark";
+const char* GVF_C2  = "source";
+const char* GVF_C3  = "type";
+const char* GVF_C4  = "start";
+const char* GVF_C5  = "end";
+const char* GVF_C6  = "score";
+const char* GVF_C7  = "strand";
 
 void gvf_cbcks(gen_cbcks_t* cbcks)
 {
@@ -246,10 +246,10 @@ static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_ent_push(ftr, strnd);
     
     // Coordinates, assigned to a locus:
+    ldoc_nde_ent_push(lc, lm);
     ldoc_nde_ent_push(lc, st);
     ldoc_nde_ent_push(lc, en);
     
-    ldoc_nde_ent_push(ftr, lm);
     ldoc_nde_dsc_push(ftr, lc);
 
     // Reference & variants:
@@ -505,4 +505,20 @@ ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
     }
     
     return ldoc;
+}
+
+char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
+{
+    const char* lc_id[] = { "locus" };
+    ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
+    
+    ldoc_res_t* lm = ldoc_find_anno_ent(lc->info.nde, (char*)GFF_C1);
+    ldoc_res_t* src = ldoc_find_anno_ent(ftr, (char*)GFF_C2);
+}
+
+char* gvf_proc_doc(ldoc_doc_t* doc)
+{
+    char* attr = gvf_proc_doc_ftr_attrs(doc->rt);
+    
+    gff_proc_doc_ftr(doc->rt);
 }

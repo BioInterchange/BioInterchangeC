@@ -19,5 +19,5 @@
 
 TEST(python, no_dependencies)
 {
-    python_ftr();
+    
 }
