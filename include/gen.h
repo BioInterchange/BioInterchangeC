@@ -216,6 +216,12 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
 
 void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt, gen_fstat* stat);
     
+//
+// Genomics file formatting
+//
+
+bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vnum);
+    
 char* qk_alloc(size_t n);
 void qk_free();
 char* qk_heap_ptr();

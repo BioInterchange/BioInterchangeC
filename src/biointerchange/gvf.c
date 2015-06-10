@@ -58,7 +58,7 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
     return gff_prgm_tpe(ky_);
 }
 
-static inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, char** cmt)
+inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, char** cmt)
 {
     ldoc_doc_t* doc = ldoc_doc_new();
     
@@ -509,11 +509,49 @@ ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
 
 char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
 {
-    const char* lc_id[] = { "locus" };
-    ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
+    // Everything about the reference sequence:
+    const char* ref_id[] = { GEN_REFERENCE };
+    ldoc_res_t* ref = ldoc_find_anno_nde(ftr, (char**)ref_id, 1);
     
-    ldoc_res_t* lm = ldoc_find_anno_ent(lc->info.nde, (char*)GFF_C1);
-    ldoc_res_t* src = ldoc_find_anno_ent(ftr, (char*)GFF_C2);
+    // All variant alleles (B, C, D, ...):
+    const char* vars_id[] = { GEN_VARIANTS };
+    ldoc_res_t* vars = ldoc_find_anno_nde(ftr, (char**)vars_id, 1);
+    
+    // TODO Replace with some quick-heap implementation!
+    char* astr = (char*)malloc(1*1024*1024);
+    *astr = 0;
+    
+    size_t vnum = vars->info.nde->dsc_cnt; // Number of alleles ('B', 'C', etc.)
+    
+    if (vnum > 26)
+    {
+        // TODO Data error. Not supported.
+    }
+    
+    // Note 1: this assumes that all allele nodes contain the
+    //         the same named entities.
+    // Note 2: alleles must be labeled 'B', 'C', etc.
+    bool fst = true;
+    char* ent_nme;
+    ldoc_ent_t* ent;
+    while (vars->info.nde->dscs.tqh_first->ent_cnt)
+    {
+        if (fst)
+            fst = false;
+        else
+            strcat(astr, ";");
+        
+        ent = vars->info.nde->dscs.tqh_first->ents.tqh_first;
+        ent_nme = ent->pld.pair.anno.str;
+        
+        gen_proc_nde(vars->info.nde, ent_nme, "Variant_", astr, vnum);
+        
+        // TODO Replace with unshift.
+        ldoc_ent_rm(ent);
+        ldoc_ent_free(ent);
+    }
+
+    return astr;
 }
 
 char* gvf_proc_doc(ldoc_doc_t* doc)
@@ -521,4 +559,10 @@ char* gvf_proc_doc(ldoc_doc_t* doc)
     char* attr = gvf_proc_doc_ftr_attrs(doc->rt);
     
     gff_proc_doc_ftr(doc->rt);
+    
+    if (*attr)
+        qk_strcat(";");
+    qk_strcat(attr);
+    
+    free(attr);
 }

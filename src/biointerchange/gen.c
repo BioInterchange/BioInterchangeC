@@ -52,6 +52,8 @@ const char* GEN_COUNT = "count";
 const char* GEN_DEPTH = "depth";
 const char* GEN_FREQUENCY = "frequency";
 
+const char* GEN_SEQUENCE_GVF = "seq";
+
 ldoc_vis_nde_ord_t* json_vis_nde;
 ldoc_vis_ent_t* json_vis_ent;
 
@@ -1146,6 +1148,75 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
         
         free(ser);
     }
+}
+
+/// Genomic file format serialization
+
+char* gen_exp_ky(char* ky)
+{
+    char* str = ky;
+    
+    if (*str == 's')
+    {
+        str++;
+        if (*str == 'e')
+        {
+            str++;
+            if (*str == 'q')
+            {
+                str++;
+                if (!strcmp(str, "uence"))
+                {
+                    ky = (char*)GEN_SEQUENCE_GVF;
+                }
+            }
+        }
+    }
+
+    return ky;
+}
+
+// TODO Replace vstr with parametrizable quick-heap implementation.
+bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vnum)
+{
+    // Attribute name might need adjusting:
+    // (For example: "sequence" is shortened to "seq" in GVF
+    char* attr_adj = gen_exp_ky(attr);
+    
+    // Attribute key:
+    if (pre)
+        strcat(astr, pre);
+    strcat(astr, attr_adj);
+    strcat(astr, "=");
+    
+    bool fst = true;
+    ldoc_res_t* ent;
+    ldoc_res_t* var;
+    char* all_pth[1];
+    for (size_t vrnt = 0; vrnt < vnum; vrnt++)
+    {
+        if (fst)
+            fst = false;
+        else
+            strcat(astr, ",");
+        
+        all_pth[0] = &GEN_ALLELE[(vrnt + 1) * 2];
+        
+        // TODO The order of the nodes will always be
+        //      the same for following runs. This means
+        //      that there is room for optimization.
+        var = ldoc_find_anno_nde(vars, all_pth, 1);
+        
+        // TODO Error handling. Data error -- not supported.
+        
+        ent = ldoc_find_anno_ent(var->info.nde, attr);
+        
+        // TODO Error handling. Data error -- not supported.
+        
+        strcat(astr, ent->info.ent->pld.pair.dtm.str);
+    }
+
+    return true;
 }
 
 /// Quick SINGLE THREADED string operations

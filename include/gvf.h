@@ -38,6 +38,16 @@ typedef enum
     
 void gvf_cbcks(gen_cbcks_t* cbcks);
     
+//
+// Internal use
+//
+    
+ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, char** cmt);
+  
+//
+// Public API
+//
+    
 ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
     
 char* gvf_proc_doc(ldoc_doc_t* doc);
