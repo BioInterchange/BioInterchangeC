@@ -39,15 +39,20 @@ extern const char* JSONLD_GTF;
 extern const char* JSONLD_GVF;
 extern const char* JSONLD_VCF;
 
+extern const char* GEN_AFFECTED;
+extern const char* GEN_AFFECTED_TPE;
 extern const char* GEN_ATTRS;
 extern const char* GEN_BUILD;
 extern const char* GEN_COMMENT;
+extern const char* GEN_EFFECT;
+extern const char* GEN_EFFECTS;
 extern const char* GEN_END;
 extern const char* GEN_LOCUS;
 extern const char* GEN_REFERENCE;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_START;
 extern const char* GEN_SOURCE;
+extern const char* GEN_TYPE;
 extern const char* GEN_VARIANTS;
 
 extern const char* GEN_EMPTY;
@@ -97,6 +102,14 @@ typedef enum
      * Comma separated information about variants.
      */
     BI_CSEPVAR,
+    /**
+     * Comma separated information about variants & skip 8 characters of the key.
+     */
+    BI_CSEPVAR8,
+    /**
+     * GVF "Variant_effect" key.
+     */
+    BI_GVFEFFECT,
     /**
      * Information about the reference sequence.
      */

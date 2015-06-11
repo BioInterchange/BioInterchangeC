@@ -32,15 +32,20 @@ const char* JSONLD_GTF = "http://www.biointerchange.org/jsonld/gtf.json";
 const char* JSONLD_GVF = "http://www.biointerchange.org/jsonld/gvf.json";
 const char* JSONLD_VCF = "http://www.biointerchange.org/jsonld/vcf.json";
 
+const char* GEN_AFFECTED = "affected-features";
+const char* GEN_AFFECTED_TPE = "affected-feature-type";
 const char* GEN_ATTRS = "user";
 const char* GEN_BUILD = "build";
 const char* GEN_COMMENT = "comment";
+const char* GEN_EFFECT = "effect";
+const char* GEN_EFFECTS = "effects";
 const char* GEN_END = "end";
 const char* GEN_LOCUS = "locus";
 const char* GEN_REFERENCE = "reference";
 const char* GEN_SEQUENCE = "sequence";
 const char* GEN_START = "start";
 const char* GEN_SOURCE = "source";
+const char* GEN_TYPE = "type";
 const char* GEN_VARIANTS = "variants";
 
 const char* GEN_EMPTY = "";
@@ -389,6 +394,10 @@ inline bi_attr gen_kwd(char* str)
                     str++;
                     if (!strcmp(str, "iant_seq"))
                         return BI_IGN; // GVF: Variant_seq
+                    else if (!strcmp(str, "iant_effect"))
+                        return BI_GVFEFFECT; // GVF: Variant_effect
+                    else if (!strncmp(str, "iant_", 5))
+                        return BI_CSEPVAR8; // GVF: Variant_*
                 }
             }
         }
@@ -593,6 +602,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             char* val_cmp;
             ldoc_nde_t* kv_nde;
             ldoc_ent_t* kv_ent;
+            size_t skp = 0;
             switch (kind)
             {
                 case BI_CSEP:
@@ -635,6 +645,8 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     ldoc_nde_dsc_push(dst, kv_nde);
                     
                     break;
+                case BI_CSEPVAR8:
+                    skp = 8;
                 case BI_CSEPVAR:
                     val_cmp = val;
                     TAILQ_FOREACH(kv_nde, &(vars->dscs), ldoc_nde_entries)
@@ -660,9 +672,145 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                             // TODO Error handling.
                         }
                         
-                        kv_ent->pld.pair.anno.str = attr;
+                        //
+                        kv_ent->pld.pair.anno.str = attr + skp;
                         kv_ent->pld.pair.dtm.str = val_cmp;
                         ldoc_nde_ent_push(kv_nde, kv_ent);
+                        
+                        val_cmp = ++val;
+                    }
+                    
+                    break;
+                case BI_GVFEFFECT:
+                    val_cmp = val;
+                    // TODO Make this a function in gvf.{c,h}!
+                    // Format: sequence_variant index feature_type feature_ID feature_ID
+                    char* val_spc;
+                    char* spc;
+                    off_t eff;
+                    ldoc_res_t* nde_res;
+                    ldoc_res_t* nde_eff;
+                    ldoc_nde_t* eff_lst;
+                    ldoc_nde_t* aff_lst;
+                    ldoc_nde_t* eff_ctnr;
+                    bool flst_done;
+                    while (!lend)
+                    {
+                        // Check: this should always work, since strlen(val) > 0; but check!?
+                        while (*val && *val != ',')
+                            val++;
+                        
+                        if (!*val)
+                            lend = true;
+                        else
+                            *val = 0;
+                        
+                        // Go through values that are separated by space:
+                        spc = val_cmp;
+                        while (*spc && *spc != ' ')
+                            spc++;
+                        *spc = 0;
+                        
+                        // Now val_cmp denotes the sequence variant SO type.
+                        // Find variant index:
+                        val_spc = ++spc;
+                        while (*spc && *spc != ' ')
+                            spc++;
+                        *spc = 0;
+                        eff = strtoll(val_spc, NULL, 10);
+                        // TODO Check that eff is a number and less than dsc_cnt!
+                        // Find the node (can the desclaration be moved up?):
+                        const char* vars_id[] = { &GEN_ALLELE[(eff + 1) * 2] };
+                        nde_res = ldoc_find_anno_nde(vars, (char**)vars_id, 1);
+                        
+                        if (!nde_res)
+                        {
+                            // TODO Error in data format.
+                        }
+                        
+                        const char* effs_id[] = { GEN_EFFECTS };
+                        nde_eff = ldoc_find_anno_nde(nde_res->info.nde, (char**)effs_id, 1);
+                        
+                        if (!nde_eff)
+                        {
+                            eff_lst = ldoc_nde_new(LDOC_NDE_OL);
+                            
+                            // TODO Error handling.
+                            
+                            eff_lst->mkup.anno.str = (char*)GEN_EFFECTS;
+                            ldoc_nde_dsc_push(nde_res->info.nde, eff_lst);
+                        }
+                        else
+                            eff_lst = nde_eff->info.nde;
+
+                        eff_ctnr = ldoc_nde_new(LDOC_NDE_UA);
+                        
+                        // TODO Error handling.
+                        
+                        ldoc_nde_dsc_push(eff_lst, eff_ctnr);
+                        
+                        // First space-separated value: effect
+                        kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                        
+                        if (!kv_ent)
+                        {
+                            // TODO Error handling.
+                        }
+                        
+                        kv_ent->pld.pair.anno.str = (char*)GEN_EFFECT;
+                        kv_ent->pld.pair.dtm.str = val_cmp;
+                        ldoc_nde_ent_push(eff_ctnr, kv_ent);
+
+                        // Third space-separated value: affected feature type
+                        val_spc = ++spc;
+                        while (*spc && *spc != ' ')
+                            spc++;
+                        *spc = 0;
+
+                        kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                        
+                        if (!kv_ent)
+                        {
+                            // TODO Error handling.
+                        }
+                        
+                        kv_ent->pld.pair.anno.str = (char*)GEN_AFFECTED_TPE;
+                        kv_ent->pld.pair.dtm.str = val_spc;
+                        ldoc_nde_ent_push(eff_ctnr, kv_ent);
+
+                        // Remainder: feature IDs
+                        
+                        aff_lst = ldoc_nde_new(LDOC_NDE_OL);
+                        
+                        // TODO Error handling.
+                        
+                        aff_lst->mkup.anno.str = (char*)GEN_AFFECTED;
+                        ldoc_nde_dsc_push(eff_ctnr, aff_lst);
+                        
+                        flst_done = false;
+                        while (!flst_done)
+                        {
+                            val_spc = ++spc;
+                            while (*spc && *spc != ' ')
+                                spc++;
+                            if (!*spc)
+                                flst_done = true;
+                            else
+                                *spc = 0;
+                            
+                            kv_ent = ldoc_ent_new(LDOC_ENT_TXT);
+                            
+                            if (!kv_ent)
+                            {
+                                // TODO Error handling.
+                            }
+                            
+                            //kv_ent->pld.pair.anno.str = attr;
+                            //kv_ent->pld.pair.dtm.str = val_spc;
+                            kv_ent->pld.str = val_spc;
+                            
+                            ldoc_nde_ent_push(aff_lst, kv_ent);
+                        }
                         
                         val_cmp = ++val;
                     }
@@ -1214,6 +1362,11 @@ bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vn
         // TODO Error handling. Data error -- not supported.
         
         strcat(astr, ent->info.ent->pld.pair.dtm.str);
+        
+        // Entity has been processed, so remove it. Prevents that the
+        // same information is serialized at a later stage again.
+        ldoc_ent_rm(ent->info.ent);
+        ldoc_ent_free(ent->info.ent);
     }
 
     return true;

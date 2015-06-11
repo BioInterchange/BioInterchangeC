@@ -545,10 +545,6 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
         ent_nme = ent->pld.pair.anno.str;
         
         gen_proc_nde(vars->info.nde, ent_nme, "Variant_", astr, vnum);
-        
-        // TODO Replace with unshift.
-        ldoc_ent_rm(ent);
-        ldoc_ent_free(ent);
     }
 
     return astr;
