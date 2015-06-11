@@ -42,6 +42,7 @@ void gvf_cbcks(gen_cbcks_t* cbcks);
 // Internal use
 //
     
+void gvf_proc_effct(ldoc_nde_t* vars, char** val_cmp, bool* lend); // Called in gen.c
 ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, char** cmt);
   
 //

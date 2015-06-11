@@ -58,6 +58,146 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
     return gff_prgm_tpe(ky_);
 }
 
+inline void gvf_proc_effct(ldoc_nde_t* vars, char** val_cmp, bool* lend)
+{
+    // TODO This function seems long and uses many variables. Can be shortened?
+    
+    // Remember where the processing started.
+    char* val = *val_cmp;
+    
+    // Format: sequence_variant index feature_type feature_ID feature_ID
+    char* val_spc;
+    char* spc;
+    off_t eff;
+    ldoc_ent_t* kv_ent;
+    ldoc_res_t* nde_res;
+    ldoc_res_t* nde_eff;
+    ldoc_nde_t* eff_lst;
+    ldoc_nde_t* aff_lst;
+    ldoc_nde_t* eff_ctnr;
+    bool flst_done;
+    while (!*lend)
+    {
+        // Check: this should always work, since strlen(val) > 0; but check!?
+        while (*val && *val != ',')
+            val++;
+        
+        if (!*val)
+            *lend = true;
+        else
+            *val = 0;
+        
+        // Go through values that are separated by space:
+        spc = *val_cmp;
+        while (*spc && *spc != ' ')
+            spc++;
+        *spc = 0;
+        
+        // Now *val_cmp denotes the sequence variant SO type.
+        // Find variant index:
+        val_spc = ++spc;
+        while (*spc && *spc != ' ')
+            spc++;
+        *spc = 0;
+        eff = strtoll(val_spc, NULL, 10);
+        // TODO Check that eff is a number and less than dsc_cnt!
+        // Find the node (can the desclaration be moved up?):
+        const char* vars_id[] = { &GEN_ALLELE[(eff + 1) * 2] };
+        nde_res = ldoc_find_anno_nde(vars, (char**)vars_id, 1);
+        
+        if (!nde_res)
+        {
+            // TODO Error in data format.
+        }
+        
+        const char* effs_id[] = { GEN_EFFECTS };
+        nde_eff = ldoc_find_anno_nde(nde_res->info.nde, (char**)effs_id, 1);
+        
+        if (!nde_eff)
+        {
+            eff_lst = ldoc_nde_new(LDOC_NDE_OL);
+            
+            // TODO Error handling.
+            
+            eff_lst->mkup.anno.str = (char*)GEN_EFFECTS;
+            ldoc_nde_dsc_push(nde_res->info.nde, eff_lst);
+        }
+        else
+            eff_lst = nde_eff->info.nde;
+        
+        eff_ctnr = ldoc_nde_new(LDOC_NDE_UA);
+        
+        // TODO Error handling.
+        
+        ldoc_nde_dsc_push(eff_lst, eff_ctnr);
+        
+        // First space-separated value: effect
+        kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+        
+        if (!kv_ent)
+        {
+            // TODO Error handling.
+        }
+        
+        kv_ent->pld.pair.anno.str = (char*)GEN_EFFECT;
+        kv_ent->pld.pair.dtm.str = *val_cmp;
+        ldoc_nde_ent_push(eff_ctnr, kv_ent);
+        
+        // Third space-separated value: affected feature type
+        val_spc = ++spc;
+        while (*spc && *spc != ' ')
+            spc++;
+        *spc = 0;
+        
+        kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+        
+        if (!kv_ent)
+        {
+            // TODO Error handling.
+        }
+        
+        kv_ent->pld.pair.anno.str = (char*)GEN_AFFECTED_TPE;
+        kv_ent->pld.pair.dtm.str = val_spc;
+        ldoc_nde_ent_push(eff_ctnr, kv_ent);
+        
+        // Remainder: feature IDs
+        
+        aff_lst = ldoc_nde_new(LDOC_NDE_OL);
+        
+        // TODO Error handling.
+        
+        aff_lst->mkup.anno.str = (char*)GEN_AFFECTED;
+        ldoc_nde_dsc_push(eff_ctnr, aff_lst);
+        
+        flst_done = false;
+        while (!flst_done)
+        {
+            val_spc = ++spc;
+            while (*spc && *spc != ' ')
+                spc++;
+            if (!*spc)
+                flst_done = true;
+            else
+                *spc = 0;
+            
+            kv_ent = ldoc_ent_new(LDOC_ENT_TXT);
+            
+            if (!kv_ent)
+            {
+                // TODO Error handling.
+            }
+            
+            //kv_ent->pld.pair.anno.str = attr;
+            //kv_ent->pld.pair.dtm.str = val_spc;
+            kv_ent->pld.str = val_spc;
+            
+            ldoc_nde_ent_push(aff_lst, kv_ent);
+        }
+        
+        *val_cmp = ++val;
+    }
+}
+
 inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, char** cmt)
 {
     ldoc_doc_t* doc = ldoc_doc_new();
