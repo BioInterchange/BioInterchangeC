@@ -647,6 +647,67 @@ ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
     return ldoc;
 }
 
+void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
+{
+    // Format:
+    //   "effects":[
+    //     {
+    //       "effect":"downstream_gene_variant",
+    //       "affected-feature-type":"transcript",
+    //       "affected-features":[
+    //                             "YAL056W"
+    //                           ]
+    //     },
+    //   ...
+    ldoc_nde_t* eff;
+    ldoc_nde_t* ftrs;
+    ldoc_ent_t* ftr;
+    ldoc_res_t* ent;
+    bool fst = true;
+    while (effs->dsc_cnt)
+    {
+        if (fst)
+            fst = false;
+        else
+            strcat(astr, ",");
+        
+        eff = effs->dscs.tqh_first;
+        
+        ent = ldoc_find_anno_ent(eff, "effect");
+        // TODO Error handling. Data format error.
+        
+        strcat(astr, ent->info.ent->pld.pair.dtm.str);
+        strcat(astr, " ");
+        
+        // Index.
+        char* e = &astr[strlen(astr)];
+        sprintf(e, "%u ", allele[0] - 'B');
+        
+        ent = ldoc_find_anno_ent(eff, "affected-feature-type");
+        // TODO Error handling. Data format error.
+        
+        strcat(astr, ent->info.ent->pld.pair.dtm.str);
+        
+        // TODO There should be only one descendant.
+        ftrs = eff->dscs.tqh_first;
+        
+        while (ftrs->ent_cnt)
+        {
+            strcat(astr, " ");
+
+            ftr = ftrs->ents.tqh_first;
+            
+            strcat(astr, ftr->pld.str);
+            
+            ldoc_ent_rm(ftr);
+            ldoc_ent_free(ftr);
+        }
+        
+        ldoc_nde_rm(eff);
+        ldoc_nde_free(eff);
+    }
+}
+
 char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
 {
     // Everything about the reference sequence:
@@ -686,6 +747,33 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
         
         gen_proc_nde(vars->info.nde, ent_nme, "Variant_", astr, vnum);
     }
+    
+    if (fst)
+        fst = false;
+    else
+        strcat(astr, ";");
+    
+    strcat(astr, "Variant_effect=");
+    
+    // Note: this assumes that the only descendant (if any) is "effects":
+    char* nde_nme;
+    ldoc_nde_t* allele;
+    ldoc_nde_t* nde;
+    TAILQ_FOREACH(allele, &(vars->info.nde->dscs), ldoc_nde_entries)
+    {
+        while (allele->dsc_cnt)
+        {
+            nde = allele->dscs.tqh_first;
+            nde_nme = nde->mkup.anno.str;
+            
+            // TODO nde_nme will have to be "effects" here.
+            
+            gvf_proc_attr_effct(nde, allele->mkup.anno.str, astr);
+            
+            ldoc_nde_rm(nde);
+            ldoc_nde_free(nde);
+        }
+    }
 
     return astr;
 }
@@ -699,6 +787,8 @@ char* gvf_proc_doc(ldoc_doc_t* doc)
     if (*attr)
         qk_strcat(";");
     qk_strcat(attr);
+    
+    gen_proc_doc_usr(doc->rt);
     
     free(attr);
 }

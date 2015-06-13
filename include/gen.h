@@ -99,6 +99,10 @@ typedef enum
      */
     BI_CSEP,
     /**
+     * Comma separated values of pairs (colon separated):
+     */
+    BI_CSEPCPAIR,
+    /**
      * Comma separated information about variants.
      */
     BI_CSEPVAR,
@@ -233,6 +237,7 @@ void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt
 // Genomics file formatting
 //
 
+bool gen_proc_doc_usr(ldoc_nde_t* ftr);
 bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vnum);
     
 char* qk_alloc(size_t n);

@@ -34,7 +34,7 @@ const char* JSONLD_VCF = "http://www.biointerchange.org/jsonld/vcf.json";
 
 const char* GEN_AFFECTED = "affected-features";
 const char* GEN_AFFECTED_TPE = "affected-feature-type";
-const char* GEN_ATTRS = "user";
+const char* GEN_ATTRS = "user-defined";
 const char* GEN_BUILD = "build";
 const char* GEN_COMMENT = "comment";
 const char* GEN_EFFECT = "effect";
@@ -270,8 +270,8 @@ inline bi_attr gen_kwd(char* str)
                 if (*str == 'x')
                 {
                     str++;
-                    if (!strcmp(str, "ref")) // GFF3: Dbxref
-                        return BI_CSEP;
+                    if (!strcmp(str, "ref")) // GFF3/GVF: Dbxref
+                        return BI_CSEPCPAIR;
                 }
             }
         }
@@ -530,8 +530,21 @@ inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
         else
             qk_strcat(",");
         
-        // TODO Account for different node types?
-        qk_strcat(ent->pld.pair.dtm.str);
+        // TODO Account for more entity types?
+        switch (ent->tpe)
+        {
+            case LDOC_ENT_TXT:
+                qk_strcat(ent->pld.str);
+                break;
+            case LDOC_ENT_OR:
+                qk_strcat(ent->pld.pair.anno.str);
+                qk_strcat(":");
+                qk_strcat(ent->pld.pair.dtm.str);
+                break;
+            default:
+                qk_strcat(ent->pld.pair.dtm.str);
+                break;
+        }
     }
     
     return true;
@@ -600,11 +613,15 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             
             bool lend = false;
             char* val_cmp;
+            char splt = 0;
+            char* val_splt;
             ldoc_nde_t* kv_nde;
             ldoc_ent_t* kv_ent;
             size_t skp = 0;
             switch (kind)
             {
+                case BI_CSEPCPAIR:
+                    splt = ':';
                 case BI_CSEP:
                     kv_nde = ldoc_nde_new(LDOC_NDE_OL);
                     
@@ -621,21 +638,31 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         // Check: this should always work, since strlen(val) > 0; but check!?
                         val++;
                         
-                        if (*val == ',' || !*val)
+                        if (splt && *val == splt)
+                        {
+                            // Key found in key/value pair (separated by splt):
+                            *(val++) = 0;
+                            val_splt = val;
+                        }
+                        else if (*val == ',' || !*val)
                         {
                             *val = 0;
                             
-                            // TODO Possible bug: LDOC_ENT_TXT but use of pld.pair!
-                            
-                            kv_ent = ldoc_ent_new(LDOC_ENT_TXT);
+                            kv_ent = ldoc_ent_new(splt ? LDOC_ENT_OR :LDOC_ENT_TXT);
                             
                             if (!kv_ent)
                             {
                                 // TODO Error handling.
                             }
                             
-                            kv_ent->pld.pair.anno.str = attr;
-                            kv_ent->pld.pair.dtm.str = val_cmp;
+                            if (splt)
+                            {
+                                kv_ent->pld.pair.anno.str = val_cmp;
+                                kv_ent->pld.pair.dtm.str = val_splt;
+                            }
+                            else
+                                kv_ent->pld.str = val_cmp;
+                            
                             ldoc_nde_ent_push(kv_nde, kv_ent);
                             
                             val_cmp = val;
@@ -1000,7 +1027,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                     ldoc_nde_ent_push(cdoc->rt, ent);
                     
                     ent = ldoc_ent_new(LDOC_ENT_OR);
-                    ent->pld.pair.anno.str = strdup("user-parameters");
+                    ent->pld.pair.anno.str = strdup(GEN_ATTRS);
                     if (ctxt->usr)
                         ent->pld.pair.dtm.str = strdup(ctxt->usr);
                     else
@@ -1193,6 +1220,29 @@ char* gen_exp_ky(char* ky)
     }
 
     return ky;
+}
+
+bool gen_proc_doc_usr(ldoc_nde_t* ftr)
+{
+    const char* usr_ky[] = { GEN_ATTRS };
+    ldoc_res_t* usr = ldoc_find_anno_nde(ftr, usr_ky, 1);
+    
+    // TODO Error handling.
+    
+    // TODO Assumes that other attributes are present: so the
+    //      semi-colon is always prepended. This might be a
+    //      false assumption! Unlikely to happen -- but could happen!
+    ldoc_ent_t* ent;
+    TAILQ_FOREACH(ent, &(usr->info.nde->ents), ldoc_ent_entries)
+    {
+        qk_strcat(";");
+        
+        qk_strcat(ent->pld.pair.anno.str);
+        qk_strcat("=");
+        qk_strcat(ent->pld.pair.dtm.str);
+    }
+    
+    return true;
 }
 
 // TODO Replace vstr with parametrizable quick-heap implementation.

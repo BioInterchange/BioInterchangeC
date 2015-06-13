@@ -1104,6 +1104,9 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
     ldoc_res_t* id = ldoc_find_anno_ent(ftr, "id");
     ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
     
+    const char* dbxref_id[] = { "dbxref" };
+    ldoc_res_t* dbxref = ldoc_find_anno_nde(ftr, (char**)dbxref_id, 1);
+    
     const char* prnt_pth[] = { "parent" };
     ldoc_res_t* prnt = ldoc_find_anno_nde(ftr, (char**)prnt_pth, 1);
     
@@ -1117,6 +1120,9 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
     
     if (prnt && prnt->nde)
         gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
+
+    if (dbxref && dbxref->nde)
+        gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
     
     return NULL;
 }
