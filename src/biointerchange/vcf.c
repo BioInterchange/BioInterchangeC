@@ -360,6 +360,7 @@ static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
     else
         nde->mkup.anno.str = (char*)VCF_GENOLHOOD;
     
+    size_t slen;
     size_t n = 0;
     char* v = val;
     while (len--)
@@ -372,10 +373,11 @@ static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
             
             ent->pld.pair.anno.str = &GEN_ALLELES[n * GEN_STEP];
             
-            if (val - v == 1 && *v == '.')
+            slen = len ? val - v : val - v + 1;
+            if (slen == 1 && *v == '.')
                 ent->pld.pair.dtm.str = NULL;
             else
-                ent->pld.pair.dtm.str = qk_strndup(v, len ? val - v : val - v + 1);
+                ent->pld.pair.dtm.str = qk_strndup(v, slen);
             
             ldoc_nde_ent_push(nde, ent);
             
@@ -632,11 +634,11 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_t* lc = ldoc_nde_new(LDOC_NDE_UA);
     lc->mkup.anno.str = (char*)GEN_LOCUS;
     
-    ldoc_ent_t* st = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* st = ldoc_ent_new(LDOC_ENT_NR);
     st->pld.pair.anno.str = (char*)VCF_C2_1;
     st->pld.pair.dtm.str = coff[1];
     
-    ldoc_ent_t* en = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* en = ldoc_ent_new(LDOC_ENT_NR);
     en->pld.pair.anno.str = (char*)VCF_C2_2;
     en->pld.pair.dtm.str = coff[1];
     
@@ -657,7 +659,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     char* vseqs[GEN_MAX_ALT];
     ldoc_nde_t* vars = gen_variants(coff[4], ',', vseqs, &vnum);
     
-    ldoc_ent_t* scr = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* scr = ldoc_ent_new(LDOC_ENT_NR);
     scr->pld.pair.anno.str = (char*)VCF_C6;
     scr->pld.pair.dtm.str = coff[5];
     
