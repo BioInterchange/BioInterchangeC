@@ -721,6 +721,31 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     // TODO Replace with some quick-heap implementation!
     char* astr = (char*)malloc(1*1024*1024);
     *astr = 0;
+
+    bool fst = true;
+    
+    //
+    // Reference:
+    //
+    
+    ldoc_res_t* ref_seq = ldoc_find_anno_ent(ref->info.nde, (char*)GEN_SEQUENCE);
+    strcat(astr, "Reference_sequence=");
+    strcat(astr, ref_seq->info.ent->pld.pair.dtm.str);
+    fst = false;
+    
+    const char* cdn_id[] = { GEN_CODON };
+    ldoc_res_t* cdn = ldoc_find_anno_nde(ref->info.nde, (char**)cdn_id, 1);
+    if (cdn)
+    {
+        if (!fst)
+            strcat(astr, ";");
+        strcat(astr, "Reference_codon=");
+        strcat(astr, cdn->info.ent->pld.pair.dtm.str);
+    }
+    
+    //
+    // Variants:
+    //
     
     size_t vnum = vars->info.nde->dsc_cnt; // Number of alleles ('B', 'C', etc.)
     
@@ -732,7 +757,6 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     // Note 1: this assumes that all allele nodes contain the
     //         the same named entities.
     // Note 2: alleles must be labeled 'B', 'C', etc.
-    bool fst = true;
     char* ent_nme;
     ldoc_ent_t* ent;
     while (vars->info.nde->dscs.tqh_first->ent_cnt)

@@ -12,6 +12,7 @@
  */
 
 #include "gen.h"
+#include "gvf.h"
 
 const char* JSONLD_CTX = "@context";
 
@@ -34,14 +35,26 @@ const char* JSONLD_VCF = "http://www.biointerchange.org/jsonld/vcf.json";
 
 const char* GEN_AFFECTED = "affected-features";
 const char* GEN_AFFECTED_TPE = "affected-feature-type";
+const char* GEN_ALLELE_CNT = "allele-count";
+const char* GEN_ALLELE_FRQ = "allele-frequency";
+const char* GEN_ALLELE_TTL = "allele-total-number";
+const char* GEN_ALIGNMENT = "alignment";
 const char* GEN_ATTRS = "user-defined";
 const char* GEN_BUILD = "build";
+const char* GEN_CODON = "codon";
 const char* GEN_COMMENT = "comment";
+const char* GEN_DEPTH = "depth";
 const char* GEN_EFFECT = "effect";
 const char* GEN_EFFECTS = "effects";
 const char* GEN_END = "end";
 const char* GEN_LOCUS = "locus";
+const char* GEN_ONT_ACCESSION = "ontology-accession";
+const char* GEN_ONT_TERM = "ontology-term";
+const char* GEN_QUALITY_MAP = "mapping-quality-rms";
+const char* GEN_QUALITY_MAP0 = "reads-with-zero-mapping-quality";
+const char* GEN_QUALITY_RMS = "base-quality-rms";
 const char* GEN_REFERENCE = "reference";
+const char* GEN_SAMPLES_DATA = "samples-with-data";
 const char* GEN_SEQUENCE = "sequence";
 const char* GEN_START = "start";
 const char* GEN_SOURCE = "source";
@@ -53,8 +66,7 @@ const char* GEN_NULL = "null";
 const char* GEN_TRUE = "true";
 const char* GEN_UNKNOWN = ".";
 
-const char* GEN_COUNT = "count";
-const char* GEN_DEPTH = "depth";
+const char* GEN_COUNT = "count"; // TODO Check whether better replaced with GEN_ALLELE_CNT
 const char* GEN_FREQUENCY = "frequency";
 
 const char* GEN_SEQUENCE_GVF = "seq";
@@ -209,7 +221,7 @@ inline void gen_lwr(char* str)
     }
 }
 
-inline bi_attr gen_kwd(char* str)
+inline void gen_kwd(char* str, gen_attr_t* kwd)
 {
     if (*str >= 'A' && *str <= 'Z')
     {
@@ -220,19 +232,34 @@ inline bi_attr gen_kwd(char* str)
             {
                 str++;
                 if (!*str)
-                    return BI_CSEPVAR; // VCF: AC, allele count
+                {
+                    // VCF: AC, allele count
+                    kwd->attr = BI_CSEPVAR;
+                    kwd->alt = GEN_ALLELE_CNT;
+                    return;
+                }
             }
             else if (*str == 'F')
             {
                 str++;
                 if (!*str)
-                    return BI_CSEPVAR; // VCF: AF, allele frequency
+                {
+                    // VCF: AF, allele frequency
+                    kwd->attr = BI_CSEPVAR;
+                    kwd->alt = GEN_ALLELE_FRQ;
+                    return;
+                }
             }
             else if (*str == 'N')
             {
                 str++;
                 if (!*str)
-                    return BI_NUM; // VCF: AN, total number of alleles in called genotypes
+                {
+                    // VCF: AN, total number of alleles in called
+                    kwd->attr = BI_NUM;
+                    kwd->alt = GEN_ALLELE_TTL;
+                    return;
+                }
             }
             else if (*str == 'l')
             {
@@ -240,8 +267,13 @@ inline bi_attr gen_kwd(char* str)
                 if (*str == 'i')
                 {
                     str++;
-                    if (!strcmp(str, "as")) // GFF3: Alias
-                        return BI_CSEP;
+                    if (!strcmp(str, "as"))
+                    {
+                        // GFF3: Alias
+                        kwd->attr = BI_CSEP;
+                        kwd->alt = NULL;
+                        return;
+                    }
                 }
             }
         }
@@ -252,7 +284,12 @@ inline bi_attr gen_kwd(char* str)
             {
                 str++;
                 if (!*str)
-                    return BI_NUM; // VCF: BQ, RMS base quality
+                {
+                    // VCF: BQ, RMS base quality
+                    kwd->attr = BI_NUM;
+                    kwd->alt = GEN_QUALITY_RMS;
+                    return;
+                }
             }
         }
         else if (*str == 'D')
@@ -262,7 +299,12 @@ inline bi_attr gen_kwd(char* str)
             {
                 str++;
                 if (!*str)
-                    return BI_NUM; // VCF: DP, depth across samples
+                {
+                    // VCF: DP, depth across samples
+                    kwd->attr = BI_NUM;
+                    kwd->alt = GEN_DEPTH;
+                    return;
+                }
             }
             else if (*str == 'b')
             {
@@ -270,8 +312,13 @@ inline bi_attr gen_kwd(char* str)
                 if (*str == 'x')
                 {
                     str++;
-                    if (!strcmp(str, "ref")) // GFF3/GVF: Dbxref
-                        return BI_CSEPCPAIR;
+                    if (!strcmp(str, "ref"))
+                    {
+                        // GFF3/GVF: Dbxref
+                        kwd->attr = BI_CSEPCPAIR;
+                        kwd->alt = NULL;
+                        return;
+                    }
                 }
             }
         }
@@ -285,7 +332,12 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!*str)
-                        return BI_NUM; // VCF: END, end position of variant description
+                    {
+                        // VCF: END, end position of variant description
+                        kwd->attr = BI_NUM;
+                        kwd->alt = NULL; // TODO Check whether this is correct.
+                        return;
+                    }
                 }
             }
         }
@@ -299,7 +351,12 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!*str)
-                        return BI_XCIG; // GFF3: Gap
+                    {
+                        // GFF3: Gap
+                        kwd->attr = BI_XCIG;
+                        kwd->alt = GEN_ALIGNMENT;
+                        return;
+                    }
                 }
             }
         }
@@ -310,12 +367,22 @@ inline bi_attr gen_kwd(char* str)
             {
                 str++;
                 if (!*str)
-                    return BI_NUM; // VCF: MQ, mapping quality
+                {
+                    // VCF: MQ, mapping quality
+                    kwd->attr = BI_NUM;
+                    kwd->alt = GEN_QUALITY_MAP;
+                    return;
+                }
                 else if (*str == '0')
                 {
                     str++;
                     if (!*str)
-                        return BI_NUM; // VCF: MQ0, mapping quality == 0
+                    {
+                        // VCF: MQ0, mapping quality == 0
+                        kwd->attr = BI_NUM;
+                        kwd->alt = GEN_QUALITY_MAP0;
+                        return;
+                    }
                 }
             }
         }
@@ -326,7 +393,12 @@ inline bi_attr gen_kwd(char* str)
             {
                 str++;
                 if (!*str)
-                    return BI_NUM; // VCF: NS, number of samples with data
+                {
+                    // VCF: NS, number of samples with data
+                    kwd->attr = BI_NUM;
+                    kwd->alt = GEN_SAMPLES_DATA;
+                    return;
+                }
             }
             else if (*str == 'o')
             {
@@ -335,7 +407,12 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!strcmp(str, "e"))
-                        return BI_CSEP; // GFF3: Note
+                    {
+                        // GFF3: Note
+                        kwd->attr = BI_CSEP;
+                        kwd->alt = NULL;
+                        return;
+                    }
                 }
             }
         }
@@ -349,7 +426,12 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!strcmp(str, "ology_term"))
-                        return BI_CSEP; // GFF3: Ontology_term
+                    {
+                        // GFF3: Ontology_term
+                        kwd->attr = BI_CSEP;
+                        kwd->alt = GEN_ONT_TERM;
+                        return;
+                    }
                 }
             }
         }
@@ -363,7 +445,12 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!strcmp(str, "ent"))
-                        return BI_CSEP; // GFF3: Parent
+                    {
+                        // GFF3: Parent
+                        kwd->attr = BI_CSEP;
+                        kwd->alt = NULL;
+                        return;
+                    }
                 }
             }
         }
@@ -377,9 +464,19 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!strcmp(str, "erence_seq"))
-                        return BI_IGN;
+                    {
+                        // GVF: Reference_seq
+                        kwd->attr = BI_IGN;
+                        kwd->alt = NULL;
+                        return;
+                    }
                     else if (!strcmp(str, "erence_codon"))
-                        return BI_REFSEQ;
+                    {
+                        // GVF: Reference_codon
+                        kwd->attr = BI_REFSEQ10;
+                        kwd->alt = NULL;
+                        return;
+                    }
                 }
             }
         }
@@ -393,19 +490,38 @@ inline bi_attr gen_kwd(char* str)
                 {
                     str++;
                     if (!strcmp(str, "iant_seq"))
-                        return BI_IGN; // GVF: Variant_seq
+                    {
+                        // GVF: Variant_seq
+                        kwd->attr = BI_IGN;
+                        kwd->alt = NULL;
+                        return;
+                    }
                     else if (!strcmp(str, "iant_effect"))
-                        return BI_GVFEFFECT; // GVF: Variant_effect
+                    {
+                        // GVF: Variant_effect
+                        kwd->attr = BI_GVFEFFECT;
+                        kwd->alt = NULL;
+                        return;
+                    }
                     else if (!strncmp(str, "iant_", 5))
-                        return BI_CSEPVAR8; // GVF: Variant_*
+                    {
+                        // GVF: Variant_*
+                        kwd->attr = BI_CSEPVAR8;
+                        kwd->alt = NULL;
+                        return;
+                    }
                 }
             }
         }
         
-        return BI_VAL;
+        kwd->attr = BI_VAL;
+        kwd->alt = NULL;
+        return;
     }
-    
-    return BI_NKW;
+
+    kwd->attr = BI_NKW;
+    kwd->alt = NULL;
+    return;
 }
 
 inline char gen_inv(char c)
@@ -589,9 +705,9 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             
             // Key/value assignment, or, key-only handling:
             ldoc_nde_t* dst;
-            bi_attr kind;
-            // Yes, this is an assignment. Do not '=='!
-            if ((kind = gen_kwd(attr)))
+            gen_attr_t kwd = { BI_NKW, NULL };
+            gen_kwd(attr, &kwd);
+            if (kwd.attr)
             {
                 dst = ftr;
                 
@@ -600,8 +716,8 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                 // Fall back to comma separated list handing, if
                 // this is a comma separated variant list but no
                 // variant node is given:
-                if (kind == BI_CSEPVAR && !vars)
-                    kind = BI_CSEP;
+                if (kwd.attr == BI_CSEPVAR && !vars)
+                    kwd.attr = BI_CSEP;
             }
             else
             {
@@ -618,7 +734,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             ldoc_nde_t* kv_nde;
             ldoc_ent_t* kv_ent;
             size_t skp = 0;
-            switch (kind)
+            switch (kwd.attr)
             {
                 case BI_CSEPCPAIR:
                     splt = ':';
@@ -630,7 +746,10 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         // TODO Error handling.
                     }
                     
-                    kv_nde->mkup.anno.str = attr;
+                    if (kwd.alt)
+                        kv_nde->mkup.anno.str = (char*)kwd.alt;
+                    else
+                        kv_nde->mkup.anno.str = attr;
                     
                     val_cmp = val;
                     do
@@ -699,8 +818,10 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                             // TODO Error handling.
                         }
                         
-                        //
-                        kv_ent->pld.pair.anno.str = attr + skp;
+                        if (kwd.alt)
+                            kv_ent->pld.pair.anno.str = (char*)kwd.alt;
+                        else
+                            kv_ent->pld.pair.anno.str = attr + skp;
                         kv_ent->pld.pair.dtm.str = val_cmp;
                         ldoc_nde_ent_push(kv_nde, kv_ent);
                         
@@ -717,6 +838,8 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                 case BI_IGN:
                     // Ignore. Key/value pair has been processed already.
                     break;
+                case BI_REFSEQ10:
+                    skp = 10;
                 case BI_REFSEQ:
                     kv_ent = ldoc_ent_new(LDOC_ENT_OR);
                     
@@ -725,23 +848,29 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         // TODO Error handling.
                     }
                     
-                    kv_ent->pld.pair.anno.str = attr;
+                    if (kwd.alt)
+                        kv_ent->pld.pair.anno.str = (char*)kwd.alt;
+                    else
+                        kv_ent->pld.pair.anno.str = &attr[skp];
                     kv_ent->pld.pair.dtm.str = val;
                     ldoc_nde_ent_push(ref, kv_ent);
                     
                     break;
                 default:
-                    kv_ent = ldoc_ent_new(kind == BI_NUM ? LDOC_ENT_NR : LDOC_ENT_OR);
+                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : LDOC_ENT_OR);
                     
                     if (!kv_ent)
                     {
                         // TODO Error handling.
                     }
                     
-                    if (kind == BI_XCIG)
+                    if (kwd.attr == BI_XCIG)
                         gen_xcig(val);
                     
-                    kv_ent->pld.pair.anno.str = attr;
+                    if (kwd.alt)
+                        kv_ent->pld.pair.anno.str = (char*)kwd.alt;
+                    else
+                        kv_ent->pld.pair.anno.str = attr;
                     kv_ent->pld.pair.dtm.str = val;
                     ldoc_nde_ent_push(dst, kv_ent);
                     
@@ -1224,8 +1353,8 @@ char* gen_exp_ky(char* ky)
 
 bool gen_proc_doc_usr(ldoc_nde_t* ftr)
 {
-    const char* usr_ky[] = { GEN_ATTRS };
-    ldoc_res_t* usr = ldoc_find_anno_nde(ftr, usr_ky, 1);
+    const char* usr_id[] = { GEN_ATTRS };
+    ldoc_res_t* usr = ldoc_find_anno_nde(ftr, (char**)usr_id, 1);
     
     // TODO Error handling.
     

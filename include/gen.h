@@ -41,14 +41,26 @@ extern const char* JSONLD_VCF;
 
 extern const char* GEN_AFFECTED;
 extern const char* GEN_AFFECTED_TPE;
+extern const char* GEN_ALLELE_CNT;
+extern const char* GEN_ALLELE_FRQ;
+extern const char* GEN_ALLELE_TTL;
+extern const char* GEN_ALIGNMENT;
 extern const char* GEN_ATTRS;
 extern const char* GEN_BUILD;
+extern const char* GEN_CODON;
 extern const char* GEN_COMMENT;
+extern const char* GEN_DEPTH;
 extern const char* GEN_EFFECT;
 extern const char* GEN_EFFECTS;
 extern const char* GEN_END;
 extern const char* GEN_LOCUS;
+extern const char* GEN_ONT_ACCESSION;
+extern const char* GEN_ONT_TERM;
+extern const char* GEN_QUALITY_MAP;
+extern const char* GEN_QUALITY_MAP0;
+extern const char* GEN_QUALITY_RMS;
 extern const char* GEN_REFERENCE;
+extern const char* GEN_SAMPLES_DATA;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_START;
 extern const char* GEN_SOURCE;
@@ -119,12 +131,22 @@ typedef enum
      */
     BI_REFSEQ,
     /**
+     * Information about the reference sequence & skip 10 characters of the key.
+     */
+    BI_REFSEQ10,
+    /**
      * CIGAR string in GFF3 format (needs reformatting to match actual CIGAR specification).
      */
     BI_XCIG,
     BI_STRUCT
 } bi_attr;
     
+typedef struct gen_attr_t
+{
+    bi_attr attr;
+    const char* alt;
+} gen_attr_t;
+
 typedef enum
 {
     GEN_FMT_GFF3,
@@ -214,7 +236,7 @@ char* gen_res_req(ldoc_res_t* res);
     
 char* gen_term_crnl(char* s);
 void gen_lwr(char* str);
-bi_attr gen_kwd(char* str);
+void gen_kwd(char* str, gen_attr_t* attr);
 char gen_inv(char c);
     
 void gen_xcig(char* str);

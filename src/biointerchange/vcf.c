@@ -24,9 +24,9 @@ static const char* VCF_C7   = "filter";
 
 static const char* VCF_ALLELES = "alleles";
 static const char* VCF_GENOTYPE = "genotype";
-static const char* VCF_GENOLHOOD = "gl";
-static const char* VCF_GENOLHOODE = "gle";
-static const char* VCF_PHREDLHOOD = "pl";
+static const char* VCF_GENOLHOOD = "genotype-likelihood";
+static const char* VCF_GENOLHOODE = "gle"; // TODO Obsolete. (Discussed on VCF mailing list. Will affect VCF 4.3 and later.
+static const char* VCF_PHREDLHOOD = "genotype-likelihood-phred-scaled";
 static const char* VCF_PHASED = "phased";
 static const char* VCF_SAMPLES = "samples";
 
@@ -841,3 +841,19 @@ ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
     
     return ldoc;
 }
+
+char* vcf_proc_doc(ldoc_doc_t* doc)
+{
+    char* attr = gvf_proc_doc_ftr_attrs(doc->rt);
+    
+    gff_proc_doc_ftr(doc->rt);
+    
+    if (*attr)
+        qk_strcat(";");
+    qk_strcat(attr);
+    
+    gen_proc_doc_usr(doc->rt);
+    
+    free(attr);
+}
+
