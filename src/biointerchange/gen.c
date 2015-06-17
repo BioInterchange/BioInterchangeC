@@ -630,12 +630,10 @@ inline bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs)
     return true;
 }
 
-inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
+inline bool gen_join_nde(ldoc_nde_t* nde)
 {
     if (!nde)
         return true;
-    
-    gen_join_attrs_key(id, nde, NULL, attrs);
     
     bool fst = true;
     ldoc_ent_t* ent;
@@ -664,6 +662,16 @@ inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
     }
     
     return true;
+}
+
+inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
+{
+    if (!nde)
+        return true;
+    
+    gen_join_attrs_key(id, nde, NULL, attrs);
+    
+    return gen_join_nde(nde);
 }
 
 void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs)
@@ -857,7 +865,11 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     
                     break;
                 default:
-                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : LDOC_ENT_OR);
+                    // Entity type:
+                    //   LDOC_ENT_NR -- if attribute is a number
+                    //   LDOC_ENT_BR -- if value is NULL (only a keyword present)
+                    //   LDOC_ENT_OR -- otherwise
+                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : (val ? LDOC_ENT_OR : LDOC_ENT_BR));
                     
                     if (!kv_ent)
                     {
@@ -867,11 +879,18 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     if (kwd.attr == BI_XCIG)
                         gen_xcig(val);
                     
+                    // Assign alternative label, if given:
                     if (kwd.alt)
                         kv_ent->pld.pair.anno.str = (char*)kwd.alt;
                     else
                         kv_ent->pld.pair.anno.str = attr;
-                    kv_ent->pld.pair.dtm.str = val;
+                    
+                    // Assign value, or, truth value if only a keyword was seen:
+                    if (val)
+                        kv_ent->pld.pair.dtm.str = val;
+                    else
+                        kv_ent->pld.pair.dtm.bl = true;
+                    
                     ldoc_nde_ent_push(dst, kv_ent);
                     
                     break;
@@ -979,37 +998,40 @@ char* gen_escstr(char* str)
         else
             break;
     
-    str = realloc(str, strlen(str) + escchr + 1);
+    size_t nlen = strlen(str) + escchr + 1;
+    str = realloc(str, nlen);
     
     // TODO Error handling.
     
     // Escape characters:
+    char tmp[nlen];
     char c;
     ptr = str;
+    char* tptr = tmp;
     while ((c = *ptr))
-        if (gen_escchr(ptr))
+        if (gen_escchr(ptr++))
         {
-            *(ptr++) = '\\';
+            *(tptr++) = '\\';
             
             switch (c)
             {
                 case '"':
-                    *(ptr++) = '"';
+                    *(tptr++) = '"';
                     break;
                 case '\n':
-                    *(ptr++) = 'n';
+                    *(tptr++) = 'n';
                     break;
                 case '\r':
-                    *(ptr++) = 'r';
+                    *(tptr++) = 'r';
                     break;
                 case '\t':
-                    *(ptr++) = 't';
+                    *(tptr++) = 't';
                     break;
                 case '\b':
-                    *(ptr++) = 'b';
+                    *(tptr++) = 'b';
                     break;
                 case '\f':
-                    *(ptr++) = 'f';
+                    *(tptr++) = 'f';
                     break;
                 default:
                     // TODO Error handling. Internal error.
@@ -1017,8 +1039,10 @@ char* gen_escstr(char* str)
             }
         }
         else
-            *(ptr++) = c;
-    *ptr = 0;
+            *(tptr++) = c;
+    *tptr = 0;
+    
+    memcpy(str, tmp, nlen);
     
     return str;
 }
@@ -1358,6 +1382,9 @@ bool gen_proc_doc_usr(ldoc_nde_t* ftr)
     
     // TODO Error handling.
     
+    if (!usr)
+        return true;
+    
     // TODO Assumes that other attributes are present: so the
     //      semi-colon is always prepended. This might be a
     //      false assumption! Unlikely to happen -- but could happen!
@@ -1496,6 +1523,9 @@ inline char* qk_strndup(const char* s1, size_t n)
 
 inline bool qk_strcat(const char* s1)
 {
+    if (!s1)
+        return true;
+    
     size_t len = strlen(s1);
     
     // Out of quick memory (+1 required in case heap is empty):
