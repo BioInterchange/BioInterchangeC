@@ -20,7 +20,7 @@ static const char* VCF_C3   = "id";
 static const char* VCF_C4   = "reference";
 // static const char* VCF_C5 handled by generic implementation.
 static const char* VCF_C6   = "score";
-static const char* VCF_C7   = "filter";
+static const char* VCF_C7   = "filters";
 
 static const char* VCF_ALLELES = "alleles";
 static const char* VCF_GENOTYPE = "genotype";
@@ -35,39 +35,121 @@ void vcf_cbcks(gen_cbcks_t* cbcks)
     cbcks->proc_ln = &vcf_proc_ln;
 }
 
-void vcf_splt_inf(char* inf)
-{
-    char* ntry = inf;
-    while (*inf)
-    {
-        if (*inf == ':')
-        {
-            // Split to separate string:
-            *inf = 0;
-            
-        }
-        
-        inf++;
-    }
-}
-
 static inline ldoc_struct_t vcf_prgm_tpe(char* ky)
 {
     char* ky_ = ky;
-    
-    if (*ky == 'g')
+
+    if (*ky == 'A')
     {
         ky++;
-        if (*ky == 'e')
+        if (*ky == 'L')
+        {
+            ky++;
+            if (*ky == 'T')
+            {
+                ky++;
+                if (!*ky) // ALT
+                    return LDOC_NDE_OO;
+            }
+        }
+    }
+    else if (*ky == 'F')
+    {
+        ky++;
+        if (*ky == 'I')
+        {
+            ky++;
+            if (*ky == 'L')
+            {
+                ky++;
+                if (!strcmp(ky, "TER")) // FILTER
+                    return LDOC_NDE_OO;
+            }
+        }
+        else if (*ky == 'O')
+        {
+            ky++;
+            if (*ky == 'R')
+            {
+                ky++;
+                if (!strcmp(ky, "MAT")) // FORMAT
+                    return LDOC_NDE_OO;
+            }
+        }
+    }
+    else if (*ky == 'I')
+    {
+        ky++;
+        if (*ky == 'N')
+        {
+            ky++;
+            if (*ky == 'F')
+            {
+                ky++;
+                if (!strcmp(ky, "O")) // INFO
+                    return LDOC_NDE_OO;
+            }
+        }
+    }
+    else if (*ky == 'P')
+    {
+        ky++;
+        if (*ky == 'E')
+        {
+            ky++;
+            if (*ky == 'D')
+            {
+                ky++;
+                if (!strcmp(ky, "IGREE")) // PEDIGREE
+                    return LDOC_NDE_OO;
+                else if (!strcmp(ky, "IGREEDB")) // PEDIGREEDB (see also pedigreeDB)
+                    return LDOC_NDE_OO;
+            }
+        }
+    }
+    else if (*ky == 'a')
+    {
+        ky++;
+        if (*ky == 's')
+        {
+            ky++;
+            if (*ky == 's')
+            {
+                ky++;
+                if (!strcmp(ky, "embly")) // assembly
+                    return LDOC_NDE_UA;
+            }
+        }
+    }
+    else if (*ky == 'c')
+    {
+        ky++;
+        if (*ky == 'o')
         {
             ky++;
             if (*ky == 'n')
             {
                 ky++;
-                if (!strcmp(ky, "omic-source"))
+                if (!strcmp(ky, "tig")) // contig
+                    return LDOC_NDE_OO;
+            }
+        }
+    }
+    else if (*ky == 'f')
+    {
+        ky++;
+        if (*ky == 'i')
+        {
+            ky++;
+            if (*ky == 'l')
+            {
+                ky++;
+                if (!strcmp(ky, "eDate") || !strcmp(ky, "edate")) // fileDate & filedate
+                    return LDOC_NDE_UA;
+                if (!strcmp(ky, "eformat")) // fileformat
                     return LDOC_NDE_UA;
             }
-        } else if (*ky == 'v')
+        } else if (*ky == 'f')
         {
             ky++;
             if (*ky == 'f')
@@ -78,8 +160,111 @@ static inline ldoc_struct_t vcf_prgm_tpe(char* ky)
             }
         }
     }
+    else if (*ky == 'p')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'd')
+            {
+                ky++;
+                if (!strcmp(ky, "igreeDB")) // pedigreeDB (see also PEDIGREEDB)
+                    return LDOC_NDE_OO;
+            }
+        }
+        else if (*ky == 'h')
+        {
+            ky++;
+            if (*ky == 'a')
+            {
+                ky++;
+                if (!strcmp(ky, "sing")) // phasing
+                    return LDOC_NDE_UA;
+            }
+        }
+    }
+    else if (*ky == 'r')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'f')
+            {
+                ky++;
+                if (!strcmp(ky, "erence")) // reference
+                    return LDOC_NDE_UA;
+            }
+        }
+    }
+    else if (*ky == 's')
+    {
+        ky++;
+        if (*ky == 'o')
+        {
+            ky++;
+            if (*ky == 'u')
+            {
+                ky++;
+                if (!strcmp(ky, "rce")) // source
+                    return LDOC_NDE_UA;
+            }
+        }
+    }
     
     return LDOC_NDE_OL;
+}
+
+static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
+{
+    if (*inf != '<')
+    {
+        // TODO Format error.
+    }
+    
+    inf++;
+    
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
+    
+    nde->mkup.anno.str = id;
+    
+    ldoc_ent_t* ent;
+    bool cnt = true;
+    char* ky = inf;
+    char* val;
+    while (cnt)
+    {
+        if (*inf == '=')
+        {
+            *inf = 0;
+            val = inf + 1;
+        }
+        else if (*inf == ',' || *inf == '>')
+        {
+            if (*inf == '>')
+                cnt = false;
+            
+            *inf = 0;
+            
+            ent = ldoc_ent_new(LDOC_ENT_OR);
+            
+            // TODO Error handling.
+            
+            ent->pld.pair.anno.str = ky;
+            ent->pld.pair.dtm.str = val;
+            
+            ldoc_nde_ent_push(nde, ent);
+            
+            ky = inf + 1;
+        }
+        else if (!*inf)
+            cnt = false;
+        
+        inf++;
+    }
+    
+    ldoc_nde_dsc_push(cntnr, nde);
 }
 
 static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
@@ -150,11 +335,37 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     {
         // Fine with string comparisons here, since this case
         // will (hopefully) not be true many times.
-        if (!strcmp(ln, "sequence-region"))
+        if (!strcmp(ln, "FILTER"))
         {
             ldoc_nde_t* nde = gff_proc_sregion(val, &id);
             
             ldoc_nde_dsc_push(stmt, nde);
+        }
+        else if (!strcmp(ln, "INFO"))
+        {
+            
+        }
+        else if (!strcmp(ln, "FORMAT"))
+        {
+            
+        }
+        else if (!strcmp(ln, "contig"))
+        {
+            gen_lwr(ln);
+            
+            vcf_proc_brckt(doc->rt, ln, val);
+        }
+        else if (!strcmp(ln, "ALT"))
+        {
+            
+        }
+        else if (!strcmp(ln, "PEDIGREE"))
+        {
+            
+        }
+        else if (!strcmp(ln, "PEDIGREEDB") || !strcmp(ln, "pedigreeDB"))
+        {
+            
         }
         else
         {
@@ -508,10 +719,6 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         while (*smpl && *smpl != ':')
             smpl++;
         
-        ldoc_ent_t* anno = ldoc_ent_new(LDOC_ENT_OR);
-        
-        // TODO Error handling.
-        
         // TODO Optimization.
         //   1. could be optimized by not checking length multiple times.
         //   2. could be optimized by not checking prefixes multiple times.
@@ -563,6 +770,10 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         }
         else
         {
+            ldoc_ent_t* anno = ldoc_ent_new(LDOC_ENT_OR);
+            
+            // TODO Error handling.
+
             // Default: add simple key/value pair
             anno->pld.pair.anno.str = qk_strndup(id, fmt - id);
             anno->pld.pair.dtm.str = qk_strndup(val, smpl - val);
@@ -575,6 +786,57 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
     } while (*(fmt++));
     
     ldoc_nde_dsc_push(smpls, s);
+}
+
+static inline void vcf_proc_optlst(ldoc_nde_t* ftr, char* id, char* lst)
+{
+    ldoc_ent_t* ent;
+    
+    // Check whether there is no list:
+    if (!lst || (lst[0] == '.' && !lst[1]))
+    {
+        ent = ldoc_ent_new(LDOC_ENT_OR);
+        
+        // TODO Error handling.
+        
+        ent->pld.pair.anno.str = (char*)id;
+        ent->pld.pair.dtm.str = NULL;
+        
+        ldoc_nde_ent_push(ftr, ent);
+        
+        return;
+    }
+    
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_OL);
+    
+    // TODO Error handling.
+    
+    nde->mkup.anno.str = id;
+    
+    char* f;
+    bool cnt = true;
+    while (cnt)
+    {
+        f = lst;
+        
+        while (*lst && *lst != ';')
+            lst++;
+
+        if (!*lst)
+            cnt = false;
+        else
+            *(lst++) = 0;
+        
+        ent = ldoc_ent_new(LDOC_ENT_TXT);
+        
+        // TODO Error handling.
+        
+        ent->pld.str = f;
+        
+        ldoc_nde_ent_push(nde, ent);
+    }
+    
+    ldoc_nde_dsc_push(ftr, nde);
 }
 
 static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* stt, char** cmt)
@@ -627,12 +889,12 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
     ctx->pld.pair.dtm.str = (char*)JSONLD_VCF;
     
+    ldoc_nde_t* lc = ldoc_nde_new(LDOC_NDE_UA);
+    lc->mkup.anno.str = (char*)GEN_LOCUS;
+
     ldoc_ent_t* lm = ldoc_ent_new(LDOC_ENT_OR);
     lm->pld.pair.anno.str = (char*)VCF_C1;
     lm->pld.pair.dtm.str = coff[0];
-    
-    ldoc_nde_t* lc = ldoc_nde_new(LDOC_NDE_UA);
-    lc->mkup.anno.str = (char*)GEN_LOCUS;
     
     ldoc_ent_t* st = ldoc_ent_new(LDOC_ENT_NR);
     st->pld.pair.anno.str = (char*)VCF_C2_1;
@@ -642,9 +904,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     en->pld.pair.anno.str = (char*)VCF_C2_2;
     en->pld.pair.dtm.str = coff[1];
     
-    ldoc_ent_t* id = ldoc_ent_new(LDOC_ENT_NR);
-    id->pld.pair.anno.str = (char*)VCF_C3;
-    id->pld.pair.dtm.str = coff[2];
+    vcf_proc_optlst(ftr, (char*)VCF_C3, coff[2]);
 
     ldoc_nde_t* ref = ldoc_nde_new(LDOC_NDE_UA);
     ref->mkup.anno.str = (char*)VCF_C4;
@@ -663,9 +923,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     scr->pld.pair.anno.str = (char*)VCF_C6;
     scr->pld.pair.dtm.str = coff[5];
     
-    ldoc_ent_t* fltr = ldoc_ent_new(LDOC_ENT_OR);
-    fltr->pld.pair.anno.str = (char*)VCF_C7;
-    fltr->pld.pair.dtm.str = coff[6];
+    vcf_proc_optlst(ftr, (char*)VCF_C7, coff[6]);
     
     // Add comment lines -- if available:
     if (*cmt)
@@ -682,7 +940,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
     
-    gen_splt_attrs(ftr, attrs, ref, vars, coff[7]);
+    gen_splt_attrs(ftr, attrs, ref, vars, coff[7], BI_NKW);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
@@ -767,6 +1025,7 @@ ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
                     size_t lnlen_ = lnlen;
                     
                     // Note that this works, because we are still on the '##...' prefix:
+                    st->vcf_col = 0;
                     while(*(ln++) && lnlen--)
                         if (*ln == '\t')
                             st->vcf_col++;
@@ -842,17 +1101,186 @@ ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
     return ldoc;
 }
 
+static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
+{
+    // If filters are an entity, then the assigned value should be NULL!
+    ldoc_res_t* lst = ldoc_find_anno_ent(nde, id);
+    if (lst)
+    {
+        if (lst->info.ent->pld.pair.dtm.str)
+        {
+            // TODO Data error.
+        }
+        
+        qk_strcat(GEN_UNKNOWN);
+    }
+    else
+    {
+        const char* lst_id[] = { id };
+        lst = ldoc_find_anno_nde(nde, (char**)lst_id, 1);
+        
+        if (lst)
+        {
+            if (!lst->info.nde->ent_cnt)
+                qk_strcat(empty);
+            else
+            {
+                bool fst = true;
+                ldoc_ent_t* fltr;
+                TAILQ_FOREACH(fltr, &(lst->info.nde->ents), ldoc_ent_entries)
+                {
+                    if (fst)
+                        fst = false;
+                    else
+                        qk_strcat(";");
+                    
+                    // TODO Check entity type. Needs to be LDOC_ENT_TXT.
+                    qk_strcat(fltr->pld.str);
+                }
+            }
+        }
+        else
+            qk_strcat(GEN_UNKNOWN);
+    }
+}
+
+static inline bool vcf_proc_doc_info(ldoc_nde_t* ftr, char* attrs)
+{
+    ldoc_res_t* res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_CNT);
+    if (res)
+        gen_join_attrs_ent((char*)GEN_ALLELE_CNT_VCF, res->info.ent, attrs);
+
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_FRQ);
+    if (res)
+        gen_join_attrs_ent((char*)GEN_ALLELE_FRQ_VCF, res->info.ent, attrs);
+
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_TTL);
+    if (res)
+        gen_join_attrs_ent((char*)GEN_ALLELE_TTL_VCF, res->info.ent, attrs);
+    
+    return true;
+}
+
+inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
+{
+    const char* lc_id[] = { GEN_LOCUS };
+    ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
+    
+    ldoc_res_t* lm = ldoc_find_anno_ent(lc->info.nde, (char*)VCF_C1);
+    ldoc_res_t* st = ldoc_find_anno_ent(lc->info.nde, (char*)VCF_C2_1);
+    ldoc_res_t* en = ldoc_find_anno_ent(lc->info.nde, (char*)VCF_C2_2);
+    
+    // TODO Check that st and en value are the same!
+    
+    const char* ref_id[] = { VCF_C4 };
+    ldoc_res_t* ref = ldoc_find_anno_nde(ftr, (char**)ref_id, 1);
+    ldoc_res_t* ref_seq = ldoc_find_anno_ent(ref->info.nde, (char*)GEN_SEQUENCE);
+    
+    qk_strcat(gen_res_req(lm));
+    qk_strcat("\t");
+    qk_strcat(gen_res_req(st));
+    qk_strcat("\t");
+    vcf_proc_doc_optlst(ftr, (char*)VCF_C3, (char*)GEN_UNKNOWN);
+    qk_strcat("\t");
+    qk_strcat(gen_res_opt(ref_seq));
+    qk_strcat("\t");
+    
+    const char* vars_id[] = { GEN_VARIANTS };
+    ldoc_res_t* vars = ldoc_find_anno_nde(ftr, (char**)vars_id, 1);
+    off_t allele = 0;
+    ldoc_res_t* var;
+    ldoc_res_t* seq;
+    char* str;
+    while (true) // See "Break condition" below.
+    {
+        const char* var_id[] = { &GEN_ALLELE[(allele + 1) * 2] };
+        var = ldoc_find_anno_nde(vars->info.nde, (char**)var_id, 1);
+
+        if (!var) // Break condition.
+            break;
+        
+        seq = ldoc_find_anno_ent(var->info.nde, (char*)GEN_SEQUENCE);
+        
+        if (!seq)
+            str = ".";
+        else
+            str = seq->info.ent->pld.pair.dtm.str;
+        
+        if (allele)
+            qk_strcat(",");
+        
+        qk_strcat(str);
+        
+        allele++;
+    }
+    qk_strcat("\t");
+    
+    // SCORE column:
+    ldoc_res_t* scr = ldoc_find_anno_ent(ftr, (char*)VCF_C6);
+    qk_strcat(gen_res_opt(scr));
+    qk_strcat("\t");
+
+    // FILTER column:
+    vcf_proc_doc_optlst(ftr, (char*)VCF_C7, "PASS");
+    qk_strcat("\t");
+
+    // INFO -- standards part:
+    char* attrs = qk_working_ptr();
+    vcf_proc_doc_info(ftr, attrs);
+    
+    // INFO -- user-defined part:
+    const char* usr_pth[] = { GEN_ATTRS };
+    ldoc_res_t* usr = ldoc_find_anno_nde(ftr, (char**)usr_pth, 1);
+    if (usr)
+    {
+        ldoc_ent_t* ent;
+        TAILQ_FOREACH(ent, &(usr->info.nde->ents), ldoc_ent_entries)
+        {
+            gen_join_attrs_ent(NULL, ent, attrs);
+        }
+    }
+    
+    /*
+    ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
+    
+    const char* dbxref_id[] = { "dbxref" };
+    ldoc_res_t* dbxref = ldoc_find_anno_nde(ftr, (char**)dbxref_id, 1);
+    
+    const char* prnt_pth[] = { "parent" };
+    ldoc_res_t* prnt = ldoc_find_anno_nde(ftr, (char**)prnt_pth, 1);
+    
+    char* attrs = qk_working_ptr();
+    
+    if (id && !id->nde)
+        gen_join_attrs_ent("ID", id->info.ent, attrs);
+    
+    if (nme && !nme->nde)
+        gen_join_attrs_ent("Name", nme->info.ent, attrs);
+    
+    if (prnt && prnt->nde)
+        gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
+    
+    if (dbxref && dbxref->nde)
+        gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
+    */
+    
+    return NULL;
+}
+
+inline char* vcf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
+{
+    return NULL;
+}
+
 char* vcf_proc_doc(ldoc_doc_t* doc)
 {
-    char* attr = gvf_proc_doc_ftr_attrs(doc->rt);
+    char* attr = vcf_proc_doc_ftr_attrs(doc->rt);
     
-    gff_proc_doc_ftr(doc->rt);
+    vcf_proc_doc_ftr(doc->rt);
     
-    if (*attr)
+    if (attr && *attr)
         qk_strcat(";");
     qk_strcat(attr);
-    
-    gen_proc_doc_usr(doc->rt);
     
     free(attr);
 }

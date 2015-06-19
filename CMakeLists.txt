@@ -24,7 +24,7 @@ ExternalProject_Add(libdocument-lib
     GIT_REPOSITORY https://github.com/indiedotkim/LibDocument.git
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/libdocument
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/libdocument
-    CONFIGURE_COMMAND cmake -G "Unix Makefiles"
+    CONFIGURE_COMMAND cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles"
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 

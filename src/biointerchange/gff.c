@@ -214,7 +214,7 @@ ldoc_struct_t gff_prgm_tpe(char* ky)
             if (*ky == 'n')
             {
                 ky++;
-                if (!strcmp(ky, "ome-build"))
+                if (!strcmp(ky, "ome-build")) // genome-build
                     return LDOC_NDE_OL;
             }
         } else if (*ky == 'f')
@@ -223,7 +223,7 @@ ldoc_struct_t gff_prgm_tpe(char* ky)
             if (*ky == 'f')
             {
                 ky++;
-                if (!strcmp(ky, "-version"))
+                if (!strcmp(ky, "-version")) // gff-version
                     return LDOC_NDE_UA;
             }
         }
@@ -237,7 +237,7 @@ ldoc_struct_t gff_prgm_tpe(char* ky)
             if (*ky == 'q')
             {
                 ky++;
-                if (!strcmp(ky, "uence-region"))
+                if (!strcmp(ky, "uence-region")) // sequence-region
                     return LDOC_NDE_OO;
             }
         }
@@ -247,7 +247,7 @@ ldoc_struct_t gff_prgm_tpe(char* ky)
             if (*ky == 'e')
             {
                 ky++;
-                if (!strcmp(ky, "cies"))
+                if (!strcmp(ky, "cies")) // species
                     return LDOC_NDE_UA;
             }
         }
@@ -552,7 +552,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         ldoc_nde_ent_push(ftr, sq);
     }
     
-    gen_splt_attrs(ftr, attrs, NULL, NULL, coff[8]);
+    gen_splt_attrs(ftr, attrs, NULL, NULL, coff[8], BI_VAL);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
@@ -1123,6 +1123,18 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
 
     if (dbxref && dbxref->nde)
         gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
+    
+    const char* usr_pth[] = { GEN_ATTRS };
+    ldoc_res_t* usr = ldoc_find_anno_nde(ftr, (char**)usr_pth, 1);
+    
+    if (usr)
+    {
+        ldoc_ent_t* ent;
+        TAILQ_FOREACH(ent, &(usr->info.nde->ents), ldoc_ent_entries)
+        {
+            gen_join_attrs_ent(NULL, ent, attrs);
+        }
+    }
     
     return NULL;
 }

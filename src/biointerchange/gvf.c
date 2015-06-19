@@ -373,7 +373,7 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     }
     
     // Generic implementation for parsing attributes:
-    gen_splt_attrs(ftr, attrs, ref, vars, coff[8]);
+    gen_splt_attrs(ftr, attrs, ref, vars, coff[8], BI_VAL);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
@@ -754,6 +754,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
         // TODO Data error. Not supported.
     }
     
+    // TODO Is this iteration right? Necessary to find 'B', 'C', etc. in order?
     // Note 1: this assumes that all allele nodes contain the
     //         the same named entities.
     // Note 2: alleles must be labeled 'B', 'C', etc.
@@ -812,7 +813,8 @@ char* gvf_proc_doc(ldoc_doc_t* doc)
         qk_strcat(";");
     qk_strcat(attr);
     
-    gen_proc_doc_usr(doc->rt);
+    // TODO Obsolete?
+    // gen_proc_doc_usr(doc->rt);
     
     free(attr);
 }

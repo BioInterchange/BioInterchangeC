@@ -110,9 +110,12 @@ int main(int argc, char* argv[])
     
     // Execution context -- set defaults:
     gen_ctxt_t ctxt;
+    ctxt.fgen = NULL;
     ctxt.fname = NULL;
     ctxt.fout = stdout;
     ctxt.py = false;
+    ctxt.pycall = NULL;
+    ctxt.usr = NULL;
     
     // Parameter check 1: use getopt to fetch optional parameters:
     int c;

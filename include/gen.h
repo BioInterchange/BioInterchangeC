@@ -42,8 +42,11 @@ extern const char* JSONLD_VCF;
 extern const char* GEN_AFFECTED;
 extern const char* GEN_AFFECTED_TPE;
 extern const char* GEN_ALLELE_CNT;
+extern const char* GEN_ALLELE_CNT_VCF;
 extern const char* GEN_ALLELE_FRQ;
+extern const char* GEN_ALLELE_FRQ_VCF;
 extern const char* GEN_ALLELE_TTL;
+extern const char* GEN_ALLELE_TTL_VCF;
 extern const char* GEN_ALIGNMENT;
 extern const char* GEN_ATTRS;
 extern const char* GEN_BUILD;
@@ -236,7 +239,7 @@ char* gen_res_req(ldoc_res_t* res);
     
 char* gen_term_crnl(char* s);
 void gen_lwr(char* str);
-void gen_kwd(char* str, gen_attr_t* attr);
+void gen_kwd(char* str, gen_attr_t* attr, bi_attr upfail);
 char gen_inv(char c);
     
 void gen_xcig(char* str);
@@ -245,9 +248,12 @@ char* gen_escstr(char* str);
     
 size_t gen_csplit(char* str, char c);
 
+ldoc_content_t gen_smrt_tpe(char* val);
+    
+bool gen_join_nde(ldoc_nde_t* nde);
 bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs);
 bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs);
-void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs);
+void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs, bi_attr upfail);
 
 ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
 

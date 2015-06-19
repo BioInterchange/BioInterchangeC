@@ -36,8 +36,11 @@ const char* JSONLD_VCF = "http://www.biointerchange.org/jsonld/vcf.json";
 const char* GEN_AFFECTED = "affected-features";
 const char* GEN_AFFECTED_TPE = "affected-feature-type";
 const char* GEN_ALLELE_CNT = "allele-count";
+const char* GEN_ALLELE_CNT_VCF = "AC";
 const char* GEN_ALLELE_FRQ = "allele-frequency";
+const char* GEN_ALLELE_FRQ_VCF = "AF";
 const char* GEN_ALLELE_TTL = "allele-total-number";
+const char* GEN_ALLELE_TTL_VCF = "AN";
 const char* GEN_ALIGNMENT = "alignment";
 const char* GEN_ATTRS = "user-defined";
 const char* GEN_BUILD = "build";
@@ -221,7 +224,7 @@ inline void gen_lwr(char* str)
     }
 }
 
-inline void gen_kwd(char* str, gen_attr_t* kwd)
+inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
 {
     if (*str >= 'A' && *str <= 'Z')
     {
@@ -514,7 +517,7 @@ inline void gen_kwd(char* str, gen_attr_t* kwd)
             }
         }
         
-        kwd->attr = BI_VAL;
+        kwd->attr = upfail;
         kwd->alt = NULL;
         return;
     }
@@ -544,6 +547,33 @@ inline char gen_inv(char c)
     }
     
     return 0;
+}
+
+inline ldoc_content_t gen_smrt_tpe(char* val)
+{
+    if (!val)
+        return LDOC_ENT_BR;
+    
+    bool dot = false;
+    while (*val)
+    {
+        if (!(*val >= '0' && *val <= '9'))
+        {
+            if (*val == '.')
+            {
+                if (dot)
+                    return LDOC_ENT_OR;
+                else
+                    dot = true;
+            }
+            else
+                return LDOC_ENT_OR;
+        }
+        
+        val++;
+    }
+    
+    return LDOC_ENT_NR;
 }
 
 void gen_xcig(char* str)
@@ -613,7 +643,9 @@ static inline bool gen_join_attrs_key(char* id, ldoc_nde_t* nde, ldoc_ent_t* ent
         qk_strcat(";");
     
     qk_strcat(attr_id);
-    qk_strcat("=");
+    
+    if (nde || (ent && ent->tpe != LDOC_ENT_BR))
+        qk_strcat("=");
     
     return true;
 }
@@ -625,7 +657,19 @@ inline bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs)
     
     gen_join_attrs_key(id, NULL, ent, attrs);
     
-    qk_strcat(ent->pld.pair.dtm.str);
+    switch (ent->tpe)
+    {
+        case LDOC_ENT_OR:
+        case LDOC_ENT_NR:
+            qk_strcat(ent->pld.pair.dtm.str);
+            break;
+        case LDOC_ENT_BR:
+            // Nothing to do: handled by gen_join_attrs_key!
+            break;
+        default:
+            qk_strcat(ent->pld.str);
+            break;
+    }
     
     return true;
 }
@@ -674,7 +718,7 @@ inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
     return gen_join_nde(nde);
 }
 
-void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs)
+void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs, bi_attr upfail)
 {
     /* Ruby prototype:
      attributes = {}
@@ -711,10 +755,12 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             if (!*attr)
                 return;
             
-            // Key/value assignment, or, key-only handling:
+            // Key/value assignment, or, key-only handling.
+            // Note: known keys become lower case, user-defined
+            //       keys have their case preserved.
             ldoc_nde_t* dst;
             gen_attr_t kwd = { BI_NKW, NULL };
-            gen_kwd(attr, &kwd);
+            gen_kwd(attr, &kwd, upfail);
             if (kwd.attr)
             {
                 dst = ftr;
@@ -728,12 +774,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     kwd.attr = BI_CSEP;
             }
             else
-            {
                 dst = usr;
-                
-                if (!val)
-                    val = (char*)GEN_TRUE;
-            }
             
             bool lend = false;
             char* val_cmp;
@@ -866,10 +907,9 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     break;
                 default:
                     // Entity type:
-                    //   LDOC_ENT_NR -- if attribute is a number
-                    //   LDOC_ENT_BR -- if value is NULL (only a keyword present)
-                    //   LDOC_ENT_OR -- otherwise
-                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : (val ? LDOC_ENT_OR : LDOC_ENT_BR));
+                    //   LDOC_ENT_NR  -- if attribute is a number
+                    //   gen_smrt_tpe -- otherwise
+                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : gen_smrt_tpe(val));
                     
                     if (!kv_ent)
                     {
@@ -1189,7 +1229,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
 
                     ent = ldoc_ent_new(LDOC_ENT_OR);
                     ent->pld.pair.anno.str = strdup("python-callback");
-                    if (ctxt->pycall)
+                    if (ctxt->py)
                         ent->pld.pair.dtm.str = strdup(ctxt->pycall);
                     else
                         ent->pld.pair.dtm.str = NULL;
@@ -1375,6 +1415,7 @@ char* gen_exp_ky(char* ky)
     return ky;
 }
 
+// TODO Obsolete?
 bool gen_proc_doc_usr(ldoc_nde_t* ftr)
 {
     const char* usr_id[] = { GEN_ATTRS };

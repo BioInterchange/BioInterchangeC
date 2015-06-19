@@ -155,6 +155,8 @@ TEST(gff, gff_rd)
 
 TEST(gff, gff_serialize_ftr)
 {
+    gen_init();
+    
     ldoc_doc_t* doc = ldoc_doc_new();
     
     ldoc_nde_t* ftr = doc->rt;
@@ -213,7 +215,7 @@ TEST(gff, gff_serialize_ftr)
     ldoc_nde_ent_push(ftr, sq);
     
     char* attrs_str = strdup("ID=DDB0220064;Parent=DDB_G0294346;Name=DDB0220064;description=BFNV1_0C0011_07644: Obtained from Geneid output run by Dictyostelium Genome Consortium at The Welcome Trust Sanger Institute;translation_start=1;Dbxref=Protein Accession Version:EAL60309.1,Inparanoid V. 5.1:DDB0220064,Protein Accession Number:EAL60309.1,Protein GI Number:60462053,UniProt:Q54AM3,Genome V. 2.0 ID:BFNV1_0C0011_07644;qualifier=Partial%2C 3%27 missing");
-    gen_splt_attrs(ftr, attrs, NULL, NULL, attrs_str);
+    gen_splt_attrs(ftr, attrs, NULL, NULL, attrs_str, BI_VAL);
     
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
@@ -236,6 +238,9 @@ TEST(gff, gff_serialize_ftr)
     ldoc_nde_dsc_push(ftr, attrs);
     
     char* qk = qk_alloc(10*1024*1024);
+    
+    ldoc_ser_t* ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
+    printf("%s\n", ser->pld.str);
     
     gff_proc_doc(doc);
     
