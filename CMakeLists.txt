@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.0.2)
 
-project(biointerchange VERSION 2.0.0 LANGUAGES C CXX)
+execute_process(COMMAND git rev-list --all
+    COMMAND wc -l
+    COMMAND tr -d " \\n"
+    OUTPUT_VARIABLE BUILD_NUMBER)
+set(BIOINTERCHANGE_VERSION 2.0.0.${BUILD_NUMBER})
+add_definitions(-DBIOINTERCHANGE_VERSION="${BIOINTERCHANGE_VERSION}")
+
+project(biointerchange VERSION ${BIOINTERCHANGE_VERSION} LANGUAGES C CXX)
 
 set(PYTHON_VERSION "3.4")
 set(PYTHON_PATCH "3")
