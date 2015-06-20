@@ -227,6 +227,7 @@ typedef struct gen_ctxt_t
     char* fname;
     FILE* fout;
     char* usr;
+    char* ver;
 } gen_ctxt_t;
     
 void gen_init();
@@ -244,7 +245,7 @@ char gen_inv(char c);
     
 void gen_xcig(char* str);
 
-char* gen_escstr(char* str);
+char* gen_escstr(char* str, gen_filetype_t tpe);
     
 size_t gen_csplit(char* str, char c);
 

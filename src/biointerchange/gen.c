@@ -554,6 +554,9 @@ inline ldoc_content_t gen_smrt_tpe(char* val)
     if (!val)
         return LDOC_ENT_BR;
     
+    if (*val == '.' && !*(val + 1))
+        return LDOC_ENT_OR;
+    
     bool dot = false;
     while (*val)
     {
@@ -1007,7 +1010,7 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
     return vars;
 }
 
-static inline bool gen_escchr(char* cptr)
+static inline uint8_t gen_escchr(char* cptr, gen_filetype_t tpe)
 {
     if (*cptr == '\n' ||
         *cptr == '"' ||
@@ -1015,20 +1018,34 @@ static inline bool gen_escchr(char* cptr)
         *cptr == '\t' ||
         *cptr == '\b' ||
         *cptr == '\f')
-        return true;
+        return 1;
+    else if ((tpe == GEN_FMT_GFF3 || tpe == GEN_FMT_GVF) &&
+             *cptr == '%')
+    {
+        cptr++;
+        if ((*cptr >= '0' && *cptr <= '9') ||
+            (*cptr >= 'a' && *cptr <= 'z') ||
+            (*cptr >= 'A' && *cptr <= 'Z'))
+        {
+            cptr++;
+            if ((*cptr >= '0' && *cptr <= '9') ||
+                (*cptr >= 'a' && *cptr <= 'z') ||
+                (*cptr >= 'A' && *cptr <= 'Z'))
+                return 5;
+        }
+    }
     
-    return false;
+    return 0;
 }
 
-char* gen_escstr(char* str)
+char* gen_escstr(char* str, gen_filetype_t tpe)
 {
     size_t escchr = 0;
     
     // Count number of characters that need escaping:
     char* ptr = str;
     while (*ptr)
-        if (gen_escchr(ptr++))
-            escchr++;
+        escchr += gen_escchr(ptr++, tpe);
     
     // Walk backwards and remove trailing newlines/carriage returns:
     while (ptr-- > str)
@@ -1049,7 +1066,7 @@ char* gen_escstr(char* str)
     ptr = str;
     char* tptr = tmp;
     while ((c = *ptr))
-        if (gen_escchr(ptr++))
+        if (gen_escchr(ptr++, tpe))
         {
             *(tptr++) = '\\';
             
@@ -1072,6 +1089,42 @@ char* gen_escstr(char* str)
                     break;
                 case '\f':
                     *(tptr++) = 'f';
+                    break;
+                case '%':
+                    if (*ptr == '2')
+                    {
+                        if (*(ptr + 1) == '6')
+                        {
+                            *(tptr++) = '&';
+                            ptr += 2;
+                        }
+                        else if (*(ptr + 1) == 'c' || *(ptr + 1) == 'C')
+                        {
+                            *(tptr++) = ',';
+                            ptr += 2;
+                        }
+                    }
+                    else if (*ptr == '3')
+                    {
+                        if (*(ptr + 1) == 'b' || *(ptr + 1) == 'B')
+                        {
+                            *(tptr++) = ';';
+                            ptr += 2;
+                        }
+                        else if (*(ptr + 1) == 'd' || *(ptr + 1) == 'D')
+                        {
+                            *(tptr++) = '=';
+                            ptr += 2;
+                        }
+                    }
+                    else
+                    {
+                        *(tptr++) = 'u';
+                        *(tptr++) = '0';
+                        *(tptr++) = '0';
+                        *(tptr++) = *(ptr++);
+                        *(tptr++) = *(ptr++);
+                    }
                     break;
                 default:
                     // TODO Error handling. Internal error.
@@ -1183,8 +1236,13 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                     // Meta information about the file and its data contents:
                     
                     ldoc_doc_t* cdoc = ldoc_doc_new();
-                    
+
                     ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup("biointerchange-version");
+                    ent->pld.pair.dtm.str = strdup(ctxt->ver);
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+                    
+                    ent = ldoc_ent_new(LDOC_ENT_OR);
                     ent->pld.pair.anno.str = strdup("input-file");
                     ent->pld.pair.dtm.str = strdup(ctxt->fgen);
                     ldoc_nde_ent_push(cdoc->rt, ent);
@@ -1344,12 +1402,15 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
         switch (ctpe)
         {
             case GEN_CTPE_SETUP:
-                ldoc_anno = py_setup(doc, opt);
-                
+                // doc is the "context", which cannot be modifed:
                 ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
-                
                 fprintf(ctxt->fout, "%s\n", ser->pld.str);
+                free(ser);
                 
+                // ldoc_anno will be a possibly modified version of opt:
+                ldoc_anno = py_setup(doc, opt);
+                ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
+                fprintf(ctxt->fout, "%s\n", ser->pld.str);
                 free(ser);
                 
                 if (!ldoc_anno)
@@ -1373,19 +1434,22 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
         if (ldoc_anno)
         {
             ser = ldoc_format(ldoc_anno, json_vis_nde, json_vis_ent);
-            
             fprintf(ctxt->fout, "%s\n", ser->pld.str);
-            
             free(ser);
         }
     }
     else
     {
         ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
-        
         fprintf(ctxt->fout, "%s\n", ser->pld.str);
-        
         free(ser);
+        
+        if (opt)
+        {
+            ser = ldoc_format(opt, json_vis_nde, json_vis_ent);
+            fprintf(ctxt->fout, "%s\n", ser->pld.str);
+            free(ser);
+        }
     }
 }
 

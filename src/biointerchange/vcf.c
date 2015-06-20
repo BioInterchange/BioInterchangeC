@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2015 CODAMONO, Ontario, Canada
  *
@@ -103,6 +104,20 @@ static inline ldoc_struct_t vcf_prgm_tpe(char* ky)
                 if (!strcmp(ky, "IGREE")) // PEDIGREE
                     return LDOC_NDE_OO;
                 else if (!strcmp(ky, "IGREEDB")) // PEDIGREEDB (see also pedigreeDB)
+                    return LDOC_NDE_OO;
+            }
+        }
+    }
+    else if (*ky == 'S')
+    {
+        ky++;
+        if (*ky == 'A')
+        {
+            ky++;
+            if (*ky == 'M')
+            {
+                ky++;
+                if (!strcmp(ky, "PLE")) // SAMPLE
                     return LDOC_NDE_OO;
             }
         }
@@ -227,32 +242,74 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
     
     ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
     
+    id = strdup(id);
+    gen_lwr(id);
     nde->mkup.anno.str = id;
     
+    // TODO Does not deal with escaped '"' within strings ('"' opened/closed)
     ldoc_ent_t* ent;
     bool cnt = true;
     char* ky = inf;
     char* val;
+    bool strng = false;
     while (cnt)
     {
-        if (*inf == '=')
+        if (!strng && *inf == '=')
         {
             *inf = 0;
             val = inf + 1;
+            
+            if (*val == '"')
+                strng = true;
         }
-        else if (*inf == ',' || *inf == '>')
+        else if (strng && inf > val && *inf == '"')
+        {
+            strng = false;
+        }
+        else if (!strng && (*inf == ',' || *inf == '>'))
         {
             if (*inf == '>')
                 cnt = false;
             
             *inf = 0;
+
+            // Remove quotes for known keys:
+            if (!strcmp(ky, "Description"))
+            {
+                // Make sure there are quotes -- and at least a character:
+                if (*val == '"')
+                {
+                    char* tmp = val;
+                    while (*(++tmp));
+                    
+                    *(--tmp) = 0;
+                    
+                    val++;
+                }
+            }
             
-            ent = ldoc_ent_new(LDOC_ENT_OR);
+            // Determine entity type based on key:
+            ldoc_content_t tpe;
+            if (!strcmp(ky, "ID"))
+                tpe = LDOC_ENT_OR;
+            else
+                tpe = gen_smrt_tpe(val);
+            
+            // Make key "JSON" like (lower case):
+            ky = strdup(ky);
+            gen_lwr(ky);
+            
+            ent = ldoc_ent_new(tpe);
             
             // TODO Error handling.
-            
+
             ent->pld.pair.anno.str = ky;
-            ent->pld.pair.dtm.str = val;
+            
+            // Handle "unknown":
+            if (*val == '.' && !*(val + 1))
+                ent->pld.pair.dtm.str = NULL;
+            else
+                ent->pld.pair.dtm.str = strdup(val);
             
             ldoc_nde_ent_push(nde, ent);
             
@@ -276,7 +333,6 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     off_t off = lnlen - 3;
     while ((ln[off] == '\n' || ln[off] == '\r' || ln[off] == ' ' || ln[off] == '\t') && off > 0)
         ln[off--] = 0;
-    
     
     // Separate key and value:
     char* val = ln;
@@ -337,31 +393,37 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         // will (hopefully) not be true many times.
         if (!strcmp(ln, "FILTER"))
         {
-            ldoc_nde_t* nde = gff_proc_sregion(val, &id);
-            
-            ldoc_nde_dsc_push(stmt, nde);
+            gen_lwr(ln);
+            vcf_proc_brckt(doc->rt, ln, val);
         }
         else if (!strcmp(ln, "INFO"))
         {
-            
+            gen_lwr(ln);
+            vcf_proc_brckt(doc->rt, ln, val);
         }
         else if (!strcmp(ln, "FORMAT"))
         {
-            
+            gen_lwr(ln);
+            vcf_proc_brckt(doc->rt, ln, val);
         }
         else if (!strcmp(ln, "contig"))
         {
+            vcf_proc_brckt(doc->rt, ln, val);
+        }
+        else if (!strcmp(ln, "SAMPLE"))
+        {
             gen_lwr(ln);
-            
             vcf_proc_brckt(doc->rt, ln, val);
         }
         else if (!strcmp(ln, "ALT"))
         {
-            
+            gen_lwr(ln);
+            vcf_proc_brckt(doc->rt, ln, val);
         }
         else if (!strcmp(ln, "PEDIGREE"))
         {
-            
+            gen_lwr(ln);
+            vcf_proc_brckt(doc->rt, ln, val);
         }
         else if (!strcmp(ln, "PEDIGREEDB") || !strcmp(ln, "pedigreeDB"))
         {
@@ -450,12 +512,12 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         if (id)
         {
             cent->pld.pair.anno.str = id;
-            cent->pld.pair.dtm.str = gen_escstr(*cmt);
+            cent->pld.pair.dtm.str = gen_escstr(*cmt, GEN_FMT_VCF);
         }
         else
         {
             cent->pld.pair.anno.str = strdup(val);
-            cent->pld.pair.dtm.str = gen_escstr(*cmt);
+            cent->pld.pair.dtm.str = gen_escstr(*cmt, GEN_FMT_VCF);
             
         }
         ldoc_nde_ent_push(cpgm, cent);
@@ -930,7 +992,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     {
         ldoc_ent_t* c = ldoc_ent_new(LDOC_ENT_OR);
         c->pld.pair.anno.str = (char*)GEN_COMMENT;
-        c->pld.pair.dtm.str = gen_escstr(*cmt);
+        c->pld.pair.dtm.str = gen_escstr(*cmt, GEN_FMT_VCF);
         ldoc_nde_ent_push(ftr, c);
         
         // Erase comment, but it is not released (free'd) yet:

@@ -116,6 +116,7 @@ int main(int argc, char* argv[])
     ctxt.py = false;
     ctxt.pycall = NULL;
     ctxt.usr = NULL;
+    ctxt.ver = BIOINTERCHANGE_VERSION;
     
     // Parameter check 1: use getopt to fetch optional parameters:
     int c;

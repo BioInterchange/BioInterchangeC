@@ -294,7 +294,7 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     {
         ldoc_ent_t* c = ldoc_ent_new(LDOC_ENT_OR);
         c->pld.pair.anno.str = (char*)GEN_COMMENT;
-        c->pld.pair.dtm.str = gen_escstr(*cmt);
+        c->pld.pair.dtm.str = gen_escstr(*cmt, GEN_FMT_GVF);
         ldoc_nde_ent_push(ftr, c);
         
         // Erase comment, but it is not released (free'd) yet:
@@ -561,12 +561,12 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         if (id)
         {
             cent->pld.pair.anno.str = id;
-            cent->pld.pair.dtm.str = gen_escstr(*cmt);
+            cent->pld.pair.dtm.str = gen_escstr(*cmt, GEN_FMT_GVF);
         }
         else
         {
             cent->pld.pair.anno.str = strdup(val);
-            cent->pld.pair.dtm.str = gen_escstr(*cmt);
+            cent->pld.pair.dtm.str = gen_escstr(*cmt, GEN_FMT_GVF);
             
         }
         ldoc_nde_ent_push(cpgm, cent);
