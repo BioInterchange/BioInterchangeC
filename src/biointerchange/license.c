@@ -13,6 +13,129 @@
 
 #include "license.h"
 
+/// From: http://curl.haxx.se/libcurl/c/cacertinmem.html
+
+size_t writefunction( void *ptr, size_t size, size_t nmemb, void *stream)
+{
+    fwrite(ptr,size,nmemb,stream);
+    return(nmemb*size);
+}
+
+static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
+{
+    X509_STORE* store;
+    X509* cert[] = { NULL, NULL, NULL };
+    BIO* bio;
+    char* mypem[] = {
+    "-----BEGIN CERTIFICATE-----\n"\
+    "MIIE0DCCA7igAwIBAgIBBzANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMCVVMx\n"\
+    "EDAOBgNVBAgTB0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxGjAYBgNVBAoT\n"\
+    "EUdvRGFkZHkuY29tLCBJbmMuMTEwLwYDVQQDEyhHbyBEYWRkeSBSb290IENlcnRp\n"\
+    "ZmljYXRlIEF1dGhvcml0eSAtIEcyMB4XDTExMDUwMzA3MDAwMFoXDTMxMDUwMzA3\n"\
+    "MDAwMFowgbQxCzAJBgNVBAYTAlVTMRAwDgYDVQQIEwdBcml6b25hMRMwEQYDVQQH\n"\
+    "EwpTY290dHNkYWxlMRowGAYDVQQKExFHb0RhZGR5LmNvbSwgSW5jLjEtMCsGA1UE\n"\
+    "CxMkaHR0cDovL2NlcnRzLmdvZGFkZHkuY29tL3JlcG9zaXRvcnkvMTMwMQYDVQQD\n"\
+    "EypHbyBEYWRkeSBTZWN1cmUgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IC0gRzIwggEi\n"\
+    "MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC54MsQ1K92vdSTYuswZLiBCGzD\n"\
+    "BNliF44v/z5lz4/OYuY8UhzaFkVLVat4a2ODYpDOD2lsmcgaFItMzEUz6ojcnqOv\n"\
+    "K/6AYZ15V8TPLvQ/MDxdR/yaFrzDN5ZBUY4RS1T4KL7QjL7wMDge87Am+GZHY23e\n"\
+    "cSZHjzhHU9FGHbTj3ADqRay9vHHZqm8A29vNMDp5T19MR/gd71vCxJ1gO7GyQ5HY\n"\
+    "pDNO6rPWJ0+tJYqlxvTV0KaudAVkV4i1RFXULSo6Pvi4vekyCgKUZMQWOlDxSq7n\n"\
+    "eTOvDCAHf+jfBDnCaQJsY1L6d8EbyHSHyLmTGFBUNUtpTrw700kuH9zB0lL7AgMB\n"\
+    "AAGjggEaMIIBFjAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAdBgNV\n"\
+    "HQ4EFgQUQMK9J47MNIMwojPX+2yz8LQsgM4wHwYDVR0jBBgwFoAUOpqFBxBnKLbv\n"\
+    "9r0FQW4gwZTaD94wNAYIKwYBBQUHAQEEKDAmMCQGCCsGAQUFBzABhhhodHRwOi8v\n"\
+    "b2NzcC5nb2RhZGR5LmNvbS8wNQYDVR0fBC4wLDAqoCigJoYkaHR0cDovL2NybC5n\n"\
+    "b2RhZGR5LmNvbS9nZHJvb3QtZzIuY3JsMEYGA1UdIAQ/MD0wOwYEVR0gADAzMDEG\n"\
+    "CCsGAQUFBwIBFiVodHRwczovL2NlcnRzLmdvZGFkZHkuY29tL3JlcG9zaXRvcnkv\n"\
+    "MA0GCSqGSIb3DQEBCwUAA4IBAQAIfmyTEMg4uJapkEv/oV9PBO9sPpyIBslQj6Zz\n"\
+    "91cxG7685C/b+LrTW+C05+Z5Yg4MotdqY3MxtfWoSKQ7CC2iXZDXtHwlTxFWMMS2\n"\
+    "RJ17LJ3lXubvDGGqv+QqG+6EnriDfcFDzkSnE3ANkR/0yBOtg2DZ2HKocyQetawi\n"\
+    "DsoXiWJYRBuriSUBAA/NxBti21G00w9RKpv0vHP8ds42pM3Z2Czqrpv1KrKQ0U11\n"\
+    "GIo/ikGQI31bS/6kA1ibRrLDYGCD+H1QQc7CoZDDu+8CL9IVVO5EFdkKrqeKM+2x\n"\
+    "LXY2JtwE65/3YR8V3Idv7kaWKK2hJn0KCacuBKONvPi8BDAB\n"\
+    "-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\n"\
+    "MIIEfTCCA2WgAwIBAgIDG+cVMA0GCSqGSIb3DQEBCwUAMGMxCzAJBgNVBAYTAlVT\n"\
+    "MSEwHwYDVQQKExhUaGUgR28gRGFkZHkgR3JvdXAsIEluYy4xMTAvBgNVBAsTKEdv\n"\
+    "IERhZGR5IENsYXNzIDIgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTQwMTAx\n"\
+    "MDcwMDAwWhcNMzEwNTMwMDcwMDAwWjCBgzELMAkGA1UEBhMCVVMxEDAOBgNVBAgT\n"\
+    "B0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxGjAYBgNVBAoTEUdvRGFkZHku\n"\
+    "Y29tLCBJbmMuMTEwLwYDVQQDEyhHbyBEYWRkeSBSb290IENlcnRpZmljYXRlIEF1\n"\
+    "dGhvcml0eSAtIEcyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv3Fi\n"\
+    "CPH6WTT3G8kYo/eASVjpIoMTpsUgQwE7hPHmhUmfJ+r2hBtOoLTbcJjHMgGxBT4H\n"\
+    "Tu70+k8vWTAi56sZVmvigAf88xZ1gDlRe+X5NbZ0TqmNghPktj+pA4P6or6KFWp/\n"\
+    "3gvDthkUBcrqw6gElDtGfDIN8wBmIsiNaW02jBEYt9OyHGC0OPoCjM7T3UYH3go+\n"\
+    "6118yHz7sCtTpJJiaVElBWEaRIGMLKlDliPfrDqBmg4pxRyp6V0etp6eMAo5zvGI\n"\
+    "gPtLXcwy7IViQyU0AlYnAZG0O3AqP26x6JyIAX2f1PnbU21gnb8s51iruF9G/M7E\n"\
+    "GwM8CetJMVxpRrPgRwIDAQABo4IBFzCCARMwDwYDVR0TAQH/BAUwAwEB/zAOBgNV\n"\
+    "HQ8BAf8EBAMCAQYwHQYDVR0OBBYEFDqahQcQZyi27/a9BUFuIMGU2g/eMB8GA1Ud\n"\
+    "IwQYMBaAFNLEsNKR1EwRcbNhyz2h/t2oatTjMDQGCCsGAQUFBwEBBCgwJjAkBggr\n"\
+    "BgEFBQcwAYYYaHR0cDovL29jc3AuZ29kYWRkeS5jb20vMDIGA1UdHwQrMCkwJ6Al\n"\
+    "oCOGIWh0dHA6Ly9jcmwuZ29kYWRkeS5jb20vZ2Ryb290LmNybDBGBgNVHSAEPzA9\n"\
+    "MDsGBFUdIAAwMzAxBggrBgEFBQcCARYlaHR0cHM6Ly9jZXJ0cy5nb2RhZGR5LmNv\n"\
+    "bS9yZXBvc2l0b3J5LzANBgkqhkiG9w0BAQsFAAOCAQEAWQtTvZKGEacke+1bMc8d\n"\
+    "H2xwxbhuvk679r6XUOEwf7ooXGKUwuN+M/f7QnaF25UcjCJYdQkMiGVnOQoWCcWg\n"\
+    "OJekxSOTP7QYpgEGRJHjp2kntFolfzq3Ms3dhP8qOCkzpN1nsoX+oYggHFCJyNwq\n"\
+    "9kIDN0zmiN/VryTyscPfzLXs4Jlet0lUIDyUGAzHHFIYSaRt4bNYC8nY7NmuHDKO\n"\
+    "KHAN4v6mF56ED71XcLNa6R+ghlO773z/aQvgSMO3kwvIClTErF0UZzdsyqUvMQg3\n"\
+    "qm5vjLyb4lddJIGvl5echK1srDdMZvNhkREg5L4wn3qkKQmw4TRfZHcYQFHfjDCm\n"\
+    "rw==\n"\
+    "-----END CERTIFICATE-----\n",
+    "-----BEGIN CERTIFICATE-----\n"\
+    "MIIEADCCAuigAwIBAgIBADANBgkqhkiG9w0BAQUFADBjMQswCQYDVQQGEwJVUzEh\n"\
+    "MB8GA1UEChMYVGhlIEdvIERhZGR5IEdyb3VwLCBJbmMuMTEwLwYDVQQLEyhHbyBE\n"\
+    "YWRkeSBDbGFzcyAyIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MB4XDTA0MDYyOTE3\n"\
+    "MDYyMFoXDTM0MDYyOTE3MDYyMFowYzELMAkGA1UEBhMCVVMxITAfBgNVBAoTGFRo\n"\
+    "ZSBHbyBEYWRkeSBHcm91cCwgSW5jLjExMC8GA1UECxMoR28gRGFkZHkgQ2xhc3Mg\n"\
+    "MiBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTCCASAwDQYJKoZIhvcNAQEBBQADggEN\n"\
+    "ADCCAQgCggEBAN6d1+pXGEmhW+vXX0iG6r7d/+TvZxz0ZWizV3GgXne77ZtJ6XCA\n"\
+    "PVYYYwhv2vLM0D9/AlQiVBDYsoHUwHU9S3/Hd8M+eKsaA7Ugay9qK7HFiH7Eux6w\n"\
+    "wdhFJ2+qN1j3hybX2C32qRe3H3I2TqYXP2WYktsqbl2i/ojgC95/5Y0V4evLOtXi\n"\
+    "EqITLdiOr18SPaAIBQi2XKVlOARFmR6jYGB0xUGlcmIbYsUfb18aQr4CUWWoriMY\n"\
+    "avx4A6lNf4DD+qta/KFApMoZFv6yyO9ecw3ud72a9nmYvLEHZ6IVDd2gWMZEewo+\n"\
+    "YihfukEHU1jPEX44dMX4/7VpkI+EdOqXG68CAQOjgcAwgb0wHQYDVR0OBBYEFNLE\n"\
+    "sNKR1EwRcbNhyz2h/t2oatTjMIGNBgNVHSMEgYUwgYKAFNLEsNKR1EwRcbNhyz2h\n"\
+    "/t2oatTjoWekZTBjMQswCQYDVQQGEwJVUzEhMB8GA1UEChMYVGhlIEdvIERhZGR5\n"\
+    "IEdyb3VwLCBJbmMuMTEwLwYDVQQLEyhHbyBEYWRkeSBDbGFzcyAyIENlcnRpZmlj\n"\
+    "YXRpb24gQXV0aG9yaXR5ggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQAD\n"\
+    "ggEBADJL87LKPpH8EsahB4yOd6AzBhRckB4Y9wimPQoZ+YeAEW5p5JYXMP80kWNy\n"\
+    "OO7MHAGjHZQopDH2esRU1/blMVgDoszOYtuURXO1v0XJJLXVggKtI3lpjbi2Tc7P\n"\
+    "TMozI+gciKqdi0FuFskg5YmezTvacPd+mSYgFFQlq25zheabIZ0KbIIOqPjCDPoQ\n"\
+    "HmyW74cNxA9hi63ugyuV+I6ShHI56yDqg+2DzZduCLzrTia2cyvk0/ZM/iZx4mER\n"\
+    "dEr/VxqHD3VILs9RaRegAhJhldXRQLIQTO7ErBBDpqWeCtWVYpoNz4iCxTIM5Cuf\n"\
+    "ReYNnyicsbkqWletNw+vHX/bvZ8=\n"\
+        "-----END CERTIFICATE-----\n" };
+
+    /* get a pointer to the X509 certificate store (which may be empty!) */
+    store = SSL_CTX_get_cert_store((SSL_CTX *)sslctx);
+    
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        /* get a BIO */
+        bio = BIO_new_mem_buf(mypem[i], -1);
+        /* use it to read the PEM formatted certificate from memory into an X509
+         * structure that SSL can use
+         */
+        PEM_read_bio_X509(bio, &cert[i], 0, NULL);
+        if (cert == NULL)
+            printf("PEM_read_bio_X509 failed...\n");
+        
+        /* add our certificate to this store */
+        if (X509_STORE_add_cert(store, cert[i]) == 0)
+            printf("error adding certificate\n");
+        
+        /* decrease reference counts */
+        X509_free(cert[i]);
+        BIO_free(bio);
+    }
+    
+    /* all set to go */ 
+    return CURLE_OK ;
+}
+
+/// BioInterchange code:
+
 char* lic_raw2escstr(const unsigned char* raw, size_t len)
 {
     char* str = (char*)malloc(len * 4 + 1);
@@ -36,6 +159,7 @@ char* lic_raw2escstr(const unsigned char* raw, size_t len)
     return str;
 }
 
+#ifdef BIOINTERCHANGE_CRYPT
 static inline char* lic_cipher_raw2hex(uint8_t* cipher, size_t len)
 {
     // TODO Does fail for len == 0.
@@ -88,6 +212,7 @@ static inline uint8_t* lic_cipher_hex2raw(char* str)
     
     return cipher;
 }
+#endif // BIOINTERCHANGE_CRYPT
 
 static inline lic_status_t lic_chksum(char* str, lic_chksum_t* cs, char** off)
 {
@@ -97,7 +222,8 @@ static inline lic_status_t lic_chksum(char* str, lic_chksum_t* cs, char** off)
     while (*(s + 3))
     {
         if (!((*s >= '0' && *s <= '9') ||
-              (*s >= 'a' && *s <= 'z')))
+              (*s >= 'a' && *s <= 'z') ||
+              (*s >= 'A' && *s <= 'Z')))
             return LICENSE_INVFMT;
         
         cs->sum += (uint8_t)*s;
@@ -134,7 +260,7 @@ lic_status_t lic_valid_fmt1(char* lstr, char** lcore)
     
     // Verify integrity:
     char ref[4];
-    sprintf(ref, "%01X%02X", cs.alt, cs.sum);
+    sprintf(ref, "%01x%02x", cs.alt, cs.sum);
     if (strcmp(ref, s))
         return LICENSE_INT;
     
@@ -173,6 +299,7 @@ size_t function(char* ptr, size_t size, size_t nmemb, void* userdata)
         return sz;
     }
     
+    *status_ptr = LICENSE_NET;
     
     return sz;
 }
@@ -187,6 +314,7 @@ lic_status_t lic_valid_onln(char* lstr, gen_fstat* stat)
         
     }
     
+#ifdef BIOINTERCHANGE_CRYPT
     unsigned char iv[LIC_IVLEN];
     if (RAND_bytes(iv, LIC_IVLEN) != 1)
     {
@@ -215,8 +343,10 @@ lic_status_t lic_valid_onln(char* lstr, gen_fstat* stat)
     {
         // TODO Error handling.
     }
+#endif // BIOINTERCHANGE_CRYPT
     
-    char* sstr;
+    char* sstr = NULL;
+#ifndef GEN_STATS_PRIVATE
     if (stat)
     {
         // 10 digits for 32 bit
@@ -247,18 +377,22 @@ lic_status_t lic_valid_onln(char* lstr, gen_fstat* stat)
         
         sstr = schex;
     }
-    else
-        sstr = "";
+#endif // GEN_STATS_PRIVATE
     
     // Assume stats are always included:
-    char* post = (char*)malloc(strlen(EXE_SYMID) + strlen(ivhex) + strlen(chex) + strlen(sstr) + 59 + 1);
+#ifdef BIOINTERCHANGE_CRYPT
+    char* post = (char*)malloc(strlen(EXE_SYMID) + strlen(ivhex) + strlen(chex) + (sstr ? strlen(sstr) : 0) + 59 + 1);
+#else
+    char* post = (char*)malloc(strlen(EXE_SYMID) + strlen(lstr) + (sstr ? strlen(sstr) : 0) + 59 + 1);
+#endif // BIOINTERCHANGE_CRYPT
     
     if (!post)
     {
         // TODO Error handling.
     }
     
-    if (stat)
+#ifdef BIOINTERCHANGE_CRYPT
+    if (sstr)
     {
         sprintf(post, "{\"encoding\":\"%s\", \"iv\":\"%s\", \"license\":\"%s\", \"supplementary\":\"%s\"}", EXE_SYMID, ivhex, chex, sstr);
     }
@@ -266,13 +400,26 @@ lic_status_t lic_valid_onln(char* lstr, gen_fstat* stat)
     {
         sprintf(post, "{\"encoding\":\"%s\", \"iv\":\"%s\", \"license\":\"%s\"}", EXE_SYMID, ivhex, chex);
     }
+#else
+    if (sstr)
+    {
+        sprintf(post, "{\"encoding\":\"%s\", \"license\":\"%s\", \"supplementary\":\"%s\"}", EXE_SYMID, lstr, sstr);
+    }
+    else
+    {
+        sprintf(post, "{\"encoding\":\"%s\", \"license\":\"%s\"}", EXE_SYMID, lstr);
+    }
+#endif // BIOINTERCHANGE_CRYPT
     
     lic_status_t status;
     CURLcode res;
-    curl_easy_setopt(curl, CURLOPT_URL, "http://45.56.107.233/license/");
+    curl_easy_setopt(curl, CURLOPT_URL, LIC_URL);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, function);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &status);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+    curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, *sslctx_function);
     res = curl_easy_perform(curl);
     
     if (res != CURLE_OK)
@@ -316,6 +463,8 @@ lic_status_t lic_valid(char* lstr, gen_fstat* stat)
             return LICENSE_INVFMT;
     }
 }
+
+#ifdef BIOINTERCHANGE_CRYPT
 
 // Code below from: https://github.com/saju/misc/blob/master/misc/openssl_aes.c
 
@@ -515,3 +664,5 @@ lic_dec_t lic_dec_sym(unsigned char* key, unsigned char* iv, const char* cipher,
     
     return DECODING_OK;
 }
+
+#endif // BIOINTERCHANGE_CRYPT

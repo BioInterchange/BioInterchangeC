@@ -38,16 +38,22 @@
 #define MAIN_ERR_HME1 2
 #define MAIN_ERR_HME2 3
 #define MAIN_ERR_PARA 4
+// License file size wrong:
 #define MAIN_ERR_LISZ 5
+// License file format wrong:
 #define MAIN_ERR_LICF 6
-#define MAIN_ERR_FNME 7
-#define MAIN_ERR_FEXT 8
-#define MAIN_ERR_FACC 9
+// License check network error:
+#define MAIN_ERR_LICN 7
+// License was rejected by the license server:
+#define MAIN_ERR_LICV 8
+#define MAIN_ERR_FNME 9
+#define MAIN_ERR_FEXT 10
+#define MAIN_ERR_FACC 11
 
 #define MIN_PAGESIZE 2048
 
 // Relative to the home directory:
-#define MAIN_LICPATH "/.biointerchange-license"
+#define MAIN_LICPATH "/.biointerchange/biointerchange-license"
 
 // Check size of int without consulting limit.h:
 // http://www.pixelbeat.org/programming/gcc/static_assert.html
@@ -56,15 +62,26 @@
 #define ct_assert(e) enum { ASSERT_CONCAT(assert_line_, __LINE__) = 1/(!!(e)) }
 ct_assert(sizeof(int)>=4);
 
-void usage(char* bname, int err)
+void usage(char* bname, char* version, int err)
 {
-    fprintf(stderr, "Usage: %s genomicsfile [jsonfile]\n\n", bname);
-    fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON-LD.\n");
-    fprintf(stderr, "    Output will be written to \"jsonfile\", if given, or printed\n");
-    fprintf(stderr, "    on the console otherwise.\n");
-    fprintf(stderr, "    The output consists of one JSON document per-line.\n");
+    fprintf(stderr, "Usage: %s [parameters] genomicsfile\n\n", bname);
+    fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON/JSON-LD.\n");
+    fprintf(stderr, "    Outputs one JSON document per line.\n");
+    fprintf(stderr, "Parameters:\n");
+    fprintf(stderr, "    -o file           : writes output into file (default: STDOUT)\n");
+    fprintf(stderr, "    -p package.module : Python API called on package.module\n");
+    fprintf(stderr, "    -e                : prints EULA and exits\n");
+    fprintf(stderr, "    -v                : prints version number and exits\n");
+    fprintf(stderr, "    -h                : this help text\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "BioInterchange %s by CODAMONO\n", version);
     
     exit(err);
+}
+
+void eula(char* version)
+{
+    printf("BioInterchange %s by CODAMONO\n", version);
 }
 
 int main(int argc, char* argv[])
@@ -122,7 +139,8 @@ int main(int argc, char* argv[])
     int c;
     char* py_opt = NULL;
     
-    while ((c = getopt(argc, argv, "o:p:u:")) != -1)
+    int err = MAIN_ERR_PARA;
+    while ((c = getopt(argc, argv, "o:p:u:vh")) != -1)
     {
         switch (c)
         {
@@ -137,9 +155,16 @@ int main(int argc, char* argv[])
             case 'u':
                 ctxt.usr = strdup(optarg);
                 break;
-            case '?':
+            case 'e':
+                eula(BIOINTERCHANGE_VERSION);
+                exit(MAIN_SUCCESS);
+            case 'v':
+                printf("%s\n", BIOINTERCHANGE_VERSION);
+                exit(MAIN_SUCCESS);
+            case 'h':
+                err = MAIN_SUCCESS;
             default:
-                usage(bname, MAIN_ERR_PARA);
+                usage(bname, BIOINTERCHANGE_VERSION, err);
         }
     }
     argc -= optind;
@@ -291,9 +316,20 @@ int main(int argc, char* argv[])
     
     free(lid);
     
-    if (status == LICENSE_OK)
+    switch (status)
     {
-        // Everything fine!
+        case LICENSE_OK:
+            break;
+        case LICENSE_NET:
+            exit(MAIN_ERR_LICN);
+        case LICENSE_EXP:
+        case LICENSE_INT:
+        case LICENSE_INVFMT:
+        case LICENSE_LMT:
+        case LICENSE_NREC:
+        case LICENSE_NENC:
+        default:
+            exit(MAIN_ERR_LICV);
     }
     
     // Set up callback functions based on the file type:

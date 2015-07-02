@@ -11,6 +11,8 @@
  *   As DOCX: http://www.codamono.com/license/biointerchange-l1.docx
  */
 
+#undef BIOINTERCHANGE_NOCRYPT
+
 #ifndef biointerchange_license_h
 #define biointerchange_license_h
 
@@ -18,20 +20,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef BIOINTERCHANGE_CRYPT
 #include <openssl/conf.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#endif // BIOINTERCHANGE_CRYPT
 
 #define CURL_STATICLIB 1
 #include <curl.h>
+#include <openssl/ssl.h>
 
 #include "gen.h"
 
+#ifdef DEBUG
+// #define LIC_URL     "http://localhost:8000/license/"
+#else
+#define LIC_URL     "https://www.codamono.com/license/"
+#endif
+
+#define EXE_SYMID   "W2KAzBL3UMPVdnVM"
+
+#ifdef BIOINTERCHANGE_CRYPT
 #define LIC_KEYLEN  32
 #define LIC_IVLEN   16
 
-#define EXE_SYMID   "NSJ18Fkx(2K"
 #define EXE_MEMKEY  "\x6e\x84\x8a\xd7\x0c\xcb\x58\x95\x5f\x67\x0d\x9b\x16\xf5\x56\x6e\x58\x1b\x37\x5e\xa2\x02\x0c\x98\x07\x5d\x05\x63\xff\x29\xe9\x4e"
 #define EXE_MEMIV   "\x6e\x3f\x2d\xee\xee\x0c\xc2\x10\xbd\xa0\x7a\x53\xa2\x96\xe6\x7b"
 
@@ -41,6 +55,7 @@
 
 #define EXE_SYMLEN1 48
 #define EXE_SYMLEN2 48
+#endif // BIOINTERCHANGE_CRYPT
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,9 +78,9 @@ typedef enum
      */
     LICENSE_NET,
     /**
-     * Not a user token.
+     * Not an encoding token.
      */
-    LICENSE_NUSER,
+    LICENSE_NENC,
     /**
      * License key not recorded.
      */
@@ -113,8 +128,11 @@ typedef struct lic_chksum_t
 } lic_chksum_t;
 
 lic_status_t lic_valid(char* lstr, gen_fstat* stat);
+    
+#ifdef BIOINTERCHANGE_CRYPT
 lic_enc_t lic_enc_sym(unsigned char* key, unsigned char* iv, const char* plaintext, size_t len, uint8_t** ciphertext, size_t* cipherlen);
 lic_dec_t lic_dec_sym(unsigned char* key, unsigned char* iv, const char* cipher, size_t len, char** plaintext, size_t* plainlen);
+#endif // BIOINTERCHANGE_CRYPT
 
 char* lic_raw2escstr(const unsigned char* raw, size_t len);
 

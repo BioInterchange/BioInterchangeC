@@ -30,6 +30,9 @@
 extern "C" {
 #endif
     
+// Ensure that no statistics are sent during license check:
+#define GEN_STATS_PRIVATE 1
+    
 // Number of memory pages that should reside in memory when reading a genomics file:
 #define BI_GEN_PG_MUL 4096
 

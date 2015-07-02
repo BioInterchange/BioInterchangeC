@@ -110,7 +110,6 @@ set_target_properties(biointerchange-static PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_RELEASE lib
     IMPORT_LOCATION lib/${CMAKE_CFG_INTDIR}/biointerchange${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-#add_dependencies(biointerchange-static libdocument-lib openssl-lib curl-lib python)
 add_dependencies(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
 
 target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
