@@ -145,7 +145,8 @@ TEST(gff, gff_rd)
         NULL,
         NULL,
         stdout,
-        NULL // User data.
+        NULL, // User data.
+        (char*)BIOINTERCHANGE_VERSION
     };
     
     gen_rd(fd, mx, idx, &cbcks, &ctxt);

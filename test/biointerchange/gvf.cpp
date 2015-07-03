@@ -31,7 +31,7 @@ TEST(gvf, gvf_rd)
     int fd = fio_opn(GVF_GVF_SMALL);
     size_t mx = fio_len(fd);
     ldoc_trie_t* idx = gff_idx_fa(fd, NULL, mx);
-    EXPECT_NE((ldoc_trie_t*)NULL, idx);
+    EXPECT_EQ((ldoc_trie_t*)NULL, idx);
     
     gen_cbcks_t cbcks;
     gvf_cbcks(&cbcks);
@@ -44,7 +44,8 @@ TEST(gvf, gvf_rd)
         NULL,
         NULL,
         stdout,
-        NULL // User data.
+        NULL, // User data.
+        (char*)BIOINTERCHANGE_VERSION
     };
     
     gen_rd(fd, mx, idx, &cbcks, &ctxt);
