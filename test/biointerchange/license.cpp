@@ -28,6 +28,7 @@ TEST(lic, lic_http)
     lic_valid(LIC_EX_B, NULL);
 }
 
+#ifdef BIOINTERCHANGE_CRYPT
 TEST(lic, lic_genkey)
 {
     unsigned char key1[LIC_KEYLEN];
@@ -123,5 +124,5 @@ TEST(lic, lic_memkey_license)
     
     free(str);
     free(cipher);
-
 }
+#endif // BIOINTERCHANGE_CRYPT

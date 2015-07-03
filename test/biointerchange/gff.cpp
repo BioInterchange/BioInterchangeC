@@ -206,7 +206,7 @@ TEST(gff, gff_serialize_ftr)
     char* cmt = strdup("A \"comment\"!");
     ldoc_ent_t* c = ldoc_ent_new(LDOC_ENT_OR);
     c->pld.pair.anno.str = (char*)GEN_COMMENT;
-    c->pld.pair.dtm.str = gen_escstr(cmt);
+    c->pld.pair.dtm.str = gen_escstr(cmt, GEN_FMT_GFF3);
     ldoc_nde_ent_push(ftr, c);
     
     ldoc_ent_t* sq = ldoc_ent_new(LDOC_ENT_OR);
