@@ -62,11 +62,14 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
     if (off + len > mem->mx)
         len = mem->mx - off;
     
+    printf("%lu %lu\n", off, len);
     mem->pg = mmap(0, len, PROT_READ, MAP_FILE | MAP_SHARED, mem->fd, off);
 
     if (mem->pg == MAP_FAILED)
     {
         // TODO Error.
+        printf("%s\n", strerror(errno));
+        exit(123);
     }
     
     mem->ln = len;

@@ -15,17 +15,13 @@
 
 /// From: http://curl.haxx.se/libcurl/c/cacertinmem.html
 
-size_t writefunction( void *ptr, size_t size, size_t nmemb, void *stream)
-{
-    fwrite(ptr,size,nmemb,stream);
-    return(nmemb*size);
-}
-
 static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
 {
     X509_STORE* store;
     X509* cert[] = { NULL, NULL, NULL };
     BIO* bio;
+    
+    // gd_bundle-g2-g1.crt, June 2015
     char* mypem[] = {
     "-----BEGIN CERTIFICATE-----\n"\
     "MIIE0DCCA7igAwIBAgIBBzANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMCVVMx\n"\
@@ -107,8 +103,12 @@ static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
     "ReYNnyicsbkqWletNw+vHX/bvZ8=\n"\
         "-----END CERTIFICATE-----\n" };
 
+#pragma GCC diagnostics push
+#pragma GCC diagnostics ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     /* get a pointer to the X509 certificate store (which may be empty!) */
-    store = SSL_CTX_get_cert_store((SSL_CTX *)sslctx);
+    store = SSL_CTX_get_cert_store((SSL_CTX*)sslctx);
     
     for (uint8_t i = 0; i < 3; i++)
     {
@@ -119,15 +119,17 @@ static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
          */
         PEM_read_bio_X509(bio, &cert[i], 0, NULL);
         if (cert == NULL)
-            printf("PEM_read_bio_X509 failed...\n");
+            exit(MAIN_ERR_SBIO);
         
         /* add our certificate to this store */
         if (X509_STORE_add_cert(store, cert[i]) == 0)
-            printf("error adding certificate\n");
+            exit(MAIN_ERR_SADD);
         
         /* decrease reference counts */
         X509_free(cert[i]);
         BIO_free(bio);
+#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
     }
     
     /* all set to go */ 
@@ -277,29 +279,79 @@ lic_status_t lic_valid_fmt1(char* lstr, char** lcore)
     return LICENSE_OK;
 }
 
+static bool is_num(char* str, size_t size)
+{
+    bool num = false;
+    
+    while (*str && size)
+    {
+        if (*str == ' ' && !num)
+            str++;
+        else if (*str >= '0' && *str <= '9')
+        {
+            str++;
+            num = true;
+        }
+        else
+            return num;
+        
+        size--;
+    }
+    
+    return num;
+}
+
 size_t function(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
     size_t sz = size * nmemb;
     lic_status_t* status_ptr = (lic_status_t*)userdata;
     
-    // Minimum length required for: {"valid":true}
-    if (sz < 14)
+    // Minimum length required for: {"valid":0}
+    if (sz < 11)
     {
-        *status_ptr = LICENSE_NET;
+        *status_ptr = LICENSE_SRV;
         
         return sz;
     }
     
     // Check whether the license is valid:
-    if (!strncmp((char*)ptr, "{\"valid\":true}", 14) ||
-        !strncmp((char*)ptr, "{\"valid\": true}", 15))
+    char* off = ptr + 9;
+    if (!strncmp((char*)ptr, "{\"valid\":", 9) && is_num(off, sz - 9))
     {
-        *status_ptr = LICENSE_OK;
+        char* endptr;
+        
+        if (!*off)
+        {
+            *status_ptr = LICENSE_SRV;
+            return sz;
+        }
+        
+        long ret = strtol(off, &endptr, 10);
+        
+        if (*endptr == '}')
+            *status_ptr = LICENSE_OK;
+        else
+        {
+            switch (ret)
+            {
+                case LICENSE_NET:
+                case LICENSE_NENC:
+                case LICENSE_NREC:
+                case LICENSE_INVFMT:
+                case LICENSE_INT:
+                case LICENSE_EXP:
+                case LICENSE_LMT:
+                    *status_ptr = ret;
+                default:
+                    *status_ptr = LICENSE_SRV;
+                    break;
+            }
+        }
         
         return sz;
     }
-    
-    *status_ptr = LICENSE_NET;
+    else
+        *status_ptr = LICENSE_INT;
     
     return sz;
 }

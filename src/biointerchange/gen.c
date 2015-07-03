@@ -1162,7 +1162,12 @@ char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, o
     if (!ln)
     {
         // TODO Error handling. Realloc failed.
+        exit(123);
     }
+    
+    // Reached end-of-file:
+    if (mem->mx < off + *ln_len)
+        *ln_len = mem->mx - off;
     
     // Copy line (including newline characters):
     memcpy(ln, mem->pg + (off - mem->off), *ln_len);
@@ -1186,6 +1191,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     }
     
     off_t off = 0;
+    off_t skp = 0;
     fio_mem* mem = NULL;
     int incr = 0;
     
@@ -1203,6 +1209,17 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     gen_fstat stat = { 0, 0, 0, false, 0, 0 };
     while (!mem || mem->off + mem->ln < mx)
     {
+        // Calculate offsets in case `off` is not landing on a page size:
+        if (mem)
+        {
+            skp = off;
+            
+            off /= getpagesize();
+            off *= getpagesize();
+            
+            skp -= off;
+        }
+        
         // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
     gff_rd_incr_mem:
         mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
@@ -1210,7 +1227,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
         // TODO Error checking.
         
         // Figure out if (at least) one line can be read (based on current pointer):
-        lnlen = fio_lnlen(mem, mem->off);
+        lnlen = fio_lnlen(mem, mem->off + skp);
         
         // Handle case where no line ending is visible:
         if (!lnlen && mem->off + mem->ln < mx)
@@ -1223,7 +1240,12 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
         if (!lnlen)
             lnlen = mem->mx - mem->off;
         
-        do {
+        // Adjust offset in case of re-mapping on a non-page boundary:
+        if (skp)
+            off += skp;
+        
+        do
+        {
             // Current line:
             mem_cpy = gen_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
             
@@ -1390,6 +1412,8 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
 
 inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt, gen_fstat* stat)
 {
+    return;
+    
     if (!doc)
         return;
     

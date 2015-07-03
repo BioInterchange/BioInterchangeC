@@ -30,6 +30,31 @@
 extern "C" {
 #endif
     
+// Error codes (exit codes):
+#define MAIN_SUCCESS  0
+    
+// Never change these definitions or it will be very hard to interpret
+// error codes across software versions!
+#define MAIN_ERR_PGSZ 1
+#define MAIN_ERR_HME1 2
+#define MAIN_ERR_HME2 3
+#define MAIN_ERR_PARA 4
+// License file size wrong:
+#define MAIN_ERR_LISZ 5
+// License file format wrong:
+#define MAIN_ERR_LICF 6
+// License check network error:
+#define MAIN_ERR_LICN 7
+// License was rejected by the license server:
+#define MAIN_ERR_LICV 8
+#define MAIN_ERR_FNME 9
+#define MAIN_ERR_FEXT 10
+#define MAIN_ERR_FACC 11
+// PEM_read_bio_X509 failed:
+#define MAIN_ERR_SBIO 12
+// X509_STORE_add_cert failed:
+#define MAIN_ERR_SADD 13
+    
 // Ensure that no statistics are sent during license check:
 #define GEN_STATS_PRIVATE 1
     

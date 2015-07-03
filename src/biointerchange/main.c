@@ -30,26 +30,6 @@
 #include "gvf.h"
 #include "vcf.h"
 
-#define MAIN_SUCCESS  0
-
-// Never change these definitions or it will be very hard to interpret
-// error codes across software versions!
-#define MAIN_ERR_PGSZ 1
-#define MAIN_ERR_HME1 2
-#define MAIN_ERR_HME2 3
-#define MAIN_ERR_PARA 4
-// License file size wrong:
-#define MAIN_ERR_LISZ 5
-// License file format wrong:
-#define MAIN_ERR_LICF 6
-// License check network error:
-#define MAIN_ERR_LICN 7
-// License was rejected by the license server:
-#define MAIN_ERR_LICV 8
-#define MAIN_ERR_FNME 9
-#define MAIN_ERR_FEXT 10
-#define MAIN_ERR_FACC 11
-
 #define MIN_PAGESIZE 2048
 
 // Relative to the home directory:
@@ -322,12 +302,6 @@ int main(int argc, char* argv[])
             break;
         case LICENSE_NET:
             exit(MAIN_ERR_LICN);
-        case LICENSE_EXP:
-        case LICENSE_INT:
-        case LICENSE_INVFMT:
-        case LICENSE_LMT:
-        case LICENSE_NREC:
-        case LICENSE_NENC:
         default:
             exit(MAIN_ERR_LICV);
     }

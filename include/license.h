@@ -34,13 +34,13 @@
 
 #include "gen.h"
 
-#ifdef DEBUG
-// #define LIC_URL     "http://localhost:8000/license/"
-#else
+#ifdef NDEBUG
 #define LIC_URL     "https://www.codamono.com/license/"
-#endif
+#else
+#define LIC_URL     "http://localhost:8000/license/"
+#endif // NDEBUG
 
-#define EXE_SYMID   "W2KAzBL3UMPVdnVM"
+#define EXE_SYMID   "U0hoxuSgVRjFGM1N"
 
 #ifdef BIOINTERCHANGE_CRYPT
 #define LIC_KEYLEN  32
@@ -100,7 +100,11 @@ typedef enum
     /**
      * License limit reached.
      */
-    LICENSE_LMT
+    LICENSE_LMT,
+    /**
+     * Server response garbled.
+     */
+    LICENSE_SRV
 } lic_status_t;
 
 typedef enum
