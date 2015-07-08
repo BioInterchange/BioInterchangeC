@@ -42,6 +42,7 @@ const char* GEN_ALLELE_FRQ_VCF = "AF";
 const char* GEN_ALLELE_TTL = "allele-total-number";
 const char* GEN_ALLELE_TTL_VCF = "AN";
 const char* GEN_ALIGNMENT = "alignment";
+const char* GEN_ANNOTATIONS = "annotations";
 const char* GEN_ATTRS = "user-defined";
 const char* GEN_BUILD = "build";
 const char* GEN_CODON = "codon";
@@ -50,6 +51,8 @@ const char* GEN_DEPTH = "depth";
 const char* GEN_EFFECT = "effect";
 const char* GEN_EFFECTS = "effects";
 const char* GEN_END = "end";
+const char* GEN_GLOBAL = "global";
+const char* GEN_ID = "id";
 const char* GEN_LOCUS = "locus";
 const char* GEN_ONT_ACCESSION = "ontology-accession";
 const char* GEN_ONT_TERM = "ontology-term";
@@ -61,6 +64,7 @@ const char* GEN_SAMPLES_DATA = "samples-with-data";
 const char* GEN_SEQUENCE = "sequence";
 const char* GEN_START = "start";
 const char* GEN_SOURCE = "source";
+const char* GEN_TECHNOLOGY = "technology-platform"; // Needs to coincide with pragma (see `gvf_proc_prgm`).
 const char* GEN_TYPE = "type";
 const char* GEN_VARIANTS = "variants";
 
@@ -158,7 +162,7 @@ inline char* gen_term_crnl(char* s)
     return b;
 }
 
-static inline void gen_ky(char* attr, char** val)
+inline void gen_ky(char* attr, char** val)
 {
     while (*attr)
     {
@@ -219,6 +223,19 @@ inline void gen_lwr(char* str)
     {
         if (*str >= 'A' && *str <= 'Z')
             *str = *str - 'A' + 'a';
+        
+        str++;
+    }
+}
+
+inline void gen_lwrhyph(char* str)
+{
+    while (*str)
+    {
+        if (*str >= 'A' && *str <= 'Z')
+            *str = *str - 'A' + 'a';
+        else if (*str == '_')
+            *str = '-';
         
         str++;
     }
@@ -721,6 +738,103 @@ inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
     return gen_join_nde(nde);
 }
 
+ldoc_nde_t* gen_csep(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val)
+{
+    gen_csep_dup(dst, kwd, ky, val, false);
+}
+
+ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, bool dup)
+{
+    ldoc_nde_t* kv_nde = ldoc_nde_new(LDOC_NDE_OL);
+    
+    if (!kv_nde)
+    {
+        // TODO Error handling.
+    }
+    
+    if (kwd.alt)
+        kv_nde->mkup.anno.str = (char*)kwd.alt;
+    else
+    {
+        char* ky_;
+        
+        if (dup)
+        {
+            ky_ = strdup(ky);
+            
+            // TODO Error handling.
+        }
+        else
+            ky_ = ky;
+        
+        kv_nde->mkup.anno.str = ky_;
+    }
+    
+    char splt = 0;
+    char* val_cmp = val;
+    char* val_splt;
+    char* val_cmp_;
+    char* val_splt_;
+    ldoc_ent_t* kv_ent;
+    do
+    {
+        // Check: this should always work, since strlen(val) > 0; but check!?
+        val++;
+        
+        if (splt && *val == splt)
+        {
+            // Key found in key/value pair (separated by splt):
+            *(val++) = 0;
+            val_splt = val;
+        }
+        else if (*val == ',' || !*val)
+        {
+            *val = 0;
+            
+            kv_ent = ldoc_ent_new(splt ? LDOC_ENT_OR :LDOC_ENT_TXT);
+            
+            if (!kv_ent)
+            {
+                // TODO Error handling.
+            }
+            
+            if (dup)
+            {
+                val_cmp_ = strdup(val_cmp);
+                
+                // TODO Error handling.
+            }
+            else
+                val_cmp_ = val_cmp;
+            
+            if (splt)
+            {
+                if (dup)
+                {
+                    val_splt_ = strdup(val_splt);
+                    
+                    // TODO Error handling.
+                }
+                else
+                    val_splt_ = val_splt;
+                
+                kv_ent->pld.pair.anno.str = val_cmp_;
+                kv_ent->pld.pair.dtm.str = val_splt_;
+            }
+            else
+                kv_ent->pld.str = val_cmp_;
+            
+            ldoc_nde_ent_push(kv_nde, kv_ent);
+            
+            val_cmp = val;
+        }
+    } while (*val);
+    
+    ldoc_nde_dsc_push(dst, kv_nde);
+    
+    return kv_nde;
+}
+
 void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs, bi_attr upfail)
 {
     /* Ruby prototype:
@@ -736,14 +850,16 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
      }
      attributes
      */
+    bool brk;
     char* val;
     char* attr = attrs;
     do
     {
         if (!*attrs || *attrs == ';')
         {
-            bool brk = false;
+            brk = false;
             
+            // Note: similar to gvf_tag!
             // If this is the end of the string, then make sure to bail out next:
             if (!*attrs)
                 brk = true;
@@ -791,56 +907,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                 case BI_CSEPCPAIR:
                     splt = ':';
                 case BI_CSEP:
-                    kv_nde = ldoc_nde_new(LDOC_NDE_OL);
-                    
-                    if (!kv_nde)
-                    {
-                        // TODO Error handling.
-                    }
-                    
-                    if (kwd.alt)
-                        kv_nde->mkup.anno.str = (char*)kwd.alt;
-                    else
-                        kv_nde->mkup.anno.str = attr;
-                    
-                    val_cmp = val;
-                    do
-                    {
-                        // Check: this should always work, since strlen(val) > 0; but check!?
-                        val++;
-                        
-                        if (splt && *val == splt)
-                        {
-                            // Key found in key/value pair (separated by splt):
-                            *(val++) = 0;
-                            val_splt = val;
-                        }
-                        else if (*val == ',' || !*val)
-                        {
-                            *val = 0;
-                            
-                            kv_ent = ldoc_ent_new(splt ? LDOC_ENT_OR :LDOC_ENT_TXT);
-                            
-                            if (!kv_ent)
-                            {
-                                // TODO Error handling.
-                            }
-                            
-                            if (splt)
-                            {
-                                kv_ent->pld.pair.anno.str = val_cmp;
-                                kv_ent->pld.pair.dtm.str = val_splt;
-                            }
-                            else
-                                kv_ent->pld.str = val_cmp;
-                            
-                            ldoc_nde_ent_push(kv_nde, kv_ent);
-                            
-                            val_cmp = val;
-                        }
-                    } while (*val);
-                    
-                    ldoc_nde_dsc_push(dst, kv_nde);
+                    gen_csep(dst, kwd, attr, val);
                     
                     break;
                 case BI_CSEPVAR8:
@@ -1162,7 +1229,7 @@ char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, o
     if (!ln)
     {
         // TODO Error handling. Realloc failed.
-        exit(123);
+        exit(99);
     }
     
     // Reached end-of-file:
@@ -1221,7 +1288,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
         }
         
         // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
-    gff_rd_incr_mem:
+    rd_incr_mem:
         mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
         
         // TODO Error checking.
@@ -1233,7 +1300,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
         if (!lnlen && mem->off + mem->ln < mx)
         {
             incr++;
-            goto gff_rd_incr_mem;
+            goto rd_incr_mem;
         }
         
         // Still no line ending visible? Then read to the end of the buffer (this is implicit; check fio_mmap behavior):
@@ -1574,6 +1641,104 @@ bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vn
     }
 
     return true;
+}
+
+/// JSON to genomics formats
+
+void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
+{
+    off_t err;
+    off_t nxt;
+    
+    // NOTE: A lot of this code is derived from gen_rd. It might
+    //       be possible to write a function for this.
+    
+    ldoc_doc_t* ldoc;
+    
+    off_t off = 0;
+    off_t skp = 0;
+    fio_mem* mem = NULL;
+    int incr = 0;
+    
+    gen_prsr_t st;
+    st.fa_sct = false;
+    st.vcf_ftr_sct = false;
+    st.vcf_col = 0;
+    
+    bool fdoc_purged = false;
+    char* cmt = NULL;
+    char* mem_cpy = NULL;
+    size_t mem_len = 0;
+    size_t lnlen;
+    uint64_t ln_no = 0;
+    gen_fstat stat = { 0, 0, 0, false, 0, 0 };
+    while (!mem || mem->off + mem->ln < mx)
+    {
+        // Calculate offsets in case `off` is not landing on a page size:
+        if (mem)
+        {
+            skp = off;
+            
+            off /= getpagesize();
+            off *= getpagesize();
+            
+            skp -= off;
+        }
+        
+        // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
+    doc_incr_mem:
+        mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
+        
+        // TODO Error checking.
+        
+        // Figure out if (at least) one line can be read (based on current pointer):
+        lnlen = fio_lnlen(mem, mem->off + skp);
+        
+        // Handle case where no line ending is visible:
+        if (!lnlen && mem->off + mem->ln < mx)
+        {
+            incr++;
+            goto doc_incr_mem;
+        }
+        
+        // Still no line ending visible? Then read to the end of the buffer (this is implicit; check fio_mmap behavior):
+        if (!lnlen)
+            lnlen = mem->mx - mem->off;
+        
+        // Adjust offset in case of re-mapping on a non-page boundary:
+        if (skp)
+            off += skp;
+        
+        do
+        {
+            // Current line:
+            mem_cpy = gen_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
+            
+            ldoc = ldoc_ldjson_read(mem_cpy, mem_len, &err, &nxt);
+            
+            // ldoc = cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt, &stat);
+            
+
+                
+            //    gen_ser(ctxt, GEN_CTPE_PROCESS, ldoc, NULL, &stat);
+            //    ldoc_doc_free(ldoc);
+            //}
+            
+            // Reset quick memory:
+            qk_purge();
+            
+            // Next line:
+            off += lnlen;
+            ln_no++;
+            lnlen = fio_lnlen(mem, off);
+        } while (lnlen);
+    }
+    
+    if (mem_cpy)
+        free(mem_cpy);
+    
+    if (mem)
+        fio_munmap(mem);
 }
 
 /// Quick SINGLE THREADED string operations

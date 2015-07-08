@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include <document.h>
+#include <json.h>
 
 #include "ext-python.h"
 #include "fio.h"
@@ -76,6 +77,7 @@ extern const char* GEN_ALLELE_FRQ_VCF;
 extern const char* GEN_ALLELE_TTL;
 extern const char* GEN_ALLELE_TTL_VCF;
 extern const char* GEN_ALIGNMENT;
+extern const char* GEN_ANNOTATIONS;
 extern const char* GEN_ATTRS;
 extern const char* GEN_BUILD;
 extern const char* GEN_CODON;
@@ -84,6 +86,8 @@ extern const char* GEN_DEPTH;
 extern const char* GEN_EFFECT;
 extern const char* GEN_EFFECTS;
 extern const char* GEN_END;
+extern const char* GEN_GLOBAL;
+extern const char* GEN_ID;
 extern const char* GEN_LOCUS;
 extern const char* GEN_ONT_ACCESSION;
 extern const char* GEN_ONT_TERM;
@@ -95,6 +99,7 @@ extern const char* GEN_SAMPLES_DATA;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_START;
 extern const char* GEN_SOURCE;
+extern const char* GEN_TECHNOLOGY;
 extern const char* GEN_TYPE;
 extern const char* GEN_VARIANTS;
 
@@ -183,7 +188,8 @@ typedef enum
     GEN_FMT_GFF3,
     GEN_FMT_GTF,
     GEN_FMT_GVF,
-    GEN_FMT_VCF
+    GEN_FMT_VCF,
+    GEN_FMT_LDJ
 } gen_filetype_t;
 
 typedef enum
@@ -267,10 +273,18 @@ char* gen_res_optx(ldoc_res_t* res);
 char* gen_res_req(ldoc_res_t* res);
     
 char* gen_term_crnl(char* s);
+void gen_ky(char* attr, char** val);
 void gen_lwr(char* str);
+void gen_lwrhyph(char* str);
 void gen_kwd(char* str, gen_attr_t* attr, bi_attr upfail);
 char gen_inv(char c);
     
+/**
+ *  Returns the ordered-list node that was added to `dst`.
+ */
+ldoc_nde_t* gen_csep(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val);
+ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, bool dup);
+
 void gen_xcig(char* str);
 
 char* gen_escstr(char* str, gen_filetype_t tpe);
@@ -288,6 +302,8 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum);
 
 void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* ctxt);
 
+void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt);
+    
 void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt, gen_fstat* stat);
     
 //

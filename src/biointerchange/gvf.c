@@ -21,16 +21,194 @@ const char* GVF_C5  = "end";
 const char* GVF_C6  = "score";
 const char* GVF_C7  = "strand";
 
+#define GVF_SPGM_MAXLBL 1024
+
+// Single-thread buffer for structured pragma lookups in `pgm_idx`:
+static char* pgm_idxstr;
+
+// Counter for structured pragma IDs (when not falling under "global"):
+static uint32_t spgm_cnt = 0;
+
+// Indices for structured pragma filters:
+ldoc_trie_t* pgm_idx;
+
+void gvf_init()
+{
+    pgm_idx = ldoc_trie_new();
+    
+    pgm_idxstr = (char*)malloc(GVF_SPGM_MAXLBL);
+}
+
 void gvf_cbcks(gen_cbcks_t* cbcks)
 {
     cbcks->proc_ln = &gvf_proc_ln;
+}
+
+static inline void gvf_idxstr(char* seqid, char* type, char* source, char** str)
+{
+    // Note: index string needs to match with gvf_idx implementation!
+    
+    // Reset index string:
+    **str = 0;
+    
+    // Do not check string lengths here. Implement boundary check
+    // when reading feature lines!
+    char* pth[3] = { seqid, type, source };
+    for (uint8_t i = 0; i < 3; i++)
+        if (!pth[i] || !*pth[i])
+            strcat(*str, ".");
+        else
+        {
+            strcat(*str, " ");
+            strcat(*str, pth[i]);
+        }
+}
+
+static inline void gvf_idx(ldoc_nde_t* seqid, ldoc_nde_t* type, ldoc_nde_t* source, char* ref, uint8_t lvl, char* lbl, ldoc_ent_t* pld)
+{
+    // Note: index string needs to match with gvf_idxstr implementation!
+    
+    ldoc_nde_t* nde;
+    
+    switch (lvl)
+    {
+        case 0:
+            nde = seqid;
+            
+            lbl = (char*)malloc(GVF_SPGM_MAXLBL);
+            
+            // TODO Error handling.
+            break;
+        case 1:
+            nde = type;
+            break;
+        case 2:
+            nde = source;
+            break;
+        default:
+            nde = NULL;
+            break;
+    }
+    
+    if (lvl == 3)
+    {
+        // Check if an entry already exists:
+        ldoc_trie_nde_t* exst = ldoc_trie_lookup(pgm_idx, lbl, false);
+        
+        // If a trie entry exists already, then copy over the "payload"
+        // (`pld` ldoc_ent_t-contents) and free the memory of the `pld`
+        // argument.
+        if (exst)
+        {
+            ldoc_nde_ent_push((ldoc_nde_t*)exst->anno.pld, pld);
+            
+            return;
+        }
+        
+        // No entry yet: create a new one (ldoc_nde_t that contains
+        // the `pld` ldoc_ent_t-type payload):
+        
+        // Type does not matter -- only the *_ent_* functions are
+        // used on this node to iterate through/append information:
+        ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_OL);
+        
+        // TODO Error handling.
+        
+        ldoc_nde_ent_push(nde, pld);
+        
+        ldoc_trie_anno_t anno = { 0, nde };
+        ldoc_trie_add(pgm_idx, lbl, ASCII, anno);
+        
+        return;
+    }
+    
+    if (nde)
+    {
+        size_t lbllen = strlen(lbl);
+        
+        ldoc_ent_t* ent;
+        TAILQ_FOREACH(ent, &(nde->ents), ldoc_ent_entries)
+        {
+            if (GVF_SPGM_MAXLBL - (long)lbllen - (long)strlen(ent->pld.str) - 2 < 0)
+            {
+                // TODO Error handling; data labels too long.
+            }
+            
+            // Only add a space for value separation if the value itself
+            // is not a wildcard ('.'):
+            // Note: Do not need to check for strlen, because a dot would be
+            //       a formatting error in GVF.
+            if (*ent->pld.str != '.')
+                strncat(lbl, " ", GVF_SPGM_MAXLBL - lbllen - 2);
+            strncat(lbl, ent->pld.str, GVF_SPGM_MAXLBL - lbllen - strlen(ent->pld.str) - 2);
+            
+            gvf_idx(seqid, type, source, ref, lvl + 1, lbl, pld);
+            
+            // Reset label to its original form:
+            lbl[lbllen] = 0;
+        }
+    }
+    else
+    {
+        if (GVF_SPGM_MAXLBL - (long)strlen(lbl) - 2 < 0)
+        {
+            // TODO Error handling; data labels too long.
+        }
+        
+        strncat(lbl, ".", GVF_SPGM_MAXLBL - strlen(lbl) - 2);
+        
+        gvf_idx(seqid, type, source, ref, lvl + 1, lbl, pld);
+    }
+    
+}
+
+static inline ldoc_nde_t* gvf_idx_dsc(ldoc_nde_t* prnt, ldoc_res_t* idx, char* mkup)
+{
+    ldoc_nde_t* dsc;
+    
+    if (idx)
+    {
+        dsc = idx->info.nde;
+        
+        ldoc_res_free(idx);
+        
+        return dsc;
+    }
+    
+    dsc = ldoc_nde_new(LDOC_NDE_UA);
+    
+    // TODO Error handling.
+    
+    dsc->mkup.anno.str = strdup(mkup);
+    
+    // TODO Error handling.
+    
+    ldoc_nde_dsc_push(prnt, dsc);
+    
+    return dsc;
 }
 
 static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
 {
     char* ky_ = ky;
     
-    if (*ky == 'g')
+    if (*ky == 'f')
+    {
+        ky++;
+        if (*ky == 'i')
+        {
+            ky++;
+            if (*ky == 'l')
+            {
+                ky++;
+                if (!strcmp(ky, "e-date"))
+                    return LDOC_NDE_UA; // file-date
+                else if (!strcmp(ky, "e-version"))
+                    return LDOC_NDE_UA; // file-version
+            }
+        }
+    }
+    else if (*ky == 'g')
     {
         ky++;
         if (*ky == 'e')
@@ -40,7 +218,7 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
             {
                 ky++;
                 if (!strcmp(ky, "omic-source"))
-                    return LDOC_NDE_UA;
+                    return LDOC_NDE_UA; // genomic-source
             }
         } else if (*ky == 'v')
         {
@@ -49,7 +227,63 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
             {
                 ky++;
                 if (!strcmp(ky, "-version"))
-                    return LDOC_NDE_UA;
+                    return LDOC_NDE_UA; // gvf-version
+            }
+        }
+    }
+    else if (*ky == 'i')
+    {
+        ky++;
+        if (*ky == 'n')
+        {
+            ky++;
+            if (*ky == 'd')
+            {
+                ky++;
+                if (!strcmp(ky, "ividual-id"))
+                    return LDOC_NDE_UA; // individual-id
+            }
+        }
+    }
+    else if (*ky == 'p')
+    {
+        ky++;
+        if (*ky == 'o')
+        {
+            ky++;
+            if (*ky == 'p')
+            {
+                ky++;
+                if (!strcmp(ky, "ulation"))
+                    return LDOC_NDE_UA; // population
+            }
+        }
+    }
+    else if (*ky == 's')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'x')
+            {
+                ky++;
+                if (!*ky)
+                    return LDOC_NDE_UA; // sex
+            }
+        }
+    }
+    else if (*ky == 't')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'c')
+            {
+                ky++;
+                if (!strncmp("hnology-", ky, 8))
+                    return LDOC_NDE_OO; // technology-*
             }
         }
     }
@@ -310,6 +544,42 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
         ldoc_nde_ent_push(ftr, sq);
     }
     
+    // Add structured pragma links -- if available:
+    // TODO Optimize, so that not all 2^3-1 choices need to be probed:
+    for (uint8_t i = 1; i < 8; i++)
+    {
+        gvf_idxstr(i & 4 ? coff[0] : NULL,
+                   i & 2 ? coff[2] : NULL,
+                   i & 1 ? coff[1] : NULL,
+                   &pgm_idxstr);
+        ldoc_trie_nde_t* lnk = ldoc_trie_lookup(pgm_idx, pgm_idxstr, false);
+        if (lnk)
+        {
+            ldoc_nde_t* lnk_idx = (ldoc_nde_t*)lnk->anno.pld;
+            ldoc_nde_t* lnk_anno = ldoc_nde_new(LDOC_NDE_OL);
+            
+            // TODO Error handling.
+            
+            lnk_anno->mkup.anno.str = (char*)GEN_ANNOTATIONS;
+            
+            ldoc_ent_t* eidx;
+            ldoc_ent_t* ecpy;
+            TAILQ_FOREACH(eidx, &(lnk_idx->ents), ldoc_ent_entries)
+            {
+                ecpy = ldoc_ent_new(eidx->tpe);
+                
+                // TODO Error handling.
+                
+                // Note: assumes a type that is accessible as plain string:
+                ecpy->pld.str = eidx->pld.str;
+                
+                ldoc_nde_ent_push(lnk_anno, ecpy);
+            }
+            
+            ldoc_nde_dsc_push(ftr, lnk_anno);
+        }
+    }
+    
     // Find Reference_seq and Variant_seq and create respective nodes.
     // Note 1: Without X_seq, other X_* entries will be ignored.
     // Note 2: Assume that no more than VCF_MAX_ALT variants are observed.
@@ -403,6 +673,269 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     return doc;
 }
 
+inline void gvf_tags(ldoc_nde_t* nde, char* strct, gvf_pgm_t tpe)
+{
+    // Structure:
+    //   Abstract: nde -> sub -> ent
+    //   Example: "technology" -> "global" -> "read-length" : 32
+    
+    ldoc_nde_t* sub = ldoc_nde_new(LDOC_NDE_UA);
+    
+    // TODO Error handling.
+    
+    char* uid = NULL;
+    
+    // Supported tags for all GVF structured pragmas: Seqid, Source, Type, Dbxref, Comment
+    bool brk = false;
+    char* val;
+    char* ky = strct;
+    ldoc_nde_t* seqid_nde = NULL;
+    ldoc_nde_t* source_nde = NULL;
+    ldoc_nde_t* type_nde = NULL;
+    do
+    {
+        if (!*strct || *strct == ';')
+        {
+            // Note: similar to gen_splt_attrs!
+            // If this is the end of the string, then make sure to bail out next:
+            if (!*strct)
+                brk = true;
+            
+            // Isolate part of the underlying string:
+            *strct = 0;
+            
+            // Isolate key/value:
+            gen_ky(ky, &val);
+            
+            // Nothing to handle -- break condition 1:
+            if (!*ky)
+                break;
+            
+            bool seqid = !strcmp(ky, "Seqid");
+            bool source = !strcmp(ky, "Source");
+            bool type = !strcmp(ky, "Type");
+            if (seqid || source || type)
+            {
+                if (!uid)
+                {
+                    // 32-bit number: 10 digits; plus two letters 'SP'.
+                    uid = (char*)malloc(10 + 2 + 1);
+                    
+                    // TODO Error handling.
+                    
+                    sprintf(uid, "SP%u", spgm_cnt++);
+                }
+            }
+            
+            // Determine data type; default: LDOC_ENT_OR
+            ldoc_content_t tpe;
+            if (!strcmp(ky, "Read_length"))
+                tpe = LDOC_ENT_NR;
+            else if (!strcmp(ky, "Read_pair_span"))
+                tpe = LDOC_ENT_NR;
+            else if (!strcmp(ky, "Average_coverage"))
+                tpe = LDOC_ENT_NR;
+            else
+                tpe = LDOC_ENT_OR;
+            
+            // Convert defined keywords to lower case and hyphenate ('_' becomes '-'):
+            if (*ky >= 'A' && *ky <= 'Z')
+                gen_lwrhyph(ky);
+            
+            if (seqid)
+            {
+                gen_attr_t kwd = { ky, NULL };
+                seqid_nde = gen_csep_dup(sub, kwd, ky, val, true);
+            }
+            else if (source)
+            {
+                gen_attr_t kwd = { ky, NULL };
+                source_nde = gen_csep_dup(sub, kwd, ky, val, true);
+            }
+            else if (type)
+            {
+                gen_attr_t kwd = { ky, NULL };
+                type_nde = gen_csep_dup(sub, kwd, ky, val, true);
+            }
+            else
+            {
+                ldoc_ent_t* ent = ldoc_ent_new(tpe);
+                
+                // TODO Error handling.
+                
+                ent->pld.pair.anno.str = strdup(ky);
+                ent->pld.pair.dtm.str = strdup(val);
+                
+                ldoc_nde_ent_push(sub, ent);
+            }
+            
+            // End of string -- break condition 2:
+            if (brk)
+                break;
+            
+            // Reposition `ky` to point to the possible next key:
+            ky = strct + 1;
+        }
+        
+        strct++;
+    } while(true); // See above for break conditions (1 & 2).
+    
+    if (!uid)
+    {
+        uid = strdup(GEN_GLOBAL);
+        
+        // TODO Error handling.
+        
+        const char* global_id[] = { uid };
+        ldoc_res_t* res_sub = ldoc_find_anno_nde(nde, (char**)global_id, 1);
+        
+        // Copy over info from `sub`, if such a node already exists in the data:
+        if (res_sub)
+        {
+            ldoc_nde_t* exst = res_sub->info.nde;
+            
+            ldoc_res_free(res_sub);
+            
+            ldoc_nde_t* niter;
+            TAILQ_FOREACH(niter, &(sub->dscs), ldoc_nde_entries)
+            {
+                ldoc_nde_rm(niter);
+                
+                ldoc_nde_dsc_push(exst, niter);
+            }
+            
+            ldoc_ent_t* eiter;
+            TAILQ_FOREACH(eiter, &(sub->ents), ldoc_ent_entries)
+            {
+                ldoc_ent_rm(eiter);
+                
+                ldoc_nde_ent_push(exst, eiter);
+            }
+            
+            ldoc_nde_free(sub);
+        }
+        else
+        {
+            sub->mkup.anno.str = uid;
+            
+            // Add `uid` as "id" too (what the user sees):
+            ldoc_ent_t* uid_ent = ldoc_ent_new(LDOC_ENT_OR);
+            
+            // TODO Error handling.
+            
+            uid_ent->pld.pair.anno.str = strdup(GEN_ID);
+            uid_ent->pld.pair.dtm.str = strdup(uid);
+            
+            ldoc_nde_ent_push(sub, uid_ent);
+            
+            ldoc_nde_dsc_push(nde, sub);
+        }
+    }
+    else
+    {
+        // Use instantiated `sub` node from above:
+        sub->mkup.anno.str = uid;
+        
+        // Add `uid` as "id" too (what the user sees):
+        ldoc_ent_t* uid_ent = ldoc_ent_new(LDOC_ENT_OR);
+        
+        // TODO Error handling.
+        
+        uid_ent->pld.pair.anno.str = strdup(GEN_ID);
+        uid_ent->pld.pair.dtm.str = strdup(uid);
+        
+        ldoc_nde_ent_push(sub, uid_ent);
+        
+        ldoc_nde_dsc_push(nde, sub);
+     
+        // Indexing:
+        
+        // Type does not matter much, since an ldoc_ent_t is only
+        // used to conveniently store the information in an ldoc_nde_t
+        // later.
+        // Choosing LDOC_ENT_TXT, so that it is clear that the information
+        // is placed in ent->pld.str:
+        ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_TXT);
+        
+        // TODO Error handling.
+        
+        ent->pld.str = uid;
+        
+        gvf_idx(seqid_nde, type_nde, source_nde, uid, 0, NULL, ent);
+    }
+}
+
+static inline void gvf_proc_sctn(ldoc_nde_t* nde, char* sctn, char* ky, char* val)
+{
+    // Find previous `sctn` section (if it exists):
+    ldoc_nde_t* s = NULL;
+    ldoc_nde_t* iter;
+    TAILQ_FOREACH(iter, &(nde->dscs), ldoc_nde_entries)
+    {
+        if (!strcmp(iter->mkup.anno.str, sctn))
+        {
+            s = iter;
+            break;
+        }
+    }
+    
+    // If no section of name `sctn` exists yet, then create one now:
+    if (!s)
+    {
+        s = ldoc_nde_new(LDOC_NDE_OO);
+        s->mkup.anno.str = strdup(sctn);
+        
+        ldoc_nde_dsc_push(nde, s);
+    }
+    
+    if (!strcmp(ky, "technology-platform"))
+        gvf_tags(s, val, GVF_PGM_TECHNOLOGY);
+    else
+    {
+        // Find whether a global scope exists already:
+        ldoc_nde_t* scp = NULL;
+        TAILQ_FOREACH(iter, &(s->dscs), ldoc_nde_entries)
+        {
+            if (!strcmp(iter->mkup.anno.str, GEN_GLOBAL))
+            {
+                scp = iter;
+                break;
+            }
+        }
+        
+        // No scope for the meta information present yet? Create a new node:
+        if (!scp)
+        {
+            scp = ldoc_nde_new(LDOC_NDE_OL);
+            scp->mkup.anno.str = strdup(GEN_GLOBAL);
+            
+            // TODO Error handling.
+            
+            ldoc_nde_dsc_push(s, scp);
+        }
+        
+        // Determine data type; default: LDOC_ENT_OR
+        ldoc_content_t tpe;
+        if (!strcmp(ky, "technology-platform-read-length"))
+            tpe = LDOC_ENT_NR;
+        else if (!strcmp(ky, "technology-platform-read-pair-span"))
+            tpe = LDOC_ENT_NR;
+        else if (!strcmp(ky, "technology-platform-average-coverage"))
+            tpe = LDOC_ENT_NR;
+        else
+            tpe = LDOC_ENT_OR;
+        
+        ldoc_ent_t* ent = ldoc_ent_new(tpe);
+        
+        // TODO Error handling.
+        
+        ent->pld.pair.anno.str = strdup(ky);
+        ent->pld.pair.dtm.str = strdup(val);
+        
+        ldoc_nde_ent_push(scp, ent);
+    }
+}
+
 static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     // Skip leading markup:
@@ -477,6 +1010,10 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             ldoc_nde_t* nde = gff_proc_sregion(val, &id);
             
             ldoc_nde_dsc_push(stmt, nde);
+        }
+        else if (!strncmp(ln, "technology-", 11) && strlen(ln) >= 12) // technology-.+
+        {
+            gvf_proc_sctn(doc->rt, (char*)GEN_TECHNOLOGY, ln, val);
         }
         else
         {

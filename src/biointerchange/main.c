@@ -157,7 +157,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON-LD.\n");
         fprintf(stderr, "    Output will be written to \"jsonfile\", if given, or printed\n");
         fprintf(stderr, "    on the console otherwise.\n");
-        fprintf(stderr, "    The output consists of one JSON document per-line.\n");
+        fprintf(stderr, "    The output format is line-delimited JSON. The corresponding\n");
+        fprintf(stderr,"     MIME type is \"application/json; boundary=NL\".\n");
         
         exit(MAIN_ERR_PARA);
     }
@@ -184,10 +185,12 @@ int main(int argc, char* argv[])
         ctxt.tpe = GEN_FMT_GVF;
     else if (!strcmp(ext_s, ".vcf"))
         ctxt.tpe = GEN_FMT_VCF;
+    else if (!strcmp(ext_s, ".ldjson") || !strcmp(ext_s, ".ldj"))
+        ctxt.tpe = GEN_FMT_LDJ;
     else
     {
         fprintf(stderr, "Cannot determine filetype by filename extension.\n");
-        fprintf(stderr, "Known filename extensions: .gff .gtf .gvf .vcf\n");
+        fprintf(stderr, "Known filename extensions: .gff .gtf .gvf .ldj .ldjson .vcf\n");
         
         exit(MAIN_ERR_FEXT);
     }
@@ -284,6 +287,7 @@ int main(int argc, char* argv[])
     {
         case GEN_FMT_GFF3:
         case GEN_FMT_GVF:
+            gvf_init();
             gff_idx_fa(fd, &stat, mx);
             break;
         default:
@@ -291,7 +295,7 @@ int main(int argc, char* argv[])
             break;
     }
 
-    // Check the license now; send stats too:
+    // Check the license now:
     lic_status_t status = lic_valid(lid, &stat);
     
     free(lid);
@@ -324,12 +328,18 @@ int main(int argc, char* argv[])
             // TODO
             vcf_cbcks(&cbcks);
             break;
+        case GEN_FMT_LDJ:
+            // Do nothing. Callbacks determined by '@context' in data.
+            break;
         default:
             // TODO Internal error.
             break;
     }
     
-    gen_rd(fd, mx, idx, &cbcks, &ctxt);
+    if (ctxt.tpe == GEN_FMT_LDJ)
+        gen_rd_doc(fd, mx, &ctxt);
+    else
+        gen_rd(fd, mx, idx, &cbcks, &ctxt);
     
     fio_cls(fd);
     

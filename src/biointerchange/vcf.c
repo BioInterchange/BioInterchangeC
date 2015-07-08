@@ -1283,7 +1283,7 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
     qk_strcat("\t");
 
     // FILTER column:
-    vcf_proc_doc_optlst(ftr, (char*)VCF_C7, "PASS");
+    vcf_proc_doc_optlst(ftr, (char*)GEN_ANNOTATIONS, "PASS");
     qk_strcat("\t");
 
     // INFO -- standards part:
