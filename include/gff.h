@@ -85,7 +85,7 @@ void gff_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, char* attrs);
 ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
     
 char* gff_proc_doc_ftr(ldoc_nde_t* ftr);
-char* gff_proc_doc(ldoc_doc_t* doc);
+char* gff_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe);
     
 #ifdef __cplusplus
 } /* extern "C" */

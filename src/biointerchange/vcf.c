@@ -326,6 +326,9 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
 
 static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
+    bool usr_nw;
+    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw);
+    
     // Skip leading markup:
     ln += 2;
     
@@ -356,12 +359,7 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             val++;
     }
     
-    ldoc_nde_t* stmt = NULL;
-    TAILQ_FOREACH(stmt, &(doc->rt->dscs), ldoc_nde_entries)
-    {
-        if (!strcmp(stmt->mkup.anno.str, ln))
-            break;
-    }
+    ldoc_nde_t* stmt = gen_find_nde(doc->rt, usr, ln);
     
     ldoc_struct_t tpe = vcf_prgm_tpe(ln);
     if (!stmt)
@@ -376,11 +374,18 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         else
         {
+            ldoc_nde_t* dst;
+            if (tpe != LDOC_NDE_OL ||
+                !strcmp(ln, "X example X -- unused in VCF"))
+                dst = doc->rt;
+            else
+                dst = usr; // User defined pragmas.
+            
             // TODO Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
             stmt->mkup.anno.str = strdup(ln);
             
-            ldoc_nde_dsc_push(doc->rt, stmt);
+            ldoc_nde_dsc_push(dst, stmt);
         }
     }
     
@@ -436,7 +441,7 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     }
     else if (tpe == LDOC_NDE_OL)
     {
-        if (!strcmp(ln, "genome-build"))
+        if (!strcmp(ln, "X example X -- unused in VCF"))
         {
             gff_proc_gbld(stmt, val);
         }
@@ -526,6 +531,10 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         *cmt = NULL;
     }
     
+    // Add user-defined pragmas -- if those exist:
+    if (usr_nw)
+        gen_add_nw(doc->rt, usr);
+    
     return doc;
 }
 
@@ -595,12 +604,12 @@ static inline ldoc_nde_t* vcf_proc_gle(char* val, size_t len, char* ref, char** 
                 ilen = cln - (slsh + 1);
                 memcpy(idx2, slsh + 1, ilen);
                 idx2[ilen] = 0;
-                idx2_ = 2* strtol(idx2, NULL, 10);
+                idx2_ = 2 * strtol(idx2, NULL, 10);
             }
             else
                 idx2_ = 1; // Null byte.
             
-            char gt[3] = { &GEN_ALLELE[idx1_], &GEN_ALLELE[idx2_], 0 };
+            char gt[3] = { GEN_ALLELE[idx1_], GEN_ALLELE[idx2_], 0 };
             
             ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
             
@@ -947,9 +956,13 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
      ctx->mkup.anno.str = (char*)JSONLD_CTX;
      */
     
+    
+    // JSON-LD context:
+    // This needs to be changed when the context is dynamically created.
     ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
     ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
-    ctx->pld.pair.dtm.str = (char*)JSONLD_VCF;
+    ctx->pld.pair.dtm.str = (char*)JSONLD_VCF_1;
+    ldoc_nde_ent_push(ftr, ctx);
     
     ldoc_nde_t* lc = ldoc_nde_new(LDOC_NDE_UA);
     lc->mkup.anno.str = (char*)GEN_LOCUS;
@@ -1003,10 +1016,6 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
     
     gen_splt_attrs(ftr, attrs, ref, vars, coff[7], BI_NKW);
-    
-    // JSON-LD context:
-    // This needs to be changed when the context is dynamically created.
-    ldoc_nde_ent_push(ftr, ctx);
     
     // Score:
     ldoc_nde_ent_push(ftr, scr);
@@ -1162,6 +1171,8 @@ ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
     
     return ldoc;
 }
+
+// JSON to VCF
 
 static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
 {
@@ -1334,16 +1345,30 @@ inline char* vcf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     return NULL;
 }
 
-char* vcf_proc_doc(ldoc_doc_t* doc)
+char* vcf_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
 {
-    char* attr = vcf_proc_doc_ftr_attrs(doc->rt);
+    char* attr;
     
-    vcf_proc_doc_ftr(doc->rt);
-    
-    if (attr && *attr)
-        qk_strcat(";");
-    qk_strcat(attr);
-    
-    free(attr);
+    switch (tpe)
+    {
+        case GEN_FMT_INF:
+            // gff_proc_doc_ftr(doc->rt);
+            return NULL;
+        case GEN_FMT_FTR:
+            attr = vcf_proc_doc_ftr_attrs(doc->rt);
+            
+            vcf_proc_doc_ftr(doc->rt);
+            
+            if (attr && *attr)
+                qk_strcat(";");
+            qk_strcat(attr);
+            
+            free(attr);
+            
+            return qk_heap_ptr();
+        default:
+            // TODO Internal error.
+            return NULL;
+    }
 }
 

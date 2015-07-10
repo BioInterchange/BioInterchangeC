@@ -258,6 +258,9 @@ ldoc_struct_t gff_prgm_tpe(char* ky)
 
 static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
+    bool usr_nw;
+    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw);
+    
     // Skip leading markup:
     ln += 2;
     
@@ -290,13 +293,11 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             val++;
     }
     
-    ldoc_nde_t* stmt = NULL;
-    TAILQ_FOREACH(stmt, &(doc->rt->dscs), ldoc_nde_entries)
-    {
-        if (!strcmp(stmt->mkup.anno.str, ln))
-            break;
-    }
-
+    // Ignore '###' separators:
+    if (*ln == '#' && !*(ln + 1))
+        return NULL;
+    
+    ldoc_nde_t* stmt = gen_find_nde(doc->rt, usr, ln);
     ldoc_struct_t tpe = gff_prgm_tpe(ln);
     if (!stmt)
     {
@@ -310,11 +311,18 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         else
         {
+            ldoc_nde_t* dst;
+            if (tpe != LDOC_NDE_OL ||
+                !strcmp(ln, "genome-build"))
+                dst = doc->rt;
+            else
+                dst = usr; // User defined pragmas.
+            
             // TODO Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
             stmt->mkup.anno.str = strdup(ln);
             
-            ldoc_nde_dsc_push(doc->rt, stmt);
+            ldoc_nde_dsc_push(dst, stmt);
         }
     }
     
@@ -428,6 +436,10 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         *cmt = NULL;
     }
     
+    // Add user-defined pragmas -- if those exist:
+    if (usr_nw)
+        gen_add_nw(doc->rt, usr);
+    
     return doc;
 }
 
@@ -489,10 +501,14 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ctx->mkup.anno.str = (char*)JSONLD_CTX;
      */
     
+    // JSON-LD context:
+    // This needs to be changed when the context is dynamically created.
     ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
     ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
-    ctx->pld.pair.dtm.str = (char*)JSONLD_GFF3;
+    ctx->pld.pair.dtm.str = (char*)JSONLD_GFF3_1;
+    ldoc_nde_ent_push(ftr, ctx);
 
+    // User-defined attributes:
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
     
@@ -553,10 +569,6 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     }
     
     gen_splt_attrs(ftr, attrs, NULL, NULL, coff[8], BI_VAL);
-    
-    // JSON-LD context:
-    // This needs to be changed when the context is dynamically created.
-    ldoc_nde_ent_push(ftr, ctx);
 
     // Source, type, score, strand, phase:
     ldoc_nde_ent_push(ftr, src);
@@ -954,8 +966,8 @@ ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
                 else
                 {
                     // Nope, real meta line:
-                    gff_proc_prgm(fdoc, ln, lnlen, cmt);
-                    stat->meta++;
+                    if (gff_proc_prgm(fdoc, ln, lnlen, cmt))
+                        stat->meta++;
                 }
             }
             else
@@ -1070,9 +1082,11 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     return seq;
 }
 
+// JSON to GFF3
+
 inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
 {
-    const char* lc_id[] = { "locus" };
+    const char* lc_id[] = { GEN_LOCUS };
     ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
 
     ldoc_res_t* lm = ldoc_find_anno_ent(lc->info.nde, (char*)GFF_C1);
@@ -1139,7 +1153,7 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
     return NULL;
 }
 
-char* gff_proc_doc(ldoc_doc_t* doc)
+char* gff_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
 {
     // Attributes are joined on the quick heap:
     qk_purge();
@@ -1148,7 +1162,19 @@ char* gff_proc_doc(ldoc_doc_t* doc)
     // in the case where no attributes might be present at all:
     qk_strcat("");
     
-    gff_proc_doc_ftr(doc->rt);
+    switch (tpe)
+    {
+        case GEN_FMT_INF:
+            // gff_proc_doc_ftr(doc->rt);
+            return NULL;
+        case GEN_FMT_FTR:
+            gff_proc_doc_ftr(doc->rt);
+            
+            return qk_heap_ptr();
+        default:
+            // TODO Internal error.
+            return NULL;
+    }
     
-    printf("%s\n", qk_heap_ptr());
+    //printf("%s\n", qk_heap_ptr());
 }

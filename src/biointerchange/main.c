@@ -152,16 +152,7 @@ int main(int argc, char* argv[])
     
     // Parameter check 2; do not check license before the software is called correctly:
     if (argc != 1)
-    {
-        fprintf(stderr, "Usage: %s genomicsfile\n\n", bname);
-        fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON-LD.\n");
-        fprintf(stderr, "    Output will be written to \"jsonfile\", if given, or printed\n");
-        fprintf(stderr, "    on the console otherwise.\n");
-        fprintf(stderr, "    The output format is line-delimited JSON. The corresponding\n");
-        fprintf(stderr,"     MIME type is \"application/json; boundary=NL\".\n");
-        
-        exit(MAIN_ERR_PARA);
-    }
+        usage(bname, BIOINTERCHANGE_VERSION, MAIN_ERR_PARA);
     
     char* fname = argv[0];
     ctxt.fgen = fname; // TODO Cleanup.
@@ -169,7 +160,7 @@ int main(int argc, char* argv[])
     if (fname_len < 5)
     {
         fprintf(stderr, "Filename too short. Needs to be at least one character followed by\n");
-        fprintf(stderr, "one of the following extensions: .gff .gtf .gvf .vcf\n");
+        fprintf(stderr, "one of the following extensions: .gff .gvf .vcf\n");
         
         exit(MAIN_ERR_FNME);
     }
@@ -177,20 +168,21 @@ int main(int argc, char* argv[])
     // Determine filetype by extension:
     char* ext_s = &fname[fname_len - 4];
     char* ext_l = &fname[fname_len - 5]; // Still works with fname_len above, but means that the basename could be an empty string.
+    char* ext_xl = fname_len > 7 ? &fname[fname_len - 7] : NULL;
     if (!strcmp(ext_s, ".gff") || !strcmp(ext_l, ".gff3"))
         ctxt.tpe = GEN_FMT_GFF3;
-    else if (!strcmp(ext_s, ".gtf"))
-        ctxt.tpe = GEN_FMT_GTF;
+    // else if (!strcmp(ext_s, ".gtf"))
+    //    ctxt.tpe = GEN_FMT_GTF;
     else if (!strcmp(ext_s, ".gvf"))
         ctxt.tpe = GEN_FMT_GVF;
     else if (!strcmp(ext_s, ".vcf"))
         ctxt.tpe = GEN_FMT_VCF;
-    else if (!strcmp(ext_s, ".ldjson") || !strcmp(ext_s, ".ldj"))
+    else if (!strcmp(ext_s, ".ldj") || (ext_xl && !strcmp(ext_xl, ".ldjson")))
         ctxt.tpe = GEN_FMT_LDJ;
     else
     {
         fprintf(stderr, "Cannot determine filetype by filename extension.\n");
-        fprintf(stderr, "Known filename extensions: .gff .gtf .gvf .ldj .ldjson .vcf\n");
+        fprintf(stderr, "Known filename extensions: .gff .gvf .ldj .ldjson .vcf\n");
         
         exit(MAIN_ERR_FEXT);
     }

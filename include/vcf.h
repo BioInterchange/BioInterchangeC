@@ -39,7 +39,7 @@ char* vcf_proc_doc_ftr_attrs(ldoc_nde_t* ftr);
 
 ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* st, char** cmt, gen_fstat* stat);
 
-char* vcf_proc_doc(ldoc_doc_t* doc);
+char* vcf_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe);
     
 #ifdef __cplusplus
 } /* extern "C" */

@@ -63,11 +63,24 @@ extern "C" {
 #define BI_GEN_PG_MUL 4096
 
 extern const char* JSONLD_CTX;
-extern const char* JSONLD_GFF3;
-extern const char* JSONLD_GTF;
-extern const char* JSONLD_GVF;
-extern const char* JSONLD_VCF;
 
+extern const char* JSONLD_GFF3_CTX1;
+extern const char* JSONLD_GTF_CTX1;
+extern const char* JSONLD_GVF_CTX1;
+extern const char* JSONLD_VCF_CTX1;
+
+extern const char* JSONLD_GFF3_X1;
+extern const char* JSONLD_GTF_X1;
+extern const char* JSONLD_GVF_X1;
+extern const char* JSONLD_VCF_X1;
+
+extern const char* JSONLD_GFF3_1;
+extern const char* JSONLD_GTF_1;
+extern const char* JSONLD_GVF_1;
+extern const char* JSONLD_VCF_1;
+    
+extern const char* JSONLD_STAT_1;
+    
 extern const char* GEN_AFFECTED;
 extern const char* GEN_AFFECTED_TPE;
 extern const char* GEN_ALLELE_CNT;
@@ -155,6 +168,10 @@ typedef enum
      */
     BI_CSEPVAR,
     /**
+     * Comma separated information about variants that is a number.
+     */
+    BI_CSEPVARN,
+    /**
      * Comma separated information about variants & skip 8 characters of the key.
      */
     BI_CSEPVAR8,
@@ -166,6 +183,10 @@ typedef enum
      * Information about the reference sequence.
      */
     BI_REFSEQ,
+    /**
+     * Information about the reference sequence that is a number.
+     */
+    BI_REFSEQN,
     /**
      * Information about the reference sequence & skip 10 characters of the key.
      */
@@ -192,6 +213,14 @@ typedef enum
     GEN_FMT_LDJ
 } gen_filetype_t;
 
+typedef enum
+{
+    GEN_FMT_CTX,
+    GEN_FMT_INF,
+    GEN_FMT_FTR,
+    GEN_FMT_STT
+} gen_doctype_t;
+    
 typedef enum
 {
     GEN_CTPE_SETUP,
@@ -290,6 +319,10 @@ void gen_xcig(char* str);
 char* gen_escstr(char* str, gen_filetype_t tpe);
     
 size_t gen_csplit(char* str, char c);
+
+ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw);
+ldoc_nde_t* gen_find_nde(ldoc_nde_t* ctnr1, ldoc_nde_t* ctnr2, char* ky);
+void gen_add_nw(ldoc_nde_t* nde, ldoc_nde_t* usr);
 
 ldoc_content_t gen_smrt_tpe(char* val);
     

@@ -485,9 +485,12 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     
     ldoc_nde_t* ftr = doc->rt;
     
+    // JSON-LD context:
+    // This needs to be changed when the context is dynamically created.
     ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
     ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
-    ctx->pld.pair.dtm.str = (char*)JSONLD_GVF;
+    ctx->pld.pair.dtm.str = (char*)JSONLD_GVF_1;
+    ldoc_nde_ent_push(ftr, ctx);
     
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
@@ -645,10 +648,6 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     // Generic implementation for parsing attributes:
     gen_splt_attrs(ftr, attrs, ref, vars, coff[8], BI_VAL);
     
-    // JSON-LD context:
-    // This needs to be changed when the context is dynamically created.
-    ldoc_nde_ent_push(ftr, ctx);
-    
     // Source, type, score, strand:
     ldoc_nde_ent_push(ftr, src);
     ldoc_nde_ent_push(ftr, tpe);
@@ -744,6 +743,7 @@ inline void gvf_tags(ldoc_nde_t* nde, char* strct, gvf_pgm_t tpe)
             
             if (seqid)
             {
+                ky = (char*)GVF_C1; // Rename "seqid" to "landmark"
                 gen_attr_t kwd = { ky, NULL };
                 seqid_nde = gen_csep_dup(sub, kwd, ky, val, true);
             }
@@ -938,6 +938,9 @@ static inline void gvf_proc_sctn(ldoc_nde_t* nde, char* sctn, char* ky, char* va
 
 static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
+    bool usr_nw;
+    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw);
+
     // Skip leading markup:
     ln += 2;
     
@@ -970,12 +973,7 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             val++;
     }
     
-    ldoc_nde_t* stmt = NULL;
-    TAILQ_FOREACH(stmt, &(doc->rt->dscs), ldoc_nde_entries)
-    {
-        if (!strcmp(stmt->mkup.anno.str, ln))
-            break;
-    }
+    ldoc_nde_t* stmt = gen_find_nde(doc->rt, usr, ln);
     
     ldoc_struct_t tpe = gvf_prgm_tpe(ln);
     if (!stmt)
@@ -990,11 +988,18 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         else
         {
+            ldoc_nde_t* dst;
+            if (tpe != LDOC_NDE_OL ||
+                !strcmp(ln, "genome-build"))
+                dst = doc->rt;
+            else
+                dst = usr; // User defined pragmas.
+            
             // TODO Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
             stmt->mkup.anno.str = strdup(ln);
             
-            ldoc_nde_dsc_push(doc->rt, stmt);
+            ldoc_nde_dsc_push(dst, stmt);
         }
     }
     
@@ -1111,6 +1116,10 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         // Erase comment, but it is not released (free'd) yet:
         *cmt = NULL;
     }
+    
+    // Add user-defined pragmas -- if those exist:
+    if (usr_nw)
+        gen_add_nw(doc->rt, usr);
     
     return doc;
 }
@@ -1245,6 +1254,13 @@ void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
     }
 }
 
+// JSON to GVF
+
+char* gvf_proc_doc_prgm(ldoc_nde_t* prgm)
+{
+    //const char*
+}
+
 char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
 {
     // Everything about the reference sequence:
@@ -1340,18 +1356,34 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     return astr;
 }
 
-char* gvf_proc_doc(ldoc_doc_t* doc)
+char* gvf_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
 {
-    char* attr = gvf_proc_doc_ftr_attrs(doc->rt);
+    char* attr;
     
-    gff_proc_doc_ftr(doc->rt);
-    
-    if (*attr)
-        qk_strcat(";");
-    qk_strcat(attr);
+    switch (tpe)
+    {
+        case GEN_FMT_INF:
+            // gff_proc_doc_ftr(doc->rt);
+            return NULL;
+        case GEN_FMT_FTR:
+            attr = gvf_proc_doc_ftr_attrs(doc->rt);
+            
+            gff_proc_doc_ftr(doc->rt);
+            
+            if (*attr)
+                qk_strcat(";");
+            qk_strcat(attr);
+            
+            free(attr);
+            
+            return qk_heap_ptr();
+        default:
+            // TODO Internal error.
+            return NULL;
+    }
     
     // TODO Obsolete?
     // gen_proc_doc_usr(doc->rt);
     
-    free(attr);
+
 }

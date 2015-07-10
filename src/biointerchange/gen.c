@@ -13,6 +13,7 @@
 
 #include "gen.h"
 #include "gvf.h"
+#include "vcf.h"
 
 const char* JSONLD_CTX = "@context";
 
@@ -28,13 +29,25 @@ const char* JSONLD_CTX = "@context";
   }
 }
  */
-const char* JSONLD_GFF3 = "http://www.biointerchange.org/jsonld/gff3.json";
-const char* JSONLD_GTF = "http://www.biointerchange.org/jsonld/gtf.json";
-const char* JSONLD_GVF = "http://www.biointerchange.org/jsonld/gvf.json";
-const char* JSONLD_VCF = "http://www.biointerchange.org/jsonld/vcf.json";
+const char* JSONLD_GFF3_CTX1 = "https://www.codamono.com/jsonld/gff3-c1.json";
+const char* JSONLD_GTF_CTX1 = "https://www.codamono.com/jsonld/gtf-c1.json";
+const char* JSONLD_GVF_CTX1 = "https://www.codamono.com/jsonld/gvf-c1.json";
+const char* JSONLD_VCF_CTX1 = "https://www.codamono.com/jsonld/vcf-c1.json";
 
-const char* GEN_AFFECTED = "affected-features";
-const char* GEN_AFFECTED_TPE = "affected-feature-type";
+const char* JSONLD_GFF3_X1 = "https://www.codamono.com/jsonld/gff3-x1.json";
+const char* JSONLD_GTF_X1 = "https://www.codamono.com/jsonld/gtf-x1.json";
+const char* JSONLD_GVF_X1 = "https://www.codamono.com/jsonld/gvf-x1.json";
+const char* JSONLD_VCF_X1 = "https://www.codamono.com/jsonld/vcf-x1.json";
+
+const char* JSONLD_GFF3_1 = "https://www.codamono.com/jsonld/gff3-f1.json";
+const char* JSONLD_GTF_1 = "https://www.codamono.com/jsonld/gtf-f1.json";
+const char* JSONLD_GVF_1 = "https://www.codamono.com/jsonld/gvf-f1.json";
+const char* JSONLD_VCF_1 = "https://www.codamono.com/jsonld/vcf-f1.json";
+
+const char* JSONLD_STAT_1 = "https://www.codamono.com/jsonld/biointerchange-s1.json";
+
+const char* GEN_AFFECTED = "affected-features";         // (documented)
+const char* GEN_AFFECTED_TPE = "affected-feature-type"; // (document)
 const char* GEN_ALLELE_CNT = "allele-count";
 const char* GEN_ALLELE_CNT_VCF = "AC";
 const char* GEN_ALLELE_FRQ = "allele-frequency";
@@ -48,25 +61,25 @@ const char* GEN_BUILD = "build";
 const char* GEN_CODON = "codon";
 const char* GEN_COMMENT = "comment";
 const char* GEN_DEPTH = "depth";
-const char* GEN_EFFECT = "effect";
-const char* GEN_EFFECTS = "effects";
-const char* GEN_END = "end";
-const char* GEN_GLOBAL = "global";
-const char* GEN_ID = "id";
-const char* GEN_LOCUS = "locus";
+const char* GEN_EFFECT = "effect";                      // (documented)
+const char* GEN_EFFECTS = "effects";                    // (documented)
+const char* GEN_END = "end";                            // (documented)
+const char* GEN_GLOBAL = "global";                      // (documented)
+const char* GEN_ID = "id";                              // (documented)
+const char* GEN_LOCUS = "locus";                        // (documented)
 const char* GEN_ONT_ACCESSION = "ontology-accession";
 const char* GEN_ONT_TERM = "ontology-term";
 const char* GEN_QUALITY_MAP = "mapping-quality-rms";
 const char* GEN_QUALITY_MAP0 = "reads-with-zero-mapping-quality";
 const char* GEN_QUALITY_RMS = "base-quality-rms";
-const char* GEN_REFERENCE = "reference";
+const char* GEN_REFERENCE = "reference";                // (documented)
 const char* GEN_SAMPLES_DATA = "samples-with-data";
-const char* GEN_SEQUENCE = "sequence";
-const char* GEN_START = "start";
-const char* GEN_SOURCE = "source";
+const char* GEN_SEQUENCE = "sequence";                  // (documented)
+const char* GEN_START = "start";                        // (documented)
+const char* GEN_SOURCE = "source";                      // (documented)
 const char* GEN_TECHNOLOGY = "technology-platform"; // Needs to coincide with pragma (see `gvf_proc_prgm`).
-const char* GEN_TYPE = "type";
-const char* GEN_VARIANTS = "variants";
+const char* GEN_TYPE = "type";                          // (documented)
+const char* GEN_VARIANTS = "variants";                  // (documented)
 
 const char* GEN_EMPTY = "";
 const char* GEN_NULL = "null";
@@ -254,7 +267,7 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                 if (!*str)
                 {
                     // VCF: AC, allele count
-                    kwd->attr = BI_CSEPVAR;
+                    kwd->attr = BI_CSEPVARN;
                     kwd->alt = GEN_ALLELE_CNT;
                     return;
                 }
@@ -265,7 +278,7 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                 if (!*str)
                 {
                     // VCF: AF, allele frequency
-                    kwd->attr = BI_CSEPVAR;
+                    kwd->attr = BI_CSEPVARN;
                     kwd->alt = GEN_ALLELE_FRQ;
                     return;
                 }
@@ -377,6 +390,21 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                         kwd->alt = GEN_ALIGNMENT;
                         return;
                     }
+                }
+            }
+        }
+        else if (*str == 'I')
+        {
+            str++;
+            if (*str == 'D')
+            {
+                str++;
+                if (!*str)
+                {
+                    // GFF3/GVF: ID
+                    kwd->attr = BI_VAL;
+                    kwd->alt = GEN_ID;
+                    return;
                 }
             }
         }
@@ -647,6 +675,84 @@ size_t gen_csplit(char* str, char c)
     return n;
 }
 
+inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw)
+{
+    ldoc_nde_t* usr;
+    
+    if (!nde->ent_cnt)
+    {
+        ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
+        
+        // TODO Error handling.
+        
+        ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
+        ctx->pld.pair.dtm.str = (char*)JSONLD_GVF_X1;
+        ldoc_nde_ent_push(nde, ctx);
+        
+        // User-defined pragmas:
+        usr = ldoc_nde_new(LDOC_NDE_UA);
+        usr->mkup.anno.str = strdup(GEN_ATTRS);
+        
+        if (nw)
+            *nw = true;
+    }
+    else
+    {
+        const char* pth[1] = { GEN_ATTRS };
+        ldoc_res_t* usr_ = ldoc_find_anno_nde(nde, (char**)pth, 1);
+        
+        if (!usr_)
+        {
+            // User-defined pragmas:
+            usr = ldoc_nde_new(LDOC_NDE_UA);
+            usr->mkup.anno.str = strdup(GEN_ATTRS);
+          
+            if (nw)
+                *nw = true;
+        }
+        else
+        {
+            usr = usr_->info.nde;
+            
+            if (nw)
+                *nw = false;
+        }
+    }
+    
+    return usr;
+}
+
+inline ldoc_nde_t* gen_find_nde(ldoc_nde_t* ctnr1, ldoc_nde_t* ctnr2, char* ky)
+{
+    ldoc_nde_t* nde = NULL;
+    
+    TAILQ_FOREACH(nde, &(ctnr1->dscs), ldoc_nde_entries)
+    {
+        if (!strcmp(nde->mkup.anno.str, ky))
+            break;
+    }
+    
+    if (!nde && ctnr2)
+        TAILQ_FOREACH(nde, &(ctnr2->dscs), ldoc_nde_entries)
+        {
+            if (!strcmp(nde->mkup.anno.str, ky))
+                break;
+        }
+    
+    return nde;
+}
+
+inline void gen_add_nw(ldoc_nde_t* nde, ldoc_nde_t* usr)
+{
+    if (usr->dsc_cnt || usr->ent_cnt)
+        ldoc_nde_dsc_push(nde, usr);
+    else
+    {
+        free(usr->mkup.anno.str);
+        ldoc_nde_free(usr);
+    }
+}
+
 static inline bool gen_join_attrs_key(char* id, ldoc_nde_t* nde, ldoc_ent_t* ent, char* attrs)
 {
     char* attr_id;
@@ -740,7 +846,7 @@ inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
 
 ldoc_nde_t* gen_csep(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val)
 {
-    gen_csep_dup(dst, kwd, ky, val, false);
+    return gen_csep_dup(dst, kwd, ky, val, false);
 }
 
 ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, bool dup)
@@ -850,6 +956,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
      }
      attributes
      */
+    fprintf(stderr, "! %s\n", attrs);
     bool brk;
     char* val;
     char* attr = attrs;
@@ -872,7 +979,10 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             
             // Nothing to handle -- break condition 1:
             if (!*attr)
+            {
+                fprintf(stderr, "* B1\n", attrs);
                 return;
+            }
             
             // Key/value assignment, or, key-only handling.
             // Note: known keys become lower case, user-defined
@@ -898,7 +1008,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             bool lend = false;
             char* val_cmp;
             char splt = 0;
-            char* val_splt;
+            // char* val_splt;
             ldoc_nde_t* kv_nde;
             ldoc_ent_t* kv_ent;
             size_t skp = 0;
@@ -913,6 +1023,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                 case BI_CSEPVAR8:
                     skp = 8;
                 case BI_CSEPVAR:
+                case BI_CSEPVARN:
                     val_cmp = val;
                     TAILQ_FOREACH(kv_nde, &(vars->dscs), ldoc_nde_entries)
                     {
@@ -930,7 +1041,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         else
                             *val = 0;
                         
-                        kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                        kv_ent = ldoc_ent_new(kwd.attr == BI_CSEPVARN ? LDOC_ENT_NR : LDOC_ENT_OR);
                         
                         if (!kv_ent)
                         {
@@ -960,7 +1071,8 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                 case BI_REFSEQ10:
                     skp = 10;
                 case BI_REFSEQ:
-                    kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                case BI_REFSEQN:
+                    kv_ent = ldoc_ent_new(kwd.attr == BI_REFSEQN ? LDOC_ENT_NR : LDOC_ENT_OR);
                     
                     if (!kv_ent)
                     {
@@ -978,13 +1090,18 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                 default:
                     // Entity type:
                     //   LDOC_ENT_NR  -- if attribute is a number
+                    //   LDOC_ENT_OR  -- if attribute is a string
                     //   gen_smrt_tpe -- otherwise
-                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : gen_smrt_tpe(val));
+                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : (kwd.attr == BI_VAL ? LDOC_ENT_OR : gen_smrt_tpe(val)));
                     
                     if (!kv_ent)
                     {
                         // TODO Error handling.
                     }
+                    
+                    int x;
+                    if (!strcmp(attr, "id") && !strcmp(val, "intron:Solyc05g007350.1.1.3"))
+                        x = 5;
                     
                     if (kwd.attr == BI_XCIG)
                         gen_xcig(val);
@@ -1008,7 +1125,10 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             
             // Attribute EOS reached earlier -- break condition 2:
             if (brk)
+            {
+                fprintf(stderr, "* B2\n", attrs);
                 return;
+            }
             
             // Next attribute will have to start here:
             attr = attrs + 1;
@@ -1209,39 +1329,48 @@ char* gen_escstr(char* str, gen_filetype_t tpe)
 
 char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, off_t off)
 {
+    fprintf(stderr, "$ Y1\n");
     if (!ln)
     {
         *ln_len = llen;
         ln = (char*)malloc(*ln_len + 1);
     }
-    
+
+    fprintf(stderr, "$ Y2\n");
     if (!ln)
     {
         // TODO Error handling. Initial alloc failed.
+        exit(98);
     }
     
+    fprintf(stderr, "$ Y3\n");
     if (llen > *ln_len)
     {
         ln = realloc(ln, llen + 1);
         *ln_len = llen;
     }
     
+    fprintf(stderr, "$ Y4\n");
     if (!ln)
     {
         // TODO Error handling. Realloc failed.
         exit(99);
     }
     
+    fprintf(stderr, "$ Y5 %lu\n", *ln_len);
     // Reached end-of-file:
     if (mem->mx < off + *ln_len)
         *ln_len = mem->mx - off;
     
+    fprintf(stderr, "$ Y6 %lu %lu ! %lu %llu\n", *ln_len, mem->ln, mem->mx, off - mem->off);
     // Copy line (including newline characters):
-    memcpy(ln, mem->pg + (off - mem->off), *ln_len);
+    memcpy(ln, &((char*)mem->pg)[off - mem->off], llen);
     
+    fprintf(stderr, "$ Y7\n");
     // Terminate string:
-    ln[*ln_len] = 0;
+    ln[llen] = 0;
     
+    fprintf(stderr, "$ Y8\n");
     return ln;
 }
 
@@ -1276,6 +1405,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     gen_fstat stat = { 0, 0, 0, false, 0, 0 };
     while (!mem || mem->off + mem->ln < mx)
     {
+        fprintf(stderr, "^ X1\n");
         // Calculate offsets in case `off` is not landing on a page size:
         if (mem)
         {
@@ -1286,36 +1416,45 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
             
             skp -= off;
         }
-        
+
+        fprintf(stderr, "^ X2\n");
         // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
     rd_incr_mem:
         mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
         
         // TODO Error checking.
         
+        fprintf(stderr, "^ X3\n");
         // Figure out if (at least) one line can be read (based on current pointer):
         lnlen = fio_lnlen(mem, mem->off + skp);
         
+        fprintf(stderr, "^ X4\n");
         // Handle case where no line ending is visible:
         if (!lnlen && mem->off + mem->ln < mx)
         {
+            fprintf(stderr, "^ X4.1\n");
             incr++;
             goto rd_incr_mem;
         }
         
+        fprintf(stderr, "^ X5\n");
         // Still no line ending visible? Then read to the end of the buffer (this is implicit; check fio_mmap behavior):
         if (!lnlen)
             lnlen = mem->mx - mem->off;
         
+        fprintf(stderr, "^ X6\n");
         // Adjust offset in case of re-mapping on a non-page boundary:
         if (skp)
             off += skp;
         
+        fprintf(stderr, "^ X7\n");
         do
         {
+            fprintf(stderr, "^ X8 %lu %llu\n", lnlen, off);
             // Current line:
             mem_cpy = gen_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
-            
+
+            fprintf(stderr, "^ X9\n");
             ldoc = cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt, &stat);
             
             if (ldoc)
@@ -1327,6 +1466,28 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                     ldoc_doc_t* cdoc = ldoc_doc_new();
 
                     ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+                    ent->pld.pair.anno.str = strdup(JSONLD_CTX);
+                    switch (ctxt->tpe)
+                    {
+                        case GEN_FMT_GFF3:
+                            ent->pld.pair.dtm.str = strdup(JSONLD_GFF3_CTX1);
+                            break;
+                        case GEN_FMT_GTF:
+                            ent->pld.pair.dtm.str = strdup(JSONLD_GTF_CTX1);
+                            break;
+                        case GEN_FMT_GVF:
+                            ent->pld.pair.dtm.str = strdup(JSONLD_GVF_CTX1);
+                            break;
+                        case GEN_FMT_VCF:
+                            ent->pld.pair.dtm.str = strdup(JSONLD_VCF_CTX1);
+                            break;
+                        default:
+                            // TODO Internal error.
+                            break;
+                    }
+                    ldoc_nde_ent_push(cdoc->rt, ent);
+                    
+                    ent = ldoc_ent_new(LDOC_ENT_OR);
                     ent->pld.pair.anno.str = strdup("biointerchange-version");
                     ent->pld.pair.dtm.str = strdup(ctxt->ver);
                     ldoc_nde_ent_push(cdoc->rt, ent);
@@ -1389,18 +1550,23 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                     fdoc_purged = true;
                 }
                 
+                fprintf(stderr, "# S1\n");
                 gen_ser(ctxt, GEN_CTPE_PROCESS, ldoc, NULL, &stat);
+                fprintf(stderr, "# S2\n");
                 
                 ldoc_doc_free(ldoc);
             }
-            
+
+            fprintf(stderr, "# S3\n");
             // Reset quick memory:
             qk_purge();
             
+            fprintf(stderr, "# S4\n");
             // Next line:
             off += lnlen;
             ln_no++;
             lnlen = fio_lnlen(mem, off);
+            fprintf(stderr, "# S5\n");
         } while (lnlen);
     }
     
@@ -1416,6 +1582,11 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     char* tm_estr = strdup(ctime(&tm_e));
     
     ldoc_doc_t* sdoc = ldoc_doc_new();
+    
+    ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+    ent->pld.pair.anno.str = strdup(JSONLD_CTX);
+    ent->pld.pair.dtm.str = strdup(JSONLD_STAT_1);
+    ldoc_nde_ent_push(sdoc->rt, ent);
     
     ldoc_nde_t* fstat = ldoc_nde_new(LDOC_NDE_UA);
     fstat->mkup.anno.str = strdup("statistics");
@@ -1666,12 +1837,15 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
     st.vcf_col = 0;
     
     bool fdoc_purged = false;
-    char* cmt = NULL;
     char* mem_cpy = NULL;
     size_t mem_len = 0;
     size_t lnlen;
     uint64_t ln_no = 0;
     gen_fstat stat = { 0, 0, 0, false, 0, 0 };
+    // Temporary -- will be replaced with the actual output once '@context'
+    // has been read:
+    gen_filetype_t out = GEN_FMT_LDJ;
+    gen_doctype_t tpe;
     while (!mem || mem->off + mem->ln < mx)
     {
         // Calculate offsets in case `off` is not landing on a page size:
@@ -1714,17 +1888,100 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
             // Current line:
             mem_cpy = gen_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
             
-            ldoc = ldoc_ldjson_read(mem_cpy, mem_len, &err, &nxt);
+            // ldoc = ldoc_ldjson_read(mem_cpy, mem_len, &err, NULL);
+            ldoc = ldoc_json_read(mem_cpy, mem_len, &err);
+
+            // Establish document context:
+            
+            ldoc_res_t* json_ctx = ldoc_find_anno_ent(ldoc->rt, (char*)JSONLD_CTX);
+            
+            if (!json_ctx)
+            {
+                // TODO Error handling.
+                exit(100);
+            }
+            
+            if (json_ctx->nde)
+            {
+                // TODO Error handling.
+                exit(100);
+            }
+            
+            if (json_ctx->info.ent->tpe != LDOC_ENT_OR)
+            {
+                // TODO Error handling.
+                exit(101);
+            }
+            
+            if (out == GEN_FMT_LDJ)
+            {
+                if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GFF3_CTX1))
+                    out = GEN_FMT_GFF3;
+                else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GTF_CTX1))
+                    out = GEN_FMT_GTF;
+                else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GVF_CTX1))
+                    out = GEN_FMT_GVF;
+                else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_VCF_CTX1))
+                    out = GEN_FMT_VCF;
+                else
+                {
+                    // TODO Error handling.
+                    exit(102);
+                }
+                
+                tpe = GEN_FMT_CTX;
+            }
+            else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GFF3_X1) ||
+                     !strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GTF_X1) ||
+                     !strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GVF_X1) ||
+                     !strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_VCF_X1))
+                tpe = GEN_FMT_INF;
+            else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GFF3_1) ||
+                     !strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GTF_1) ||
+                     !strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_GVF_1) ||
+                     !strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_VCF_1))
+                tpe = GEN_FMT_FTR;
+            else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_STAT_1))
+                tpe = GEN_FMT_STT;
+    
+            // Output data:
+            
+            char* lns = NULL;
+            if (tpe == GEN_FMT_INF || tpe == GEN_FMT_FTR)
+            {
+                switch (out)
+                {
+                    case GEN_FMT_GFF3:
+                        lns = gff_proc_doc(ldoc, tpe);
+                        break;
+                    case GEN_FMT_GTF:
+                        // TODO
+                        exit(1001);
+                        break;
+                    case GEN_FMT_GVF:
+                        lns = gvf_proc_doc(ldoc, tpe);
+                        break;
+                    case GEN_FMT_VCF:
+                        lns = vcf_proc_doc(ldoc, tpe);
+                        break;
+                    default:
+                        // TODO Internal error.
+                        exit(100);
+                }
+            }
+            
+            if (lns)
+                fprintf(ctxt->fout, "%s\n", lns);
+            
+            // Wrap up:
             
             // ldoc = cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt, &stat);
             
-
-                
-            //    gen_ser(ctxt, GEN_CTPE_PROCESS, ldoc, NULL, &stat);
-            //    ldoc_doc_free(ldoc);
+            //gen_ser(ctxt, GEN_CTPE_PROCESS, ldoc, NULL, &stat);
+            ldoc_doc_free(ldoc);
             //}
             
-            // Reset quick memory:
+            // Reset quick memory (resets lns):
             qk_purge();
             
             // Next line:
@@ -1828,7 +2085,6 @@ inline bool qk_strcat(const char* s1)
     if (qk_ptr > qk_heap)
         qk_ptr--;
 
-    off_t cpy = qk_ptr;
     memcpy(qk_ptr, s1, len + 1);
     
     qk_ptr += len + 1;
