@@ -956,7 +956,6 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
      }
      attributes
      */
-    fprintf(stderr, "! %s\n", attrs);
     bool brk;
     char* val;
     char* attr = attrs;
@@ -979,10 +978,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             
             // Nothing to handle -- break condition 1:
             if (!*attr)
-            {
-                fprintf(stderr, "* B1\n", attrs);
                 return;
-            }
             
             // Key/value assignment, or, key-only handling.
             // Note: known keys become lower case, user-defined
@@ -1125,10 +1121,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             
             // Attribute EOS reached earlier -- break condition 2:
             if (brk)
-            {
-                fprintf(stderr, "* B2\n", attrs);
                 return;
-            }
             
             // Next attribute will have to start here:
             attr = attrs + 1;
@@ -1329,48 +1322,40 @@ char* gen_escstr(char* str, gen_filetype_t tpe)
 
 char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, off_t off)
 {
-    fprintf(stderr, "$ Y1\n");
     if (!ln)
     {
         *ln_len = llen;
         ln = (char*)malloc(*ln_len + 1);
     }
 
-    fprintf(stderr, "$ Y2\n");
     if (!ln)
     {
         // TODO Error handling. Initial alloc failed.
         exit(98);
     }
     
-    fprintf(stderr, "$ Y3\n");
     if (llen > *ln_len)
     {
         ln = realloc(ln, llen + 1);
         *ln_len = llen;
     }
     
-    fprintf(stderr, "$ Y4\n");
     if (!ln)
     {
         // TODO Error handling. Realloc failed.
         exit(99);
     }
     
-    fprintf(stderr, "$ Y5 %lu\n", *ln_len);
     // Reached end-of-file:
     if (mem->mx < off + *ln_len)
         *ln_len = mem->mx - off;
     
-    fprintf(stderr, "$ Y6 %lu %lu ! %lu %llu\n", *ln_len, mem->ln, mem->mx, off - mem->off);
     // Copy line (including newline characters):
     memcpy(ln, &((char*)mem->pg)[off - mem->off], llen);
     
-    fprintf(stderr, "$ Y7\n");
     // Terminate string:
     ln[llen] = 0;
     
-    fprintf(stderr, "$ Y8\n");
     return ln;
 }
 
@@ -1405,7 +1390,6 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     gen_fstat stat = { 0, 0, 0, false, 0, 0 };
     while (!mem || mem->off + mem->ln < mx)
     {
-        fprintf(stderr, "^ X1\n");
         // Calculate offsets in case `off` is not landing on a page size:
         if (mem)
         {
@@ -1417,44 +1401,35 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
             skp -= off;
         }
 
-        fprintf(stderr, "^ X2\n");
         // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
     rd_incr_mem:
         mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
         
         // TODO Error checking.
         
-        fprintf(stderr, "^ X3\n");
         // Figure out if (at least) one line can be read (based on current pointer):
         lnlen = fio_lnlen(mem, mem->off + skp);
         
-        fprintf(stderr, "^ X4\n");
         // Handle case where no line ending is visible:
         if (!lnlen && mem->off + mem->ln < mx)
         {
-            fprintf(stderr, "^ X4.1\n");
             incr++;
             goto rd_incr_mem;
         }
         
-        fprintf(stderr, "^ X5\n");
         // Still no line ending visible? Then read to the end of the buffer (this is implicit; check fio_mmap behavior):
         if (!lnlen)
             lnlen = mem->mx - mem->off;
         
-        fprintf(stderr, "^ X6\n");
         // Adjust offset in case of re-mapping on a non-page boundary:
         if (skp)
             off += skp;
         
-        fprintf(stderr, "^ X7\n");
         do
         {
-            fprintf(stderr, "^ X8 %lu %llu\n", lnlen, off);
             // Current line:
             mem_cpy = gen_rd_ln(mem, mx, lnlen, mem_cpy, &mem_len, off);
 
-            fprintf(stderr, "^ X9\n");
             ldoc = cbcks->proc_ln(fd, mx, fdoc, idx, mem_cpy, lnlen, &st, &cmt, &stat);
             
             if (ldoc)
@@ -1550,23 +1525,18 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                     fdoc_purged = true;
                 }
                 
-                fprintf(stderr, "# S1\n");
                 gen_ser(ctxt, GEN_CTPE_PROCESS, ldoc, NULL, &stat);
-                fprintf(stderr, "# S2\n");
                 
                 ldoc_doc_free(ldoc);
             }
 
-            fprintf(stderr, "# S3\n");
             // Reset quick memory:
             qk_purge();
             
-            fprintf(stderr, "# S4\n");
             // Next line:
             off += lnlen;
             ln_no++;
             lnlen = fio_lnlen(mem, off);
-            fprintf(stderr, "# S5\n");
         } while (lnlen);
     }
     
