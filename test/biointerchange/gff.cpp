@@ -164,7 +164,7 @@ TEST(gff, gff_serialize_ftr)
     
     ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
     ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
-    ctx->pld.pair.dtm.str = (char*)JSONLD_GFF3;
+    ctx->pld.pair.dtm.str = (char*)JSONLD_GFF3_1;
     
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
@@ -243,7 +243,7 @@ TEST(gff, gff_serialize_ftr)
     ldoc_ser_t* ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
     printf("%s\n", ser->pld.str);
     
-    gff_proc_doc(doc);
+    gff_proc_doc(doc, GEN_FMT_FTR);
     
     qk_free();
     

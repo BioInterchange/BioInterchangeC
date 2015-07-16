@@ -23,7 +23,7 @@ const char* GFF_C4  = "start";
 const char* GFF_C5  = "end";
 const char* GFF_C6  = "score";
 const char* GFF_C7  = "strand";
-const char* GFF_C8  = "phase";
+const char* GFF_C8  = "codon-phase";
 
 void gff_cbcks(gen_cbcks_t* cbcks)
 {
@@ -109,6 +109,62 @@ static inline char* gff_proc_optvalx(char* str)
     return str;
 }
 
+inline void gff_proc_tgt(ldoc_nde_t* nde, char* val)
+{
+    ldoc_ent_t* id = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* st = ldoc_ent_new(LDOC_ENT_NR);
+    ldoc_ent_t* en = ldoc_ent_new(LDOC_ENT_NR);
+    ldoc_ent_t* strnd = ldoc_ent_new(LDOC_ENT_OR);
+    
+    // TODO Error handling.
+
+    id->pld.pair.anno.str = (char*)GEN_ID;
+    st->pld.pair.anno.str = (char*)GEN_START;
+    en->pld.pair.anno.str = (char*)GEN_END;
+    strnd->pld.pair.anno.str = (char*)GEN_STRAND;
+
+    char* s = val;
+    while (*val && *val != ' ' && *val != ';')
+        val++;
+    *val = 0;
+    
+    id->pld.pair.dtm.str = s;
+    s = ++val;
+
+    while (*val && *val != ' ' && *val != ';')
+        val++;
+    *val = 0;
+    
+    st->pld.pair.dtm.str = s;
+    s = ++val;
+
+    while (*val && *val != ' ' && *val != ';')
+        val++;
+    bool strndd = *val ? true : false;
+    *val = 0;
+    
+    en->pld.pair.dtm.str = s;
+    
+    if (strndd)
+    {
+        s = ++val;
+
+        while (*val && *val != ' ' && *val != ';')
+            val++;
+        *val = 0;
+    }
+    else
+        s = NULL;
+    
+    strnd->pld.pair.dtm.str = s;
+    s = ++val;
+
+    ldoc_nde_ent_push(nde, id);
+    ldoc_nde_ent_push(nde, st);
+    ldoc_nde_ent_push(nde, en);
+    ldoc_nde_ent_push(nde, strnd);
+}
+
 void gff_proc_gbld(ldoc_nde_t* nde, char* val)
 {
     // Source:
@@ -125,6 +181,10 @@ void gff_proc_gbld(ldoc_nde_t* nde, char* val)
     // Allocate node and entities upfront, so that strdup's do
     // not need to be freed if any of this fails.
     
+    ldoc_nde_t* nde_bld = ldoc_nde_new(LDOC_NDE_UA);
+    
+    // TODO Error handling.
+    
     ldoc_ent_t* ent_bld = ldoc_ent_new(LDOC_ENT_OR);
     
     if (!ent_bld)
@@ -132,10 +192,24 @@ void gff_proc_gbld(ldoc_nde_t* nde, char* val)
         // TODO Error handling.
     }
     
-    ent_bld->pld.pair.anno.str = strdup(src);
+    ent_bld->pld.pair.anno.str = (char*)GEN_SOURCE;
+    ent_bld->pld.pair.dtm.str = strdup(src);
+    
+    ldoc_nde_ent_push(nde_bld, ent_bld);
+    
+    ent_bld = ldoc_ent_new(LDOC_ENT_OR);
+    
+    if (!ent_bld)
+    {
+        // TODO Error handling.
+    }
+    
+    ent_bld->pld.pair.anno.str = (char*)GEN_BUILD_VAL;
     ent_bld->pld.pair.dtm.str = strdup(bld);
     
-    ldoc_nde_ent_push(nde, ent_bld);
+    ldoc_nde_ent_push(nde_bld, ent_bld);
+    
+    ldoc_nde_dsc_push(nde, nde_bld);
 }
 
 ldoc_nde_t* gff_proc_sregion(char* val, char** cid)
@@ -543,7 +617,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     strnd->pld.pair.anno.str = (char*)GFF_C7;
     strnd->pld.pair.dtm.str = coff[6];
 
-    ldoc_ent_t* ph = ldoc_ent_new(LDOC_ENT_OR);
+    ldoc_ent_t* ph = ldoc_ent_new(LDOC_ENT_NR);
     ph->pld.pair.anno.str = (char*)GFF_C8;
     ph->pld.pair.dtm.str = coff[7];
 
@@ -574,13 +648,13 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_ent_push(ftr, src);
     ldoc_nde_ent_push(ftr, tpe);
     ldoc_nde_ent_push(ftr, scr);
-    ldoc_nde_ent_push(ftr, strnd);
     ldoc_nde_ent_push(ftr, ph);
 
     // Coordinates, assigned to a locus:
     ldoc_nde_ent_push(lc, lm);
     ldoc_nde_ent_push(lc, st);
     ldoc_nde_ent_push(lc, en);
+    ldoc_nde_ent_push(lc, strnd);
     
     ldoc_nde_dsc_push(ftr, lc);
     
@@ -1082,10 +1156,63 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     return seq;
 }
 
+//
 // JSON to GFF3
+//
+
+static inline void gff_join_almnt(ldoc_nde_t* nde, char* attrs)
+{
+    ldoc_res_t* id = ldoc_find_anno_ent(nde, (char*)GEN_ID);
+    ldoc_res_t* st = ldoc_find_anno_ent(nde, (char*)GEN_START);
+    ldoc_res_t* en = ldoc_find_anno_ent(nde, (char*)GEN_END);
+    ldoc_res_t* strnd = ldoc_find_anno_ent(nde, (char*)GEN_STRAND);
+    ldoc_res_t* cgr = ldoc_find_anno_ent(nde, (char*)GEN_CIGAR);
+    
+    // NOTE Report error, if one is missing?
+    if (id && st && en)
+    {
+        gen_join_attrs_key((char*)GEN_ALIGNMENT_GFF3, NULL, NULL, attrs);
+        qk_strcat("=");
+        qk_strcat(id->info.ent->pld.pair.dtm.str);
+        qk_strcat(" ");
+        qk_strcat(st->info.ent->pld.pair.dtm.str);
+        qk_strcat(" ");
+        qk_strcat(en->info.ent->pld.pair.dtm.str);
+        if (strnd)
+        {
+            if (strnd->info.ent->pld.pair.dtm.str)
+            {
+                qk_strcat(" ");
+                qk_strcat(strnd->info.ent->pld.pair.dtm.str);
+            }
+            
+            ldoc_res_free(strnd);
+        }
+        
+        ldoc_res_free(id);
+        ldoc_res_free(st);
+        ldoc_res_free(en);
+    }
+    
+    if (cgr)
+    {
+        gen_join_attrs_key((char*)GEN_CIGAR_GFF3, NULL, NULL, attrs);
+        qk_strcat("=");
+        gen_qk_revcig(cgr->info.ent->pld.pair.dtm.str);
+        
+        ldoc_res_free(cgr);
+    }
+}
 
 inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
 {
+    // Covered:
+    //   - id -> ID
+    //   - name -> Name
+    //   - dbxref -> Dbxref
+    //   - parent -> Parent
+    // ! - alignment -> Gap
+    // ! - target -> Target
     const char* lc_id[] = { GEN_LOCUS };
     ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
 
@@ -1115,7 +1242,7 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
     qk_strcat(gen_res_opt(ph));
     qk_strcat("\t");
     
-    ldoc_res_t* id = ldoc_find_anno_ent(ftr, "id");
+    ldoc_res_t* id = ldoc_find_anno_ent(ftr, (char*)GEN_ID);
     ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
     
     const char* dbxref_id[] = { "dbxref" };
@@ -1124,10 +1251,13 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
     const char* prnt_pth[] = { "parent" };
     ldoc_res_t* prnt = ldoc_find_anno_nde(ftr, (char**)prnt_pth, 1);
     
+    const char* almnt_pth[] = { GEN_ALIGNMENT };
+    ldoc_res_t* almnt = ldoc_find_anno_nde(ftr, (char**)almnt_pth, 1);
+    
     char* attrs = qk_working_ptr();
     
     if (id && !id->nde)
-        gen_join_attrs_ent("ID", id->info.ent, attrs);
+        gen_join_attrs_ent((char*)GEN_ID_GFF3, id->info.ent, attrs);
     
     if (nme && !nme->nde)
         gen_join_attrs_ent("Name", nme->info.ent, attrs);
@@ -1137,6 +1267,9 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
 
     if (dbxref && dbxref->nde)
         gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
+    
+    if (almnt && almnt->nde)
+        gff_join_almnt(almnt->info.nde, attrs);
     
     const char* usr_pth[] = { GEN_ATTRS };
     ldoc_res_t* usr = ldoc_find_anno_nde(ftr, (char**)usr_pth, 1);

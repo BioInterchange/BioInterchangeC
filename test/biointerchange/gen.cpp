@@ -42,3 +42,13 @@ TEST(gen, cigar_continuous)
     
     free(cig);
 }
+
+TEST(gen, cigar_reverse)
+{
+    qk_alloc(1024);
+    
+    gen_qk_revcig((char*)GEN_CIGAR);
+    EXPECT_STREQ(GFF3_CIGAR_1, qk_heap_ptr());
+    
+    qk_free();
+}

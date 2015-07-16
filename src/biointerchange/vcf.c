@@ -239,12 +239,22 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
     }
     
     inf++;
-    
-    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
-    
+
     id = strdup(id);
     gen_lwr(id);
+
+    char* pth[] = { id };
+    ldoc_res_t* res = ldoc_find_anno_nde(cntnr, pth, 1);
+    
+    ldoc_nde_t* nde;
+    if (res)
+        nde = res->info.nde;
+    else
+        nde = ldoc_nde_new(LDOC_NDE_UA);
+    
     nde->mkup.anno.str = id;
+    
+    ldoc_nde_t* nde_brckt = ldoc_nde_new(LDOC_NDE_UA);
     
     // TODO Does not deal with escaped '"' within strings ('"' opened/closed)
     ldoc_ent_t* ent;
@@ -291,29 +301,36 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
             // Determine entity type based on key:
             ldoc_content_t tpe;
             if (!strcmp(ky, "ID"))
-                tpe = LDOC_ENT_OR;
+            {
+                // tpe = LDOC_ENT_OR;
+                nde_brckt->mkup.anno.str = strdup(val);
+                
+                ky = inf + 1;
+            }
             else
+            {
                 tpe = gen_smrt_tpe(val);
             
-            // Make key "JSON" like (lower case):
-            ky = strdup(ky);
-            gen_lwr(ky);
-            
-            ent = ldoc_ent_new(tpe);
-            
-            // TODO Error handling.
+                // Make key "JSON" like (lower case):
+                ky = strdup(ky);
+                gen_lwr(ky);
+                
+                ent = ldoc_ent_new(tpe);
+                
+                // TODO Error handling.
 
-            ent->pld.pair.anno.str = ky;
-            
-            // Handle "unknown":
-            if (*val == '.' && !*(val + 1))
-                ent->pld.pair.dtm.str = NULL;
-            else
-                ent->pld.pair.dtm.str = strdup(val);
-            
-            ldoc_nde_ent_push(nde, ent);
-            
-            ky = inf + 1;
+                ent->pld.pair.anno.str = ky;
+                
+                // Handle "unknown":
+                if (*val == '.' && !*(val + 1))
+                    ent->pld.pair.dtm.str = NULL;
+                else
+                    ent->pld.pair.dtm.str = strdup(val);
+                
+                ldoc_nde_ent_push(nde_brckt, ent);
+                
+                ky = inf + 1;
+            }
         }
         else if (!*inf)
             cnt = false;
@@ -321,7 +338,10 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
         inf++;
     }
     
-    ldoc_nde_dsc_push(cntnr, nde);
+    ldoc_nde_dsc_push(nde, nde_brckt);
+    
+    if (!res)
+        ldoc_nde_dsc_push(cntnr, nde);
 }
 
 static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
@@ -359,33 +379,52 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             val++;
     }
     
-    ldoc_nde_t* stmt = gen_find_nde(doc->rt, usr, ln);
-    
     ldoc_struct_t tpe = vcf_prgm_tpe(ln);
-    if (!stmt)
+
+    // LDOC_NDE_OO entries are <> ("bracket") structures, which are
+    // handled independently by `vcf_proc_brckt`:
+    ldoc_nde_t* stmt;
+    if (tpe != LDOC_NDE_OO)
     {
-        if (tpe == LDOC_NDE_UA)
+        stmt = gen_find_nde(doc->rt, usr, ln);
+        
+        if (!stmt)
         {
-            ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
-            ent->pld.pair.anno.str = strdup(ln);
-            ent->pld.pair.dtm.str = strdup(val);
-            
-            ldoc_nde_ent_push(doc->rt, ent);
-        }
-        else
-        {
-            ldoc_nde_t* dst;
-            if (tpe != LDOC_NDE_OL ||
-                !strcmp(ln, "X example X -- unused in VCF"))
-                dst = doc->rt;
+            if (tpe == LDOC_NDE_UA)
+            {
+                ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+                
+                // TODO Error handling.
+                
+                if (!strcmp(ln, GEN_VCFVERSION_VCF))
+                {
+                    ln = (char*)GEN_VCFVERSION;
+                    
+                    // Skip "VCFv" part of VCF versions:
+                    if (!strncmp(val, "VCFv", 4))
+                        val += 4;
+                }
+                
+                ent->pld.pair.anno.str = strdup(ln);
+                ent->pld.pair.dtm.str = strdup(val);
+                
+                ldoc_nde_ent_push(doc->rt, ent);
+            }
             else
-                dst = usr; // User defined pragmas.
-            
-            // TODO Use own types, so that this conversion is not necessary:
-            stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
-            stmt->mkup.anno.str = strdup(ln);
-            
-            ldoc_nde_dsc_push(dst, stmt);
+            {
+                ldoc_nde_t* dst;
+                if (tpe != LDOC_NDE_OL ||
+                    !strcmp(ln, "X example X -- unused in VCF"))
+                    dst = doc->rt;
+                else
+                    dst = usr; // User defined pragmas.
+                
+                // TODO Use own types, so that this conversion is not necessary:
+                stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
+                stmt->mkup.anno.str = strdup(ln);
+                
+                ldoc_nde_dsc_push(dst, stmt);
+            }
         }
     }
     
@@ -633,15 +672,9 @@ static inline ldoc_nde_t* vcf_proc_gle(char* val, size_t len, char* ref, char** 
     return nde;
 }
 
-static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
+static inline void vcf_proc_glpl(ldoc_nde_t* cntnr, char* val, size_t len, bool pl)
 {
-    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_UA);
-    
-    if (pl)
-        nde->mkup.anno.str = (char*)VCF_PHREDLHOOD;
-    else
-        nde->mkup.anno.str = (char*)VCF_GENOLHOOD;
-    
+    ldoc_nde_t* nde;
     size_t slen;
     size_t n = 0;
     char* v = val;
@@ -651,9 +684,28 @@ static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
         
         if (!len || *val == ',')
         {
+            char* pth[] = { &GEN_ALLELES[n * GEN_STEP] };
+            ldoc_res_t* res = ldoc_find_anno_nde(cntnr, pth, 1);
+            
+            if (res)
+                nde = res->info.nde;
+            else
+            {
+                nde = ldoc_nde_new(LDOC_NDE_UA);
+                
+                // TODO Error handling.
+                
+                nde->mkup.anno.str = &GEN_ALLELES[n * GEN_STEP];
+                
+                ldoc_nde_dsc_push(cntnr, nde);
+            }
+            
             ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
             
-            ent->pld.pair.anno.str = &GEN_ALLELES[n * GEN_STEP];
+            if (pl)
+                ent->pld.pair.anno.str = (char*)VCF_PHREDLHOOD;
+            else
+                ent->pld.pair.anno.str = (char*)VCF_GENOLHOOD;
             
             slen = len ? val - v : val - v + 1;
             if (slen == 1 && *v == '.')
@@ -669,8 +721,6 @@ static inline ldoc_nde_t* vcf_proc_glpl(char* val, size_t len, bool pl)
         
         val++;
     }
-    
-    return nde;
 }
 
 static inline ldoc_nde_t* vcf_proc_gt(char* val, size_t len, char* ref, char** vseqs, size_t vnum)
@@ -680,7 +730,7 @@ static inline ldoc_nde_t* vcf_proc_gt(char* val, size_t len, char* ref, char** v
     
     nde->mkup.anno.str = (char*)VCF_GENOTYPE;
     
-    nde_seq->mkup.anno.str = (char*)GEN_SEQUENCE;
+    nde_seq->mkup.anno.str = (char*)GEN_SEQUENCES;
     
     char* v = val;
     uint16_t idx_; // Needs to be large enough to account for the value in idx.
@@ -738,10 +788,10 @@ static inline ldoc_nde_t* vcf_proc_gt(char* val, size_t len, char* ref, char** v
     
     ldoc_nde_ent_push(nde, ent);
     
-    ent = ldoc_ent_new(LDOC_ENT_OR);
+    ent = ldoc_ent_new(LDOC_ENT_BR);
     
     ent->pld.pair.anno.str = (char*)VCF_PHASED;
-    ent->pld.pair.dtm.str = phased ? "true" : "false";
+    ent->pld.pair.dtm.bl = phased;
     
     ldoc_nde_ent_push(nde, ent);
     
@@ -752,7 +802,15 @@ static inline ldoc_ent_t* vcf_proc_num(char* val, size_t len, char* lbl, size_t 
 {
     ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
     
-    ent->pld.pair.anno.str = qk_strndup(lbl, lbllen);
+    if (lbllen == 2)
+    {
+        if (*lbl == 'D' && *(lbl + 1) == 'P')
+            ent->pld.pair.anno.str = qk_strdup(GEN_DEPTH);
+        else
+            ent->pld.pair.anno.str = qk_strndup(lbl, lbllen);
+    }
+    else
+        ent->pld.pair.anno.str = qk_strndup(lbl, lbllen);
     
     if (len == 1 && *val == '.')
         ent->pld.pair.dtm.str = NULL;
@@ -802,10 +860,8 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         }
         else if (fmt - id == 2 && id[0] == 'G' && id[1] == 'L')
         {
-            // PL: phred-scaled genotype likelihoods
-            ldoc_nde_t* gl = vcf_proc_glpl(val, smpl - val, false);
-            
-            ldoc_nde_dsc_push(s, gl);
+            // GL: genotype likelihoods
+            vcf_proc_glpl(s, val, smpl - val, false);
         }
         else if (fmt - id == 3 && id[0] == 'G' && id[1] == 'L' && id[2] == 'E')
         {
@@ -817,9 +873,7 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         else if (fmt - id == 2 && id[0] == 'P' && id[1] == 'L')
         {
             // PL: phred-scaled genotype likelihoods
-            ldoc_nde_t* pl = vcf_proc_glpl(val, smpl - val, true);
-            
-            ldoc_nde_dsc_push(s, pl);
+            vcf_proc_glpl(s, val, smpl - val, true);
         }
         else if ((fmt - id == 2 &&
                   ((id[0] == 'A' && id[1] == 'N') ||
@@ -956,7 +1010,6 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
      ctx->mkup.anno.str = (char*)JSONLD_CTX;
      */
     
-    
     // JSON-LD context:
     // This needs to be changed when the context is dynamically created.
     ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
@@ -979,6 +1032,11 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     en->pld.pair.anno.str = (char*)VCF_C2_2;
     en->pld.pair.dtm.str = coff[1];
     
+    // Assume that all features are reported on the forward strand:
+    ldoc_ent_t* strnd = ldoc_ent_new(LDOC_ENT_OR);
+    strnd->pld.pair.anno.str = (char*)GEN_STRAND;
+    strnd->pld.pair.dtm.str = (char*)GEN_FORWARD;
+
     vcf_proc_optlst(ftr, (char*)VCF_C3, coff[2]);
 
     ldoc_nde_t* ref = ldoc_nde_new(LDOC_NDE_UA);
@@ -998,7 +1056,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     scr->pld.pair.anno.str = (char*)VCF_C6;
     scr->pld.pair.dtm.str = coff[5];
     
-    vcf_proc_optlst(ftr, (char*)VCF_C7, coff[6]);
+    vcf_proc_optlst(ftr, (char*)GEN_ANNOTATIONS, coff[6]);
     
     // Add comment lines -- if available:
     if (*cmt)
@@ -1024,6 +1082,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_nde_ent_push(lc, lm);
     ldoc_nde_ent_push(lc, st);
     ldoc_nde_ent_push(lc, en);
+    ldoc_nde_ent_push(lc, strnd);
     
     ldoc_nde_dsc_push(ftr, lc);
     

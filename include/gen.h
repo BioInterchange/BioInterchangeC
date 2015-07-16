@@ -90,37 +90,79 @@ extern const char* GEN_ALLELE_FRQ_VCF;
 extern const char* GEN_ALLELE_TTL;
 extern const char* GEN_ALLELE_TTL_VCF;
 extern const char* GEN_ALIGNMENT;
+extern const char* GEN_ALIGNMENT_GFF3;
 extern const char* GEN_ANNOTATIONS;
+extern const char* GEN_ATTRIBUTE_MTHD;
 extern const char* GEN_ATTRS;
+extern const char* GEN_AVG_COVERAGE;
+extern const char* GEN_AVG_COVERAGE_GVF;
 extern const char* GEN_BUILD;
+extern const char* GEN_BUILD_VAL;
+extern const char* GEN_CIGAR;
+extern const char* GEN_CIGAR_GFF3;
 extern const char* GEN_CODON;
 extern const char* GEN_COMMENT;
+extern const char* GEN_DATA_SRC;
+extern const char* GEN_DBXREF;
+extern const char* GEN_DBXREF_GFF3;
 extern const char* GEN_DEPTH;
+extern const char* GEN_DEPTH_VCF;
 extern const char* GEN_EFFECT;
 extern const char* GEN_EFFECTS;
 extern const char* GEN_END;
+extern const char* GEN_GENOMIC_SRC;
 extern const char* GEN_GLOBAL;
 extern const char* GEN_ID;
+extern const char* GEN_ID_GFF3;
+extern const char* GEN_LANDMARK;
+extern const char* GEN_LANDMARKS;
 extern const char* GEN_LOCUS;
 extern const char* GEN_ONT_ACCESSION;
 extern const char* GEN_ONT_TERM;
+extern const char* GEN_PHASED_GENO;
+extern const char* GEN_PHENO_DESCR;
+extern const char* GEN_POP;
 extern const char* GEN_QUALITY_MAP;
 extern const char* GEN_QUALITY_MAP0;
 extern const char* GEN_QUALITY_RMS;
+extern const char* GEN_READ_PAIR_SPAN;
+extern const char* GEN_READ_PAIR_SPAN_GVF;
 extern const char* GEN_REFERENCE;
 extern const char* GEN_SAMPLES_DATA;
+extern const char* GEN_SCORE_MTHD;
 extern const char* GEN_SEQUENCE;
+extern const char* GEN_SEQUENCES;
 extern const char* GEN_START;
+extern const char* GEN_STRAND;
 extern const char* GEN_SOURCE;
+extern const char* GEN_SOURCES;
+extern const char* GEN_SOURCE_MTHD;
 extern const char* GEN_TECHNOLOGY;
 extern const char* GEN_TYPE;
+extern const char* GEN_TYPE_GVF;
+extern const char* GEN_TYPES;
 extern const char* GEN_VARIANTS;
+extern const char* GEN_VCFVERSION;
+extern const char* GEN_VCFVERSION_VCF;
 
 extern const char* GEN_EMPTY;
 extern const char* GEN_NULL;
 extern const char* GEN_TRUE;
 extern const char* GEN_UNKNOWN;
-
+extern const char* GEN_FORWARD;
+    
+// Statistics wrap-up:
+extern const char* GEN_STATS;
+extern const char* GEN_STAT_CMMS;
+extern const char* GEN_STAT_META;
+extern const char* GEN_STAT_META_FLTR;
+extern const char* GEN_STAT_FTRS;
+extern const char* GEN_STAT_FTRS_FLTR;
+extern const char* GEN_STAT_RNTM;
+extern const char* GEN_STAT_INVC;
+extern const char* GEN_STAT_FNSH;
+extern const char* GEN_STAT_LSEC;
+    
 extern ldoc_vis_nde_ord_t* json_vis_nde;;
 extern ldoc_vis_ent_t* json_vis_ent;
     
@@ -195,6 +237,10 @@ typedef enum
      * CIGAR string in GFF3 format (needs reformatting to match actual CIGAR specification).
      */
     BI_XCIG,
+    /**
+     * Target string in GFF3 format.
+     */
+    BI_TARGET,
     BI_STRUCT
 } bi_attr;
     
@@ -305,6 +351,7 @@ char* gen_term_crnl(char* s);
 void gen_ky(char* attr, char** val);
 void gen_lwr(char* str);
 void gen_lwrhyph(char* str);
+char* gen_quoskp(char* str);
 void gen_kwd(char* str, gen_attr_t* attr, bi_attr upfail);
 char gen_inv(char c);
     
@@ -315,18 +362,23 @@ ldoc_nde_t* gen_csep(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val);
 ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, bool dup);
 
 void gen_xcig(char* str);
-
+void gen_qk_revcig(char* str);
+    
 char* gen_escstr(char* str, gen_filetype_t tpe);
     
 size_t gen_csplit(char* str, char c);
 
+void gff_proc_tgt(ldoc_nde_t* nde, char* val);
+    
 ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw);
 ldoc_nde_t* gen_find_nde(ldoc_nde_t* ctnr1, ldoc_nde_t* ctnr2, char* ky);
 void gen_add_nw(ldoc_nde_t* nde, ldoc_nde_t* usr);
 
 ldoc_content_t gen_smrt_tpe(char* val);
+ldoc_content_t gen_smrt_flttpe(char* val);
     
 bool gen_join_nde(ldoc_nde_t* nde);
+bool gen_join_attrs_key(char* id, ldoc_nde_t* nde, ldoc_ent_t* ent, char* attrs);
 bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs);
 bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs);
 void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_t* vars, char* attrs, bi_attr upfail);
@@ -355,6 +407,7 @@ void qk_purge();
 char* qk_strdup(const char* s1);
 char* qk_strndup(const char* s1, size_t n);
 bool qk_strcat(const char* s1);
+bool qk_strncat(const char* s1, size_t n);
     
 #ifdef __cplusplus
 } /* extern "C" */

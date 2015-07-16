@@ -47,49 +47,92 @@ const char* JSONLD_VCF_1 = "https://www.codamono.com/jsonld/vcf-f1.json";
 const char* JSONLD_STAT_1 = "https://www.codamono.com/jsonld/biointerchange-s1.json";
 
 const char* GEN_AFFECTED = "affected-features";         // (documented)
-const char* GEN_AFFECTED_TPE = "affected-feature-type"; // (document)
-const char* GEN_ALLELE_CNT = "allele-count";
-const char* GEN_ALLELE_CNT_VCF = "AC";
-const char* GEN_ALLELE_FRQ = "allele-frequency";
-const char* GEN_ALLELE_FRQ_VCF = "AF";
-const char* GEN_ALLELE_TTL = "allele-total-number";
-const char* GEN_ALLELE_TTL_VCF = "AN";
-const char* GEN_ALIGNMENT = "alignment";
-const char* GEN_ANNOTATIONS = "annotations";
-const char* GEN_ATTRS = "user-defined";
-const char* GEN_BUILD = "build";
-const char* GEN_CODON = "codon";
-const char* GEN_COMMENT = "comment";
-const char* GEN_DEPTH = "depth";
+const char* GEN_AFFECTED_TPE = "affected-feature-type"; // (documented)
+const char* GEN_ALLELE_CNT = "allele-count";            // (documented)
+const char* GEN_ALLELE_CNT_VCF = "AC";                  // N/A
+const char* GEN_ALLELE_FRQ = "allele-frequency";        // (documented)
+const char* GEN_ALLELE_FRQ_VCF = "AF";                  // N/A
+const char* GEN_ALLELE_TTL = "allele-total-number";     // (documented)
+const char* GEN_ALLELE_TTL_VCF = "AN";                  // N/A
+const char* GEN_ALIGNMENT = "alignment";                // (documented)
+const char* GEN_ALIGNMENT_GFF3 = "Target";              // N/A
+const char* GEN_ANNOTATIONS = "annotations";            // (documented)
+const char* GEN_ATTRIBUTE_MTHD = "attribute-method";    //
+const char* GEN_ATTRS = "user-defined";                 // (documented)
+const char* GEN_AVG_COVERAGE = "average-coverage";
+const char* GEN_AVG_COVERAGE_GVF = "Average_coverage";
+const char* GEN_BUILD = "genome-build";                 // (documented; takes value from line -- not this constant)
+const char* GEN_BUILD_VAL = "build";                    // (documented)
+const char* GEN_CIGAR = "cigar-string";                 // (documented)
+const char* GEN_CIGAR_GFF3 = "Gap";                     // N/A
+const char* GEN_CODON = "codon";                        // (documented)
+const char* GEN_CODON_PHASE = "codon-phase";            // (documented)
+const char* GEN_COMMENT = "comment";                    // (documented)
+const char* GEN_DATA_SRC = "data-source";               // takes value from line -- see `gvf_proc_prgm`)
+const char* GEN_DBXREF = "dbxref";                      // (documented)
+const char* GEN_DBXREF_GFF3 = "Dbxref";                 // N/A
+const char* GEN_DEPTH = "depth";                        // (documented)
+const char* GEN_DEPTH_VCF = "DP";                       // N/A
 const char* GEN_EFFECT = "effect";                      // (documented)
 const char* GEN_EFFECTS = "effects";                    // (documented)
 const char* GEN_END = "end";                            // (documented)
+const char* GEN_GENOMIC_SRC = "genomic-source";         //
 const char* GEN_GLOBAL = "global";                      // (documented)
 const char* GEN_ID = "id";                              // (documented)
+const char* GEN_ID_GFF3 = "ID";                         // N/A
+const char* GEN_LANDMARK = "landmark";                  // (documented)
+const char* GEN_LANDMARKS = "landmarks";                // (documented)
 const char* GEN_LOCUS = "locus";                        // (documented)
-const char* GEN_ONT_ACCESSION = "ontology-accession";
-const char* GEN_ONT_TERM = "ontology-term";
-const char* GEN_QUALITY_MAP = "mapping-quality-rms";
-const char* GEN_QUALITY_MAP0 = "reads-with-zero-mapping-quality";
-const char* GEN_QUALITY_RMS = "base-quality-rms";
+const char* GEN_ONT_ACCESSION = "ontology-accession";   // not used?
+const char* GEN_ONT_TERM = "ontology-term";             // (documented)
+const char* GEN_PHASED_GENO = "phased-genotypes";
+const char* GEN_PHENO_DESCR = "phenotype-description";
+const char* GEN_POP = "population";
+const char* GEN_QUALITY_MAP = "mapping-quality-rms";    // (documented)
+const char* GEN_QUALITY_MAP0 = "reads-with-zero-mapping-quality"; // (documented)
+const char* GEN_QUALITY_RMS = "base-quality-rms";       // (documented)
+const char* GEN_READ_PAIR_SPAN = "read-pair-span";
+const char* GEN_READ_PAIR_SPAN_GVF = "Read_pair_span";
 const char* GEN_REFERENCE = "reference";                // (documented)
-const char* GEN_SAMPLES_DATA = "samples-with-data";
+const char* GEN_SAMPLES_DATA = "samples-with-data";     // (documented)
+const char* GEN_SCORE_MTHD = "score-method";
 const char* GEN_SEQUENCE = "sequence";                  // (documented)
+const char* GEN_SEQUENCES = "sequences";                // (documented)
 const char* GEN_START = "start";                        // (documented)
+const char* GEN_STRAND = "strand";                      // (documented)
 const char* GEN_SOURCE = "source";                      // (documented)
-const char* GEN_TECHNOLOGY = "technology-platform"; // Needs to coincide with pragma (see `gvf_proc_prgm`).
+const char* GEN_SOURCES = "sources";                    // (documented)
+const char* GEN_SOURCE_MTHD = "source-method";
+const char* GEN_TECHNOLOGY = "technology-platform";     // (documented; takes value from line -- see `gvf_proc_prgm`)
 const char* GEN_TYPE = "type";                          // (documented)
+const char* GEN_TYPE_GVF = "Type";
+const char* GEN_TYPES = "types";                        // (documented)
 const char* GEN_VARIANTS = "variants";                  // (documented)
+const char* GEN_VCFVERSION = "vcf-version";             // (documented)
+const char* GEN_VCFVERSION_VCF = "fileformat";          // N/A
 
 const char* GEN_EMPTY = "";
 const char* GEN_NULL = "null";
 const char* GEN_TRUE = "true";
 const char* GEN_UNKNOWN = ".";
+const char* GEN_FORWARD = "+";
 
 const char* GEN_COUNT = "count"; // TODO Check whether better replaced with GEN_ALLELE_CNT
 const char* GEN_FREQUENCY = "frequency";
 
 const char* GEN_SEQUENCE_GVF = "seq";
+
+// Statistics wrap-up:
+const char* GEN_STATS = "statistics";                   //
+const char* GEN_STAT_CMMS = "comment-lines";            //
+const char* GEN_STAT_META = "meta-lines";               //
+const char* GEN_STAT_META_FLTR = "meta-lines-filtered"; //
+const char* GEN_STAT_FTRS = "features";                 //
+const char* GEN_STAT_FTRS_FLTR = "features-filtered";   //
+const char* GEN_STAT_RNTM = "runtime";                  //
+const char* GEN_STAT_INVC = "invocation";               //
+const char* GEN_STAT_FNSH = "finish";                   //
+const char* GEN_STAT_LSEC = "lapsed-seconds";           //
 
 ldoc_vis_nde_ord_t* json_vis_nde;
 ldoc_vis_ent_t* json_vis_ent;
@@ -254,6 +297,24 @@ inline void gen_lwrhyph(char* str)
     }
 }
 
+inline char* gen_quoskp(char* str)
+{
+    // Does not start with a quote: bail out
+    if (*str != '"')
+        return str;
+
+    // Seen a quote: proceed to end and remove last character,
+    //               which is assumed to be a quote too!
+    str++;
+    char* c = str;
+    while (*c)
+        c++;
+    if (c > str)
+        *(c - 1) = 0;
+    
+    return str;
+}
+
 inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
 {
     if (*str >= 'A' && *str <= 'Z')
@@ -387,7 +448,7 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     {
                         // GFF3: Gap
                         kwd->attr = BI_XCIG;
-                        kwd->alt = GEN_ALIGNMENT;
+                        kwd->alt = GEN_CIGAR;
                         return;
                     }
                 }
@@ -528,6 +589,25 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                 }
             }
         }
+        else if (*str == 'T')
+        {
+            str++;
+            if (*str == 'a')
+            {
+                str++;
+                if (*str == 'r')
+                {
+                    str++;
+                    if (!strcmp(str, "get"))
+                    {
+                        // GFF3: Target
+                        kwd->attr = BI_TARGET;
+                        kwd->alt = NULL;
+                        return;
+                    }
+                }
+            }
+        }
         else if (*str == 'V')
         {
             str++;
@@ -624,10 +704,41 @@ inline ldoc_content_t gen_smrt_tpe(char* val)
     return LDOC_ENT_NR;
 }
 
+inline ldoc_content_t gen_smrt_flttpe(char* val)
+{
+    if (!val)
+        return LDOC_ENT_BL;
+    
+    if (*val == '.' && !*(val + 1))
+        return LDOC_ENT_TXT;
+    
+    bool dot = false;
+    while (*val)
+    {
+        if (!(*val >= '0' && *val <= '9'))
+        {
+            if (*val == '.')
+            {
+                if (dot)
+                    return LDOC_ENT_TXT;
+                else
+                    dot = true;
+            }
+            else
+                return LDOC_ENT_TXT;
+        }
+        
+        val++;
+    }
+    
+    return LDOC_ENT_NUM;
+}
+
 void gen_xcig(char* str)
 {
     char* wptr = str;
     
+    // `c` stores the alignment operation ('M', 'D', etc.)
     char c = 0;
     while (*str)
     {
@@ -655,6 +766,32 @@ void gen_xcig(char* str)
         *(wptr++) = c;
     
     *wptr = 0;
+}
+
+void gen_qk_revcig(char* str)
+{
+    // Pointer to where the count starts; used when an
+    // alignment operation ('M', 'D', etc.) is found:
+    char* n = str;
+    uint8_t nlen = 0;
+    while (*str)
+    {
+        if (*str >= '0' && *str <= '9')
+            nlen++;
+        else
+        {
+            // Cat: operation, then count, space as per GFF3 examples
+            qk_strncat(str, 1);
+            qk_strncat(n, nlen);
+            if (*(str + 1))
+                qk_strcat(" ");
+            
+            n = str + 1;
+            nlen = 0;
+        }
+        
+        str++;
+    }
 }
 
 size_t gen_csplit(char* str, char c)
@@ -753,7 +890,7 @@ inline void gen_add_nw(ldoc_nde_t* nde, ldoc_nde_t* usr)
     }
 }
 
-static inline bool gen_join_attrs_key(char* id, ldoc_nde_t* nde, ldoc_ent_t* ent, char* attrs)
+inline bool gen_join_attrs_key(char* id, ldoc_nde_t* nde, ldoc_ent_t* ent, char* attrs)
 {
     char* attr_id;
     
@@ -876,6 +1013,8 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
         kv_nde->mkup.anno.str = ky_;
     }
     
+    // TODO Bug? `splt` is never set below!?
+    bool cnt = true;
     char splt = 0;
     char* val_cmp = val;
     char* val_splt;
@@ -895,9 +1034,13 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
         }
         else if (*val == ',' || !*val)
         {
+            if (!*val)
+                cnt = false;
+            
             *val = 0;
             
-            kv_ent = ldoc_ent_new(splt ? LDOC_ENT_OR :LDOC_ENT_TXT);
+            // Was: splt ? LDOC_ENT_OR : LDOC_ENT_TXT
+            kv_ent = ldoc_ent_new(gen_smrt_flttpe(val_cmp));
             
             if (!kv_ent)
             {
@@ -928,13 +1071,18 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
                 kv_ent->pld.pair.dtm.str = val_splt_;
             }
             else
+            {
+                // Remove quotes -- if those exist:
+                val_cmp_ = gen_quoskp(val_cmp_);
+                
                 kv_ent->pld.str = val_cmp_;
+            }
             
             ldoc_nde_ent_push(kv_nde, kv_ent);
             
-            val_cmp = val;
+            val_cmp = val + 1;
         }
-    } while (*val);
+    } while (cnt);
     
     ldoc_nde_dsc_push(dst, kv_nde);
     
@@ -1083,6 +1231,46 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     ldoc_nde_ent_push(ref, kv_ent);
                     
                     break;
+                case BI_TARGET:
+                case BI_XCIG:
+                    {
+                        // Check whether there is an alignment section already:
+                        const char* almnt_pth[] = { GEN_ALIGNMENT };
+                        ldoc_res_t* almnt = ldoc_find_anno_nde(ftr, (char**)almnt_pth, 1);
+                        
+                        ldoc_nde_t* almnt_nde;
+                        if (almnt)
+                        {
+                            almnt_nde = almnt->info.nde;
+                            ldoc_res_free(almnt);
+                        }
+                        else
+                        {
+                            almnt_nde = ldoc_nde_new(LDOC_NDE_UA);
+                            
+                            // TODO Error handling.
+                            
+                            almnt_nde->mkup.anno.str = (char*)GEN_ALIGNMENT;
+                            
+                            ldoc_nde_dsc_push(ftr, almnt_nde);
+                        }
+                        
+                        if (kwd.attr == BI_XCIG)
+                        {
+                            gen_xcig(val);
+                            
+                            kv_ent = ldoc_ent_new(LDOC_ENT_OR);
+                            kv_ent->pld.pair.anno.str = (char*)kwd.alt;
+                            kv_ent->pld.pair.dtm.str = val;
+                            
+                            ldoc_nde_ent_push(almnt_nde, kv_ent);
+                        }
+                        else
+                        {
+                            gff_proc_tgt(almnt_nde, val);
+                        }
+                    }
+                    break;
                 default:
                     // Entity type:
                     //   LDOC_ENT_NR  -- if attribute is a number
@@ -1094,13 +1282,6 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     {
                         // TODO Error handling.
                     }
-                    
-                    int x;
-                    if (!strcmp(attr, "id") && !strcmp(val, "intron:Solyc05g007350.1.1.3"))
-                        x = 5;
-                    
-                    if (kwd.attr == BI_XCIG)
-                        gen_xcig(val);
                     
                     // Assign alternative label, if given:
                     if (kwd.alt)
@@ -1559,57 +1740,57 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     ldoc_nde_ent_push(sdoc->rt, ent);
     
     ldoc_nde_t* fstat = ldoc_nde_new(LDOC_NDE_UA);
-    fstat->mkup.anno.str = strdup("statistics");
+    fstat->mkup.anno.str = strdup(GEN_STATS);
     ldoc_nde_dsc_push(sdoc->rt, fstat);
 
     char num[21]; // Space for a 64-bit number plus null-byte.
     
     sprintf(num, "%u", stat.comms);
     ldoc_ent_t* ent_stat = ldoc_ent_new(LDOC_ENT_NR);
-    ent_stat->pld.pair.anno.str = strdup("comment-lines");
+    ent_stat->pld.pair.anno.str = strdup(GEN_STAT_CMMS);
     ent_stat->pld.pair.dtm.str = strdup(num);
     ldoc_nde_ent_push(fstat, ent_stat);
 
     sprintf(num, "%u", stat.meta);
     ent_stat = ldoc_ent_new(LDOC_ENT_NR);
-    ent_stat->pld.pair.anno.str = strdup("meta-lines");
+    ent_stat->pld.pair.anno.str = strdup(GEN_STAT_META);
     ent_stat->pld.pair.dtm.str = strdup(num);
     ldoc_nde_ent_push(fstat, ent_stat);
 
     ent_stat = ldoc_ent_new(LDOC_ENT_BR);
-    ent_stat->pld.pair.anno.str = strdup("meta-lines-filtered");
+    ent_stat->pld.pair.anno.str = strdup(GEN_STAT_META_FLTR);
     ent_stat->pld.pair.dtm.bl = stat.cbk_meta_fltr;
     ldoc_nde_ent_push(fstat, ent_stat);
     
     sprintf(num, "%u", stat.ftrs);
     ent_stat = ldoc_ent_new(LDOC_ENT_NR);
-    ent_stat->pld.pair.anno.str = strdup("features");
+    ent_stat->pld.pair.anno.str = strdup(GEN_STAT_FTRS);
     ent_stat->pld.pair.dtm.str = strdup(num);
     ldoc_nde_ent_push(fstat, ent_stat);
 
     sprintf(num, "%u", stat.cbk_ftrs_fltr);
     ent_stat = ldoc_ent_new(LDOC_ENT_NR);
-    ent_stat->pld.pair.anno.str = strdup("features-filtered");
+    ent_stat->pld.pair.anno.str = strdup(GEN_STAT_FTRS_FLTR);
     ent_stat->pld.pair.dtm.str = strdup(num);
     ldoc_nde_ent_push(fstat, ent_stat);
     
     ldoc_nde_t* rntm = ldoc_nde_new(LDOC_NDE_UA);
-    rntm->mkup.anno.str = strdup("runtime");
+    rntm->mkup.anno.str = strdup(GEN_STAT_RNTM);
     ldoc_nde_dsc_push(sdoc->rt, rntm);
     
     ldoc_ent_t* ent_tm_s = ldoc_ent_new(LDOC_ENT_OR);
-    ent_tm_s->pld.pair.anno.str = strdup("invocation");
+    ent_tm_s->pld.pair.anno.str = strdup(GEN_STAT_INVC);
     ent_tm_s->pld.pair.dtm.str = gen_term_crnl(tm_sstr);
     ldoc_nde_ent_push(rntm, ent_tm_s);
 
     ldoc_ent_t* ent_tm_e = ldoc_ent_new(LDOC_ENT_OR);
-    ent_tm_e->pld.pair.anno.str = strdup("finish");
+    ent_tm_e->pld.pair.anno.str = strdup(GEN_STAT_FNSH);
     ent_tm_e->pld.pair.dtm.str = gen_term_crnl(tm_estr);
     ldoc_nde_ent_push(rntm, ent_tm_e);
 
     sprintf(num, "%lu", tm_e - tm_s);
     ldoc_ent_t* ent_tm = ldoc_ent_new(LDOC_ENT_OR);
-    ent_tm->pld.pair.anno.str = strdup("lapsed-seconds");
+    ent_tm->pld.pair.anno.str = strdup(GEN_STAT_LSEC);
     ent_tm->pld.pair.dtm.str = strdup(num);
     ldoc_nde_ent_push(rntm, ent_tm);
     
@@ -1635,13 +1816,13 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
                 // doc is the "context", which cannot be modifed:
                 ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
                 fprintf(ctxt->fout, "%s\n", ser->pld.str);
-                free(ser);
+                ldoc_ser_free(ser);
                 
                 // ldoc_anno will be a possibly modified version of opt:
                 ldoc_anno = py_setup(doc, opt);
                 ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
                 fprintf(ctxt->fout, "%s\n", ser->pld.str);
-                free(ser);
+                ldoc_ser_free(ser);
                 
                 if (!ldoc_anno)
                     stat->cbk_meta_fltr = true;
@@ -1665,20 +1846,20 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
         {
             ser = ldoc_format(ldoc_anno, json_vis_nde, json_vis_ent);
             fprintf(ctxt->fout, "%s\n", ser->pld.str);
-            free(ser);
+            ldoc_ser_free(ser);
         }
     }
     else
     {
         ser = ldoc_format(doc, json_vis_nde, json_vis_ent);
         fprintf(ctxt->fout, "%s\n", ser->pld.str);
-        free(ser);
+        ldoc_ser_free(ser);
         
         if (opt)
         {
             ser = ldoc_format(opt, json_vis_nde, json_vis_ent);
             fprintf(ctxt->fout, "%s\n", ser->pld.str);
-            free(ser);
+            ldoc_ser_free(ser);
         }
     }
 }
@@ -2045,19 +2226,41 @@ inline bool qk_strcat(const char* s1)
     if (!s1)
         return true;
     
-    size_t len = strlen(s1);
+    size_t n = strlen(s1);
     
     // Out of quick memory (+1 required in case heap is empty):
-    if (qk_ptr - qk_heap + len + 1 > qk_size)
+    if (qk_ptr - qk_heap + n + 1 > qk_size)
         return false;
     
     // Reposition qk_ptr to null-byte of previous string:
     if (qk_ptr > qk_heap)
         qk_ptr--;
 
-    memcpy(qk_ptr, s1, len + 1);
+    memcpy(qk_ptr, s1, n + 1);
     
-    qk_ptr += len + 1;
+    qk_ptr += n + 1;
+    
+    return true;
+}
+
+inline bool qk_strncat(const char* s1, size_t n)
+{
+    if (!s1)
+        return true;
+    
+    // Out of quick memory (+1 required in case heap is empty):
+    if (qk_ptr - qk_heap + n + 1 > qk_size)
+        return false;
+    
+    // Reposition qk_ptr to null-byte of previous string:
+    if (qk_ptr > qk_heap)
+        qk_ptr--;
+    
+    memcpy(qk_ptr, s1, n);
+    
+    qk_ptr += n + 1;
+    
+    *qk_ptr = 0;
     
     return true;
 }

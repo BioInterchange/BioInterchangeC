@@ -280,7 +280,7 @@ int main(int argc, char* argv[])
         case GEN_FMT_GFF3:
         case GEN_FMT_GVF:
             gvf_init();
-            gff_idx_fa(fd, &stat, mx);
+            idx = gff_idx_fa(fd, &stat, mx);
             break;
         default:
             // Do nothing.

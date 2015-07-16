@@ -73,7 +73,7 @@ TEST(gvf, gvf_serialize_ftr)
 
     qk_purge();
     
-    gvf_proc_doc(doc);
+    gvf_proc_doc(doc, GEN_FMT_FTR);
     
     qk_free();
     
@@ -145,7 +145,7 @@ TEST(gvf, gvf_tags_index_use)
 
     qk_purge();
     
-    gvf_proc_doc(doc);
+    gvf_proc_doc(doc, GEN_FMT_FTR);
     
     qk_free();
 
