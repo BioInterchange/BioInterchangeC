@@ -344,6 +344,85 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
         ldoc_nde_dsc_push(cntnr, nde);
 }
 
+static inline void vcf_proc_optlst(ldoc_nde_t* ftr, char* id, char* lst)
+{
+    ldoc_ent_t* ent;
+    
+    // Check whether there is no list:
+    if (!lst ||
+        (lst[0] == '.' && !lst[1]) ||
+        !strcmp(lst, "PASS"))
+    {
+        ent = ldoc_ent_new(LDOC_ENT_OR);
+        
+        // TODO Error handling.
+        
+        ent->pld.pair.anno.str = (char*)id;
+        ent->pld.pair.dtm.str = NULL;
+        
+        ldoc_nde_ent_push(ftr, ent);
+        
+        return;
+    }
+    
+    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_OL);
+    
+    // TODO Error handling.
+    
+    nde->mkup.anno.str = id;
+    
+    char* f;
+    bool cnt = true;
+    while (cnt)
+    {
+        f = lst;
+        
+        while (*lst && *lst != ';')
+            lst++;
+        
+        if (!*lst)
+            cnt = false;
+        else
+            *(lst++) = 0;
+        
+        ent = ldoc_ent_new(LDOC_ENT_TXT);
+        
+        // TODO Error handling.
+        
+        ent->pld.str = f;
+        
+        ldoc_nde_ent_push(nde, ent);
+    }
+    
+    ldoc_nde_dsc_push(ftr, nde);
+}
+
+static inline void vcf_proc_idlst(ldoc_nde_t* ftr, char* lst)
+{
+    // Find first semi-colon (if exists):
+    if (lst)
+    {
+        char* sep = lst;
+        while (*sep && *sep != ';')
+            sep++;
+        
+        // Split second, third, etc., IDs into aliases:
+        if (*sep)
+        {
+            *sep = 0;
+            
+            vcf_proc_optlst(ftr, (char*)GEN_ALIAS, sep + 1);
+        }
+    }
+    
+    // The actual ID (first entry):
+    ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_OR);
+    ent->pld.pair.anno.str = (char*)GEN_ID;
+    ent->pld.pair.dtm.str = lst;
+    
+    ldoc_nde_ent_push(ftr, ent);
+}
+
 static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     bool usr_nw;
@@ -672,7 +751,83 @@ static inline ldoc_nde_t* vcf_proc_gle(char* val, size_t len, char* ref, char** 
     return nde;
 }
 
-static inline void vcf_proc_glpl(ldoc_nde_t* cntnr, char* val, size_t len, bool pl)
+static inline void vcf_proc_ec(ldoc_nde_t* cntnr, char* val, size_t len)
+{
+    const char* pth[] = { GEN_VARIANTS };
+    ldoc_res_t* res = ldoc_find_anno_nde(cntnr, (char**)pth, 1);
+    
+    ldoc_nde_t* vars;
+    if (res)
+        vars = res->info.nde;
+    else
+    {
+        vars = ldoc_nde_new(LDOC_NDE_UA);
+        
+        // TODO Error handling.
+        
+        vars->mkup.anno.str = (char*)GEN_VARIANTS;
+        
+        ldoc_nde_dsc_push(cntnr, vars);
+    }
+    
+    ldoc_nde_t* nde;
+    size_t slen;
+    size_t n = 1;
+    char* v = val;
+    while (len--)
+    {
+        // TODO Check whether val - v is larger than VCF_MAX_ALT_CHARS - 1.
+        
+        if (!len || *val == ',')
+        {
+            char* alt[] = { &GEN_ALLELE[n * 2] };
+            res = ldoc_find_anno_nde(vars, alt, 1);
+            
+            if (res)
+                nde = res->info.nde;
+            else
+            {
+                nde = ldoc_nde_new(LDOC_NDE_UA);
+                
+                // TODO Error handling.
+                
+                nde->mkup.anno.str = &GEN_ALLELE[n * 2];
+                
+                ldoc_nde_dsc_push(vars, nde);
+            }
+            
+            ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
+            
+            ent->pld.pair.anno.str = (char*)GEN_ALLELE_CNTEXP;
+            
+            slen = len ? val - v : val - v + 1;
+            if (slen == 1 && *v == '.')
+                ent->pld.pair.dtm.str = NULL;
+            else
+                ent->pld.pair.dtm.str = qk_strndup(v, slen);
+            
+            ldoc_nde_ent_push(nde, ent);
+            
+            n++;
+            v = val + 1;
+        }
+        
+        val++;
+    }
+}
+
+static inline void vcf_proc_ft(ldoc_nde_t* cntnr, char* val, size_t len)
+{
+    vcf_proc_optlst(cntnr, (char*)GEN_ANNOTATIONS, val);
+}
+
+static inline void vcf_proc_hq(ldoc_nde_t* cntnr, char* val, size_t len, bool pl)
+{
+    gen_attr_t kwd = { NULL, NULL };
+    gen_csep_dup(cntnr, kwd, (char*)GEN_HAP_QUALITIES, val, false);
+}
+
+static inline void vcf_proc_glgppl(ldoc_nde_t* cntnr, char* val, size_t len, gen_alt_t alt)
 {
     ldoc_nde_t* nde;
     size_t slen;
@@ -702,10 +857,22 @@ static inline void vcf_proc_glpl(ldoc_nde_t* cntnr, char* val, size_t len, bool 
             
             ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
             
-            if (pl)
-                ent->pld.pair.anno.str = (char*)VCF_PHREDLHOOD;
-            else
-                ent->pld.pair.anno.str = (char*)VCF_GENOLHOOD;
+            switch (alt)
+            {
+                case GEN_ALT_GL:
+                    ent->pld.pair.anno.str = (char*)GEN_GENOTYPE_LIKE;
+                    break;
+                case GEN_ALT_GP:
+                    ent->pld.pair.anno.str = (char*)GEN_GENOTYPE_PROB;
+                    break;
+                case GEN_ALT_PL:
+                    ent->pld.pair.anno.str = (char*)GEN_GENOTYPE_LIKEP;
+                    break;
+                default:
+                    // TODO Internal error.
+                    exit(123);
+                    break;
+            }
             
             slen = len ? val - v : val - v + 1;
             if (slen == 1 && *v == '.')
@@ -804,8 +971,31 @@ static inline ldoc_ent_t* vcf_proc_num(char* val, size_t len, char* lbl, size_t 
     
     if (lbllen == 2)
     {
-        if (*lbl == 'D' && *(lbl + 1) == 'P')
+        if (*lbl == 'A' && *(lbl + 1) == 'N') // AN: total number of alleles
+            ent->pld.pair.anno.str = qk_strdup(GEN_ALLELE_TTL);
+        else if (*lbl == 'B' && *(lbl + 1) == 'Q') // BQ: base quality
+            ent->pld.pair.anno.str = qk_strdup(GEN_QUALITY_RMS);
+        else if (*lbl == 'D' && *(lbl + 1) == 'P') // DP: depth
             ent->pld.pair.anno.str = qk_strdup(GEN_DEPTH);
+        else if (*lbl == 'G' && *(lbl + 1) == 'Q') // GQ: genotype quality
+            ent->pld.pair.anno.str = qk_strdup(GEN_GENOTYPE_QUAL);
+        else if (*lbl == 'M' && *(lbl + 1) == 'Q') // MQ: mapping quality
+            ent->pld.pair.anno.str = qk_strdup(GEN_QUALITY_MAP_VCF);
+        else if (*lbl == 'N' && *(lbl + 1) == 'S') // NS: number of samples with data
+            ent->pld.pair.anno.str = qk_strdup(GEN_SAMPLES_DATA);
+        else if (*lbl == 'P' && *(lbl + 1) == 'S') // PS: phase set
+            ent->pld.pair.anno.str = qk_strdup(GEN_PHASE_SET);
+        else if (*lbl == 'P' && *(lbl + 1) == 'Q') // PQ: phasing quality
+            ent->pld.pair.anno.str = qk_strdup(GEN_PHASE_QUAL);
+        else
+            ent->pld.pair.anno.str = qk_strndup(lbl, lbllen);
+    }
+    else if (lbllen == 3)
+    {
+        if (*lbl == 'E' && *(lbl + 1) == 'N' && *(lbl + 1) == 'D') // END
+            ent->pld.pair.anno.str = qk_strdup(GEN_END);
+        else if (*lbl == 'M' && *(lbl + 1) == 'Q' && *(lbl + 1) == '0') // MQ0
+            ent->pld.pair.anno.str = qk_strdup(GEN_QUALITY_MAP0);
         else
             ent->pld.pair.anno.str = qk_strndup(lbl, lbllen);
     }
@@ -848,6 +1038,7 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         while (*smpl && *smpl != ':')
             smpl++;
         
+        // GT comes first, because it is everywhere; then alphabetical order.
         // TODO Optimization.
         //   1. could be optimized by not checking length multiple times.
         //   2. could be optimized by not checking prefixes multiple times.
@@ -858,10 +1049,25 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
             
             ldoc_nde_dsc_push(s, gt);
         }
+        else if (fmt - id == 2 && id[0] == 'E' && id[1] == 'C')
+        {
+            // PL: phred-scaled genotype likelihoods
+            vcf_proc_ec(s, val, smpl - val);
+        }
+        else if (fmt - id == 2 && id[0] == 'F' && id[1] == 'T')
+        {
+            // FT: filter
+            vcf_proc_ft(s, val, smpl - val);
+        }
         else if (fmt - id == 2 && id[0] == 'G' && id[1] == 'L')
         {
             // GL: genotype likelihoods
-            vcf_proc_glpl(s, val, smpl - val, false);
+            vcf_proc_glgppl(s, val, smpl - val, GEN_ALT_GL);
+        }
+        else if (fmt - id == 2 && id[0] == 'G' && id[1] == 'P')
+        {
+            // GP:  phred-scaled genotype posterior probabilities
+            vcf_proc_glgppl(s, val, smpl - val, GEN_ALT_GP);
         }
         else if (fmt - id == 3 && id[0] == 'G' && id[1] == 'L' && id[2] == 'E')
         {
@@ -870,23 +1076,29 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
             
             ldoc_nde_dsc_push(s, gt);
         }
+        else if (fmt - id == 2 && id[0] == 'H' && id[1] == 'Q')
+        {
+            // HQ: haplotype qualities
+            vcf_proc_hq(s, val, smpl - val, false);
+        }
         else if (fmt - id == 2 && id[0] == 'P' && id[1] == 'L')
         {
             // PL: phred-scaled genotype likelihoods
-            vcf_proc_glpl(s, val, smpl - val, true);
+            vcf_proc_glgppl(s, val, smpl - val, GEN_ALT_PL);
         }
         else if ((fmt - id == 2 &&
-                  ((id[0] == 'A' && id[1] == 'N') ||
-                   (id[0] == 'B' && id[1] == 'Q') ||
-                   (id[0] == 'D' && id[1] == 'P') ||
-                   (id[0] == 'G' && id[1] == 'P') || // TODO Double check if this is not a comma separated list.
-                   (id[0] == 'G' && id[1] == 'Q') ||
-                   (id[0] == 'M' && id[1] == 'Q') ||
-                   (id[0] == 'N' && id[1] == 'S') ||
-                   (id[0] == 'P' && id[1] == 'Q'))) ||
+                  ((id[0] == 'A' && id[1] == 'N') || // AN:
+                   (id[0] == 'B' && id[1] == 'Q') || // BQ:
+                   (id[0] == 'D' && id[1] == 'P') || // DP:
+                   (id[0] == 'G' && id[1] == 'P') || // GP: ; TODO Double check if this is not a comma separated list.
+                   (id[0] == 'G' && id[1] == 'Q') || // GQ:
+                   (id[0] == 'M' && id[1] == 'Q') || // MQ:
+                   (id[0] == 'N' && id[1] == 'S') || // NS:
+                   (id[0] == 'P' && id[1] == 'S') || // PS:
+                   (id[0] == 'P' && id[1] == 'Q'))) || // PQ:
                  (fmt - id == 3 &&
-                  ((id[0] == 'E' && id[1] == 'N' && id[2] == 'D') ||
-                   (id[0] == 'M' && id[1] == 'Q' && id[2] == '0'))))
+                  ((id[0] == 'E' && id[1] == 'N' && id[2] == 'D') || // END
+                   (id[0] == 'M' && id[1] == 'Q' && id[2] == '0')))) // MQ0
         {
             // Numeric fields with a single value.
             ldoc_ent_t* num = vcf_proc_num(val, smpl - val, id, fmt - id);
@@ -895,15 +1107,33 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
         }
         else
         {
-            ldoc_ent_t* anno = ldoc_ent_new(LDOC_ENT_OR);
+            const char* pth[] = { GEN_ATTRS };
+            ldoc_res_t* res = ldoc_find_anno_nde(s, (char**)pth, 1);
+            
+            ldoc_nde_t* usr;
+            if (!res)
+            {
+                usr = ldoc_nde_new(LDOC_NDE_UA);
+                
+                // TODO Error handling.
+                
+                usr->mkup.anno.str = (char*)GEN_ATTRS;
+                
+                ldoc_nde_dsc_push(s, usr);
+            }
+            else
+                usr = res->info.nde;
+            
+            char* qk_val = qk_strndup(val, smpl - val);
+            ldoc_ent_t* anno = ldoc_ent_new(gen_smrt_tpe(qk_val));
             
             // TODO Error handling.
 
             // Default: add simple key/value pair
             anno->pld.pair.anno.str = qk_strndup(id, fmt - id);
-            anno->pld.pair.dtm.str = qk_strndup(val, smpl - val);
+            anno->pld.pair.dtm.str = qk_val;
             
-            ldoc_nde_ent_push(s, anno);
+            ldoc_nde_ent_push(usr, anno);
         }
         
         if (*smpl)
@@ -911,57 +1141,6 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
     } while (*(fmt++));
     
     ldoc_nde_dsc_push(smpls, s);
-}
-
-static inline void vcf_proc_optlst(ldoc_nde_t* ftr, char* id, char* lst)
-{
-    ldoc_ent_t* ent;
-    
-    // Check whether there is no list:
-    if (!lst || (lst[0] == '.' && !lst[1]))
-    {
-        ent = ldoc_ent_new(LDOC_ENT_OR);
-        
-        // TODO Error handling.
-        
-        ent->pld.pair.anno.str = (char*)id;
-        ent->pld.pair.dtm.str = NULL;
-        
-        ldoc_nde_ent_push(ftr, ent);
-        
-        return;
-    }
-    
-    ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_OL);
-    
-    // TODO Error handling.
-    
-    nde->mkup.anno.str = id;
-    
-    char* f;
-    bool cnt = true;
-    while (cnt)
-    {
-        f = lst;
-        
-        while (*lst && *lst != ';')
-            lst++;
-
-        if (!*lst)
-            cnt = false;
-        else
-            *(lst++) = 0;
-        
-        ent = ldoc_ent_new(LDOC_ENT_TXT);
-        
-        // TODO Error handling.
-        
-        ent->pld.str = f;
-        
-        ldoc_nde_ent_push(nde, ent);
-    }
-    
-    ldoc_nde_dsc_push(ftr, nde);
 }
 
 static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, size_t lnlen, gen_prsr_t* stt, char** cmt)
@@ -1037,7 +1216,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     strnd->pld.pair.anno.str = (char*)GEN_STRAND;
     strnd->pld.pair.dtm.str = (char*)GEN_FORWARD;
 
-    vcf_proc_optlst(ftr, (char*)VCF_C3, coff[2]);
+    vcf_proc_idlst(ftr, coff[2]);
 
     ldoc_nde_t* ref = ldoc_nde_new(LDOC_NDE_UA);
     ref->mkup.anno.str = (char*)VCF_C4;

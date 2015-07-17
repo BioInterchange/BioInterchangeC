@@ -48,19 +48,25 @@ const char* JSONLD_STAT_1 = "https://www.codamono.com/jsonld/biointerchange-s1.j
 
 const char* GEN_AFFECTED = "affected-features";         // (documented)
 const char* GEN_AFFECTED_TPE = "affected-feature-type"; // (documented)
+const char* GEN_ALIAS = "alias";                        // (documented)
+const char* GEN_ALIAS_GFF3 = "Alias";                   // N/A
 const char* GEN_ALLELE_CNT = "allele-count";            // (documented)
 const char* GEN_ALLELE_CNT_VCF = "AC";                  // N/A
+const char* GEN_ALLELE_CNTEXP = "allele-count-expected"; // (documented)
+const char* GEN_ALLELE_CNTEXP_VCF = "AC";               // N/A
 const char* GEN_ALLELE_FRQ = "allele-frequency";        // (documented)
 const char* GEN_ALLELE_FRQ_VCF = "AF";                  // N/A
 const char* GEN_ALLELE_TTL = "allele-total-number";     // (documented)
 const char* GEN_ALLELE_TTL_VCF = "AN";                  // N/A
 const char* GEN_ALIGNMENT = "alignment";                // (documented)
 const char* GEN_ALIGNMENT_GFF3 = "Target";              // N/A
+const char* GEN_ANCESTRAL_ALLELE = "ancestral-allele";  // (documented)
+const char* GEN_ANCESTRAL_ALLELE_VCF = "AA";            // N/A
 const char* GEN_ANNOTATIONS = "annotations";            // (documented)
-const char* GEN_ATTRIBUTE_MTHD = "attribute-method";    //
+const char* GEN_ATTRIBUTE_MTHD = "attribute-method";    // (documented)
 const char* GEN_ATTRS = "user-defined";                 // (documented)
-const char* GEN_AVG_COVERAGE = "average-coverage";
-const char* GEN_AVG_COVERAGE_GVF = "Average_coverage";
+const char* GEN_AVG_COVERAGE = "average-coverage";      // (documented)
+const char* GEN_AVG_COVERAGE_GVF = "Average_coverage";  // N/A
 const char* GEN_BUILD = "genome-build";                 // (documented; takes value from line -- not this constant)
 const char* GEN_BUILD_VAL = "build";                    // (documented)
 const char* GEN_CIGAR = "cigar-string";                 // (documented)
@@ -68,7 +74,9 @@ const char* GEN_CIGAR_GFF3 = "Gap";                     // N/A
 const char* GEN_CODON = "codon";                        // (documented)
 const char* GEN_CODON_PHASE = "codon-phase";            // (documented)
 const char* GEN_COMMENT = "comment";                    // (documented)
-const char* GEN_DATA_SRC = "data-source";               // takes value from line -- see `gvf_proc_prgm`)
+const char* GEN_DATA_SRC = "data-source";               // (documented; takes value from line -- see `gvf_proc_prgm`)
+const char* GEN_DATA_TPE = "data-type";                 // (documented; takes value from line -- see `gvf_tags`)
+const char* GEN_DATA_TPE_GVF = "Data_type";
 const char* GEN_DBXREF = "dbxref";                      // (documented)
 const char* GEN_DBXREF_GFF3 = "Dbxref";                 // N/A
 const char* GEN_DEPTH = "depth";                        // (documented)
@@ -76,30 +84,61 @@ const char* GEN_DEPTH_VCF = "DP";                       // N/A
 const char* GEN_EFFECT = "effect";                      // (documented)
 const char* GEN_EFFECTS = "effects";                    // (documented)
 const char* GEN_END = "end";                            // (documented)
-const char* GEN_GENOMIC_SRC = "genomic-source";         //
+const char* GEN_END_VCF = "END";
+const char* GEN_GENOMIC_SRC = "genomic-source";         // (documented)
+const char* GEN_GENOTYPE_LIKE = "genotype-likelihood";  // (documented)
+const char* GEN_GENOTYPE_LIKE_VCF = "GL";
+const char* GEN_GENOTYPE_LIKEP = "genotype-likelihood-phred-scaled"; // (documented)
+const char* GEN_GENOTYPE_LIKEP_VCF = "PL";
+const char* GEN_GENOTYPE_QUAL = "genotype-quality";     //
+const char* GEN_GENOTYPE_QUAL_VCF = "GQ";               // N/A
+const char* GEN_GENOTYPE_PROB = "genotype-probabilities-phred-scaled";
+const char* GEN_GENOTYPE_PROB_VCF = "GP";
 const char* GEN_GLOBAL = "global";                      // (documented)
+const char* GEN_HAP_QUALITIES = "haplotype-qualities";
+const char* GEN_HAP_QUALITIES_VCF = "HQ";
 const char* GEN_ID = "id";                              // (documented)
 const char* GEN_ID_GFF3 = "ID";                         // N/A
 const char* GEN_LANDMARK = "landmark";                  // (documented)
 const char* GEN_LANDMARKS = "landmarks";                // (documented)
 const char* GEN_LOCUS = "locus";                        // (documented)
+const char* GEN_MEMBER_1000G = "membership-1000G";
+const char* GEN_MEMBER_1000G_VCF = "1000G";
+const char* GEN_MEMBER_DBSNP = "membership-dbsnp";
+const char* GEN_MEMBER_DBSNP_VCF = "DB";
+const char* GEN_MEMBER_HM2 = "membership-hapmap-2";
+const char* GEN_MEMBER_HM2_VCF = "H2";
+const char* GEN_MEMBER_HM3 = "membership-hapmap-3";
+const char* GEN_MEMBER_HM3_VCF = "H3";
 const char* GEN_ONT_ACCESSION = "ontology-accession";   // not used?
 const char* GEN_ONT_TERM = "ontology-term";             // (documented)
+const char* GEN_PHASE_SET = "phase-set";                //
+const char* GEN_PHASE_SET_VCF = "PS";
+const char* GEN_PHASE_QUAL = "phasing-quality";         //
+const char* GEN_PHASE_QUAL_VCF = "PQ";
 const char* GEN_PHASED_GENO = "phased-genotypes";
 const char* GEN_PHENO_DESCR = "phenotype-description";
 const char* GEN_POP = "population";
 const char* GEN_QUALITY_MAP = "mapping-quality-rms";    // (documented)
+const char* GEN_QUALITY_MAP_VCF = "MQ";
 const char* GEN_QUALITY_MAP0 = "reads-with-zero-mapping-quality"; // (documented)
+const char* GEN_QUALITY_MAP0_VCF = "MQ0";
 const char* GEN_QUALITY_RMS = "base-quality-rms";       // (documented)
+const char* GEN_QUALITY_RMS_VCF = "BQ";
 const char* GEN_READ_PAIR_SPAN = "read-pair-span";
 const char* GEN_READ_PAIR_SPAN_GVF = "Read_pair_span";
 const char* GEN_REFERENCE = "reference";                // (documented)
 const char* GEN_SAMPLES_DATA = "samples-with-data";     // (documented)
+const char* GEN_SAMPLES_DATA_VCF = "NS";
 const char* GEN_SCORE_MTHD = "score-method";
 const char* GEN_SEQUENCE = "sequence";                  // (documented)
 const char* GEN_SEQUENCES = "sequences";                // (documented)
 const char* GEN_START = "start";                        // (documented)
 const char* GEN_STRAND = "strand";                      // (documented)
+const char* GEN_STRAND_BIAS = "strand-bias";
+const char* GEN_STRAND_BIAS_VCF = "SB";
+const char* GEN_SOMATIC = "somatic-mutation";
+const char* GEN_SOMATIC_VCF = "SOMATIC";
 const char* GEN_SOURCE = "source";                      // (documented)
 const char* GEN_SOURCES = "sources";                    // (documented)
 const char* GEN_SOURCE_MTHD = "source-method";
@@ -107,6 +146,8 @@ const char* GEN_TECHNOLOGY = "technology-platform";     // (documented; takes va
 const char* GEN_TYPE = "type";                          // (documented)
 const char* GEN_TYPE_GVF = "Type";
 const char* GEN_TYPES = "types";                        // (documented)
+const char* GEN_VALIDATED = "experimentally-validated";
+const char* GEN_VALIDATED_VCF = "VALIDATED";
 const char* GEN_VARIANTS = "variants";                  // (documented)
 const char* GEN_VCFVERSION = "vcf-version";             // (documented)
 const char* GEN_VCFVERSION_VCF = "fileformat";          // N/A
@@ -322,6 +363,17 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
         if (*str == 'A')
         {
             str++;
+            if (*str == 'A')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: AA, ancestral allele
+                    kwd->attr = BI_VAL;
+                    kwd->alt = GEN_ANCESTRAL_ALLELE;
+                    return;
+                }
+            }
             if (*str == 'C')
             {
                 str++;
@@ -386,9 +438,39 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                 }
             }
         }
+        else if (*str == 'C')
+        {
+            str++;
+            if (*str == 'I')
+            {
+                str++;
+                if (*str == 'G')
+                {
+                    str++;
+                    if (!strcmp(str, "AR"))
+                    {
+                        // VCF: CIGAR
+                        kwd->attr = BI_XCIG;
+                        kwd->alt = GEN_CIGAR;
+                        return;
+                    }
+                }
+            }
+        }
         else if (*str == 'D')
         {
             str++;
+            if (*str == 'B')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: DB, dbSNP membership
+                    kwd->attr = BI_BL;
+                    kwd->alt = GEN_MEMBER_DBSNP;
+                    return;
+                }
+            }
             if (*str == 'P')
             {
                 str++;
@@ -453,6 +535,33 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     }
                 }
             }
+        }
+        else if (*str == 'H')
+        {
+            str++;
+            if (*str == '2')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: H2, HapMap 2 membership
+                    kwd->attr = BI_BL;
+                    kwd->alt = GEN_MEMBER_HM2;
+                    return;
+                }
+            }
+            else if (*str == '3')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: H3, HapMap 3 membership
+                    kwd->attr = BI_BL;
+                    kwd->alt = GEN_MEMBER_HM3;
+                    return;
+                }
+            }
+
         }
         else if (*str == 'I')
         {
@@ -589,6 +698,36 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                 }
             }
         }
+        else if (*str == 'S')
+        {
+            str++;
+            if (*str == 'B')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: SB, strand bias
+                    kwd->attr = BI_NUM;
+                    kwd->alt = GEN_STRAND_BIAS;
+                    return;
+                }
+            }
+            else if (*str == 'O')
+            {
+                str++;
+                if (*str == 'M')
+                {
+                    str++;
+                    if (!strcmp(str, "ATIC"))
+                    {
+                        // VCF: SOMATIC, somatic mutation
+                        kwd->attr = BI_BL;
+                        kwd->alt = GEN_SOMATIC;
+                        return;
+                    }
+                }
+            }
+        }
         else if (*str == 'T')
         {
             str++;
@@ -640,11 +779,45 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     }
                 }
             }
+            else if (*str == 'A')
+            {
+                str++;
+                if (*str == 'L')
+                {
+                    str++;
+                    if (!strcmp(str, "IDATED"))
+                    {
+                        // VCF: VALIDATED
+                        kwd->attr = BI_BL;
+                        kwd->alt = GEN_VALIDATED;
+                        return;
+                    }
+                }
+            }
         }
         
         kwd->attr = upfail;
         kwd->alt = NULL;
         return;
+    }
+    else if (*str == '1')
+    {
+        str++;
+        if (*str == '0')
+        {
+            str++;
+            if (*str == '0')
+            {
+                str++;
+                if (!strcmp(str, "0G"))
+                {
+                    // VCF: 1000G, 1000-genomes membership
+                    kwd->attr = BI_BL;
+                    kwd->alt = GEN_MEMBER_1000G;
+                    return;
+                }
+            }
+        }
     }
 
     kwd->attr = BI_NKW;
@@ -1013,7 +1186,7 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
         kv_nde->mkup.anno.str = ky_;
     }
     
-    // TODO Bug? `splt` is never set below!?
+    // TODO Bug? `splt` is never set below!? -- Might be okay, since all tests are fine.
     bool cnt = true;
     char splt = 0;
     char* val_cmp = val;

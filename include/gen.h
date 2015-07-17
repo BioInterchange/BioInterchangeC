@@ -83,14 +83,20 @@ extern const char* JSONLD_STAT_1;
     
 extern const char* GEN_AFFECTED;
 extern const char* GEN_AFFECTED_TPE;
+extern const char* GEN_ALIAS;
+extern const char* GEN_ALIAS_GFF3;
 extern const char* GEN_ALLELE_CNT;
 extern const char* GEN_ALLELE_CNT_VCF;
+extern const char* GEN_ALLELE_CNTEXP;
+extern const char* GEN_ALLELE_CNTEXP_VCF;
 extern const char* GEN_ALLELE_FRQ;
 extern const char* GEN_ALLELE_FRQ_VCF;
 extern const char* GEN_ALLELE_TTL;
 extern const char* GEN_ALLELE_TTL_VCF;
 extern const char* GEN_ALIGNMENT;
 extern const char* GEN_ALIGNMENT_GFF3;
+extern const char* GEN_ANCESTRAL_ALLELE;
+extern const char* GEN_ANCESTRAL_ALLELE_VCF;
 extern const char* GEN_ANNOTATIONS;
 extern const char* GEN_ATTRIBUTE_MTHD;
 extern const char* GEN_ATTRS;
@@ -103,6 +109,8 @@ extern const char* GEN_CIGAR_GFF3;
 extern const char* GEN_CODON;
 extern const char* GEN_COMMENT;
 extern const char* GEN_DATA_SRC;
+extern const char* GEN_DATA_TPE;
+extern const char* GEN_DATA_TPE_GVF;
 extern const char* GEN_DBXREF;
 extern const char* GEN_DBXREF_GFF3;
 extern const char* GEN_DEPTH;
@@ -111,29 +119,59 @@ extern const char* GEN_EFFECT;
 extern const char* GEN_EFFECTS;
 extern const char* GEN_END;
 extern const char* GEN_GENOMIC_SRC;
+extern const char* GEN_GENOTYPE_LIKE;
+extern const char* GEN_GENOTYPE_LIKE_VCF;
+extern const char* GEN_GENOTYPE_LIKEP;
+extern const char* GEN_GENOTYPE_LIKEP_VCF;
+extern const char* GEN_GENOTYPE_QUAL;
+extern const char* GEN_GENOTYPE_QUAL_VCF;
+extern const char* GEN_GENOTYPE_PROB;
+extern const char* GEN_GENOTYPE_PROB_VCF;
 extern const char* GEN_GLOBAL;
+extern const char* GEN_HAP_QUALITIES;
+extern const char* GEN_HAP_QUALITIES_VCF;
 extern const char* GEN_ID;
 extern const char* GEN_ID_GFF3;
 extern const char* GEN_LANDMARK;
 extern const char* GEN_LANDMARKS;
 extern const char* GEN_LOCUS;
+extern const char* GEN_MEMBER_1000G;
+extern const char* GEN_MEMBER_1000G_VCF;
+extern const char* GEN_MEMBER_DBSNP;
+extern const char* GEN_MEMBER_DBSNP_VCF;
+extern const char* GEN_MEMBER_HM2;
+extern const char* GEN_MEMBER_HM2_VCF;
+extern const char* GEN_MEMBER_HM3;
+extern const char* GEN_MEMBER_HM3_VCF;
 extern const char* GEN_ONT_ACCESSION;
 extern const char* GEN_ONT_TERM;
+extern const char* GEN_PHASE_SET;
+extern const char* GEN_PHASE_SET_VCF;
+extern const char* GEN_PHASE_QUAL;
+extern const char* GEN_PHASE_QUAL_VCF;
 extern const char* GEN_PHASED_GENO;
 extern const char* GEN_PHENO_DESCR;
 extern const char* GEN_POP;
 extern const char* GEN_QUALITY_MAP;
+extern const char* GEN_QUALITY_MAP_VCF;
 extern const char* GEN_QUALITY_MAP0;
+extern const char* GEN_QUALITY_MAP0_VCF;
 extern const char* GEN_QUALITY_RMS;
+extern const char* GEN_QUALITY_RMS_VCF;
 extern const char* GEN_READ_PAIR_SPAN;
 extern const char* GEN_READ_PAIR_SPAN_GVF;
 extern const char* GEN_REFERENCE;
 extern const char* GEN_SAMPLES_DATA;
+extern const char* GEN_SAMPLES_DATA_VCF;
 extern const char* GEN_SCORE_MTHD;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_SEQUENCES;
 extern const char* GEN_START;
 extern const char* GEN_STRAND;
+extern const char* GEN_STRAND_BIAS;
+extern const char* GEN_STRAND_BIAS_VCF;
+extern const char* GEN_SOMATIC;
+extern const char* GEN_SOMATIC_VCF;
 extern const char* GEN_SOURCE;
 extern const char* GEN_SOURCES;
 extern const char* GEN_SOURCE_MTHD;
@@ -141,6 +179,8 @@ extern const char* GEN_TECHNOLOGY;
 extern const char* GEN_TYPE;
 extern const char* GEN_TYPE_GVF;
 extern const char* GEN_TYPES;
+extern const char* GEN_VALIDATED;
+extern const char* GEN_VALIDATED_VCF;
 extern const char* GEN_VARIANTS;
 extern const char* GEN_VCFVERSION;
 extern const char* GEN_VCFVERSION_VCF;
@@ -197,6 +237,10 @@ typedef enum
      * Number value.
      */
     BI_NUM,
+    /**
+     * Boolean truth value (keyword indicates truth).
+     */
+    BI_BL,
     /**
      * Comma separated values.
      */
@@ -274,6 +318,13 @@ typedef enum
     GEN_CTPE_PROCESS
 } gen_ctpe_t;
     
+typedef enum
+{
+    GEN_ALT_GL,
+    GEN_ALT_GP,
+    GEN_ALT_PL
+} gen_alt_t;
+
 typedef struct gen_fstat
 {
     /**
