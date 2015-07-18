@@ -45,7 +45,7 @@ TEST(vcf, vcf_serialize_ftr)
     
     qk_purge();
     
-    vcf_proc_doc(doc);
+    vcf_proc_doc(doc, GEN_FMT_FTR);
     
     qk_free();
     
