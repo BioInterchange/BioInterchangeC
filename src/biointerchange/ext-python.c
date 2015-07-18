@@ -39,6 +39,9 @@ static inline ldoc_ser_t* ldoc2py(ldoc_doc_t* doc)
     
     ldoc_ser_t* ser = ldoc_format(doc, vis_nde, vis_ent);
     
+    ldoc_vis_nde_ord_free(vis_nde);
+    ldoc_vis_ent_free(vis_ent);
+    
     return ser;
 }
 
@@ -63,6 +66,9 @@ void py_init(char* pypath)
     PyObject* name;
     
     Py_Initialize();
+    
+    wchar_t* bname[] = { L"BioInterchange" };
+    PySys_SetArgv(1, bname);
     
     name = PyUnicode_FromString(pypath);
     ext_mod = PyImport_Import(name);
@@ -124,7 +130,12 @@ static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
         free(ser2);
     }
     
-    Py_DECREF(py_d1);
+    // TODO Quite frankly, I do not know why Py_DECREF cannot be called
+    //      all the time. Checking for None returned works though. Must
+    //      be something strange going on when reference counting when
+    //      py_d1 is set to None in the external code.
+    if (dict != Py_None)
+        Py_DECREF(py_d1);
     free(ser1);
     
     if (!dict)
@@ -140,6 +151,10 @@ static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
     
         Py_DECREF(dict);
     }
+    
+    // Note: DO NOT call the garbage collector by force! Garbage collection
+    //       takes an incredible amount of time in Python! It is the worst!
+    //PyGC_Collect();
     
     return ret;
 }

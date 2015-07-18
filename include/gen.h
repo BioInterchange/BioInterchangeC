@@ -166,6 +166,7 @@ extern const char* GEN_SAMPLES_DATA_VCF;
 extern const char* GEN_SCORE_MTHD;
 extern const char* GEN_SEQUENCE;
 extern const char* GEN_SEQUENCES;
+extern const char* GEN_SEX;
 extern const char* GEN_START;
 extern const char* GEN_STRAND;
 extern const char* GEN_STRAND_BIAS;
