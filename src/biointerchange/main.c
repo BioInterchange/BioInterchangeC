@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
     if (fname_len < 5)
     {
         fprintf(stderr, "Filename too short. Needs to be at least one character followed by\n");
-        fprintf(stderr, "one of the following extensions: .gff .gvf .vcf\n");
+        fprintf(stderr, "one of the following extensions: .gff .gff3 .gvf .ldj .ldjson .vcf\n");
         
         exit(MAIN_ERR_FNME);
     }
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
     else
     {
         fprintf(stderr, "Cannot determine filetype by filename extension.\n");
-        fprintf(stderr, "Known filename extensions: .gff .gvf .ldj .ldjson .vcf\n");
+        fprintf(stderr, "Known filename extensions: .gff .gff3 .gvf .ldj .ldjson .vcf\n");
         
         exit(MAIN_ERR_FEXT);
     }

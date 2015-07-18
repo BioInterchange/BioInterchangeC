@@ -302,8 +302,13 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
             ldoc_content_t tpe;
             if (!strcmp(ky, "ID"))
             {
-                // tpe = LDOC_ENT_OR;
-                nde_brckt->mkup.anno.str = strdup(val);
+                gen_attr_t kwd;
+                gen_kwd(val, &kwd, BI_NKW);
+                
+                if (kwd.alt)
+                    nde_brckt->mkup.anno.str = (char*)kwd.alt;
+                else
+                    nde_brckt->mkup.anno.str = strdup(val);
                 
                 ky = inf + 1;
             }

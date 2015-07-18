@@ -53,7 +53,7 @@ const char* GEN_ALIAS_GFF3 = "Alias";                   // N/A
 const char* GEN_ALLELE_CNT = "allele-count";            // (documented)
 const char* GEN_ALLELE_CNT_VCF = "AC";                  // N/A
 const char* GEN_ALLELE_CNTEXP = "allele-count-expected"; // (documented)
-const char* GEN_ALLELE_CNTEXP_VCF = "AC";               // N/A
+const char* GEN_ALLELE_CNTEXP_VCF = "EC";               // N/A
 const char* GEN_ALLELE_FRQ = "allele-frequency";        // (documented)
 const char* GEN_ALLELE_FRQ_VCF = "AF";                  // N/A
 const char* GEN_ALLELE_TTL = "allele-total-number";     // (documented)
@@ -63,6 +63,7 @@ const char* GEN_ALIGNMENT_GFF3 = "Target";              // N/A
 const char* GEN_ANCESTRAL_ALLELE = "ancestral-allele";  // (documented)
 const char* GEN_ANCESTRAL_ALLELE_VCF = "AA";            // N/A
 const char* GEN_ANNOTATIONS = "annotations";            // (documented)
+const char* GEN_ANNOTATIONS_VCF = "FT";
 const char* GEN_ATTRIBUTE_MTHD = "attribute-method";    // (documented)
 const char* GEN_ATTRS = "user-defined";                 // (documented)
 const char* GEN_AVG_COVERAGE = "average-coverage";      // (documented)
@@ -86,6 +87,8 @@ const char* GEN_EFFECTS = "effects";                    // (documented)
 const char* GEN_END = "end";                            // (documented)
 const char* GEN_END_VCF = "END";
 const char* GEN_GENOMIC_SRC = "genomic-source";         // (documented)
+const char* GEN_GENOTYPE = "genotype";                  // (documented)
+const char* GEN_GENOTYPE_VCF = "GT";
 const char* GEN_GENOTYPE_LIKE = "genotype-likelihood";  // (documented)
 const char* GEN_GENOTYPE_LIKE_VCF = "GL";
 const char* GEN_GENOTYPE_LIKEP = "genotype-likelihood-phred-scaled"; // (documented)
@@ -94,7 +97,11 @@ const char* GEN_GENOTYPE_QUAL = "genotype-quality";     //
 const char* GEN_GENOTYPE_QUAL_VCF = "GQ";               // N/A
 const char* GEN_GENOTYPE_PROB = "genotype-probabilities-phred-scaled";
 const char* GEN_GENOTYPE_PROB_VCF = "GP";
+const char* GEN_GFFVERSION = "gff-version";             // (documented)
+const char* GEN_GFFVERSION_GFF3 = "gff-version";
 const char* GEN_GLOBAL = "global";                      // (documented)
+const char* GEN_GVFVERSION = "gvf-version";             // (documented)
+const char* GEN_GVFVERSION_GVF = "gvf-version";
 const char* GEN_HAP_QUALITIES = "haplotype-qualities";
 const char* GEN_HAP_QUALITIES_VCF = "HQ";
 const char* GEN_ID = "id";                              // (documented)
@@ -502,7 +509,18 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
         else if (*str == 'E')
         {
             str++;
-            if (*str == 'N')
+            if (*str == 'C')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: EC, expected counts (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_ALLELE_CNTEXP;
+                    return;
+                }
+            }
+            else if (*str == 'N')
             {
                 str++;
                 if (*str == 'D')
@@ -518,10 +536,69 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                 }
             }
         }
+        else if (*str == 'F')
+        {
+            str++;
+            if (*str == 'T')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: FT, filter (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_ANNOTATIONS;
+                    return;
+                }
+            }
+        }
         else if (*str == 'G')
         {
             str++;
-            if (*str == 'a')
+            if (*str == 'L')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: GL, genotype-likelihood (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_GENOTYPE_LIKE;
+                    return;
+                }
+            }
+            else if (*str == 'P')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: GP, genotype-probabilities Phred-scaled (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_GENOTYPE_PROB;
+                    return;
+                }
+            }
+            else if (*str == 'Q')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: GQ, genotype-quality (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_GENOTYPE_QUAL;
+                    return;
+                }
+            }
+            else if (*str == 'T')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: GT, genotype (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_GENOTYPE;
+                    return;
+                }
+            }
+            else if (*str == 'a')
             {
                 str++;
                 if (*str == 'p')
@@ -559,6 +636,17 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     // VCF: H3, HapMap 3 membership
                     kwd->attr = BI_BL;
                     kwd->alt = GEN_MEMBER_HM3;
+                    return;
+                }
+            }
+            else if (*str == 'Q')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: HQ, haplotide quality (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_HAP_QUALITIES;
                     return;
                 }
             }
@@ -657,7 +745,40 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
         else if (*str == 'P')
         {
             str++;
-            if (*str == 'a')
+            if (*str == 'L')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: PL, genotype-likelihood phred-scaled (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_GENOTYPE_LIKEP;
+                    return;
+                }
+            }
+            else if (*str == 'S')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: PS, phase set (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_PHASE_SET;
+                    return;
+                }
+            }
+            else if (*str == 'Q')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: PQ, phasing quality (genotype field)
+                    kwd->attr = BI_NKW;
+                    kwd->alt = (char*)GEN_PHASE_QUAL;
+                    return;
+                }
+            }
+            else if (*str == 'a')
             {
                 str++;
                 if (*str == 'r')

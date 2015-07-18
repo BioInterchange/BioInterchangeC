@@ -1208,7 +1208,25 @@ static inline void gff_join_almnt(ldoc_nde_t* nde, char* attrs)
     }
 }
 
-inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
+inline void gff_proc_doc_prgm(ldoc_nde_t* prgm)
+{
+    // Version info:
+    ldoc_res_t* ver = ldoc_find_anno_ent(prgm, (char*)GEN_GFFVERSION);
+    
+    if (ver)
+    {
+        if (!ver->info.ent->pld.pair.dtm.str)
+            return;
+        
+        qk_strcat("##");
+        qk_strcat(GEN_GFFVERSION_GFF3);
+        qk_strcat(" ");
+        qk_strcat(ver->info.ent->pld.pair.dtm.str);
+        return;
+    }
+}
+
+inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)
 {
     // Covered:
     //   - id -> ID
@@ -1286,8 +1304,6 @@ inline char* gff_proc_doc_ftr(ldoc_nde_t* ftr)
             gen_join_attrs_ent(NULL, ent, attrs);
         }
     }
-    
-    return NULL;
 }
 
 char* gff_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
@@ -1302,8 +1318,9 @@ char* gff_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
     switch (tpe)
     {
         case GEN_FMT_INF:
-            // gff_proc_doc_ftr(doc->rt);
-            return NULL;
+            gff_proc_doc_prgm(doc->rt);
+            
+            return qk_heap_ptr();
         case GEN_FMT_FTR:
             gff_proc_doc_ftr(doc->rt);
             
