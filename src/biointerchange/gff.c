@@ -1037,6 +1037,10 @@ ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
                 {
                     st->fa_sct = true;
                 }
+                else if (ln[2] == '#')
+                {
+                    // Skip. "###" section separator.
+                }
                 else
                 {
                     // Nope, real meta line:
