@@ -816,21 +816,21 @@ inline void gvf_tags(ldoc_nde_t* nde, char* strct, gvf_pgm_t tpe)
                 if (seqid)
                 {
                     ky = (char*)GEN_LANDMARKS; // Rename "seqid" to "landmarks"
-                    gen_attr_t kwd = { ky, (char*)NULL };
+                    gen_attr_t kwd = { BI_NKW, (char*)NULL };
                     seqid_nde = gen_csep_dup(sub, kwd, ky, val, true);
                     glbl = false;
                 }
                 else if (source)
                 {
                     ky = (char*)GEN_SOURCES; // Rename "source" to "sources"
-                    gen_attr_t kwd = { ky, (char*)NULL };
+                    gen_attr_t kwd = { BI_NKW, (char*)NULL };
                     source_nde = gen_csep_dup(sub, kwd, ky, val, true);
                     glbl = false;
                 }
                 else if (type)
                 {
                     ky = (char*)GEN_TYPES; // Rename "type" to "types"
-                    gen_attr_t kwd = { ky, (char*)NULL };
+                    gen_attr_t kwd = { BI_NKW, (char*)NULL };
                     type_nde = gen_csep_dup(sub, kwd, ky, val, true);
                     glbl = false;
                 }
