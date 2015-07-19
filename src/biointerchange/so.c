@@ -2336,7 +2336,8 @@ ldoc_trie_t* ont_trie_new()
     
     // TODO Error handling.
     
-    for (uint16_t i = 0; i < ONT_LEN; i += 2)
+    uint16_t i = 0;
+    for (; i < ONT_LEN; i += 2)
     {
         ldoc_trie_anno_t anno;
         

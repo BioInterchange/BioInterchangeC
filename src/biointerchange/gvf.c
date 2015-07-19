@@ -53,8 +53,9 @@ static inline void gvf_idxstr(char* seqid, char* type, char* source, char** str)
     
     // Do not check string lengths here. Implement boundary check
     // when reading feature lines!
+    uint8_t i = 0;
     char* pth[3] = { seqid, type, source };
-    for (uint8_t i = 0; i < 3; i++)
+    for (; i < 3; i++)
         if (!pth[i] || !*pth[i])
             strcat(*str, ".");
         else
@@ -511,10 +512,11 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
         ln[off--] = 0;
     
     // Note: this can be optimized by creating the entities in the for-loop!
+    uint8_t col = 1;
     off = 0;
     char* coff[9];
     coff[0] = ln;
-    for (uint8_t col = 1; col < 9; col++)
+    for (; col < 9; col++)
     {
         while (ln[off] != '\t' && off < lnlen)
             off++;
@@ -613,7 +615,8 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     
     // Add structured pragma links -- if available:
     // TODO Optimize, so that not all 2^3-1 choices need to be probed:
-    for (uint8_t i = 1; i < 8; i++)
+    uint8_t i = 1;
+    for (; i < 8; i++)
     {
         gvf_idxstr(i & 4 ? coff[0] : NULL,
                    i & 2 ? coff[2] : NULL,

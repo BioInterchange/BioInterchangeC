@@ -1165,10 +1165,11 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     // Note: this can be optimized by creating the entities in the for-loop!
     // TODO Verify whether this creates stack overflow problems when there are
     //      lots of samples in a VCF file.
+    uint8_t col = 1;
     off = 0;
     char* coff[stt->vcf_col];
     coff[0] = ln;
-    for (uint8_t col = 1; col <= stt->vcf_col; col++)
+    for (; col <= stt->vcf_col; col++)
     {
         while (ln[off] != '\t' && off < lnlen)
             off++;

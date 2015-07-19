@@ -535,7 +535,8 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     off = 0;
     char* coff[9];
     coff[0] = ln;
-    for (uint8_t col = 1; col < 9; col++)
+    uint8_t col = 1;
+    for (; col < 9; col++)
     {
         while (ln[off] != '\t' && off < lnlen)
             off++;

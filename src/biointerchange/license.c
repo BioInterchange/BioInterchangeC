@@ -110,7 +110,8 @@ static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
     /* get a pointer to the X509 certificate store (which may be empty!) */
     store = SSL_CTX_get_cert_store((SSL_CTX*)sslctx);
     
-    for (uint8_t i = 0; i < 3; i++)
+    uint8_t i = 0;
+    for (; i < 3; i++)
     {
         /* get a BIO */
         bio = BIO_new_mem_buf(mypem[i], -1);
