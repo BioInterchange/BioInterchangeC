@@ -1427,7 +1427,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             // Note: known keys become lower case, user-defined
             //       keys have their case preserved.
             ldoc_nde_t* dst;
-            gen_attr_t kwd = { BI_NKW, NULL };
+            gen_attr_t kwd = { BI_NKW, (char*)NULL };
             gen_kwd(attr, &kwd, upfail);
             if (kwd.attr)
             {

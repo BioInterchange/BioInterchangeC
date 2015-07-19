@@ -828,7 +828,7 @@ static inline void vcf_proc_ft(ldoc_nde_t* cntnr, char* val, size_t len)
 
 static inline void vcf_proc_hq(ldoc_nde_t* cntnr, char* val, size_t len, bool pl)
 {
-    gen_attr_t kwd = { NULL, NULL };
+    gen_attr_t kwd = { BI_NKW, (char*)NULL };
     gen_csep_dup(cntnr, kwd, (char*)GEN_HAP_QUALITIES, val, false);
 }
 
