@@ -210,7 +210,11 @@ int main(int argc, char* argv[])
     }
 
     // Now, everything is in place; go and check whether the software is licensed:
+#ifdef __APPLE__
     int lfd = open(licpath, O_RDONLY | O_NONBLOCK | O_SYMLINK);
+#else
+    int lfd = open(licpath, O_RDONLY | O_NONBLOCK);
+#endif
     
     if (lfd == -1)
     {
