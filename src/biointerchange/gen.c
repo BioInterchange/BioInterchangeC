@@ -220,12 +220,14 @@ void gen_init()
     
     char* s = GEN_ALLELES;
     
-    for (size_t j = 0; j < GEN_MAX_ALT; j++)
+    size_t j = 0;
+    for (; j < GEN_MAX_ALT; j++)
     {
         GEN_ALLELE[2 * j] = 'A' + j;
         GEN_ALLELE[2 * j + 1] = 0;
         
-        for (size_t k = 0; k < GEN_MAX_ALT; k++)
+        size_t k = 0;
+        for (; k < GEN_MAX_ALT; k++)
             if (j <= k)
                 gen_allele_lbl(s, j, k);
     }
@@ -2229,7 +2231,8 @@ bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vn
     ldoc_res_t* ent;
     ldoc_res_t* var;
     char* all_pth[1];
-    for (size_t vrnt = 0; vrnt < vnum; vrnt++)
+    size_t vrnt = 0;
+    for (; vrnt < vnum; vrnt++)
     {
         if (fst)
             fst = false;

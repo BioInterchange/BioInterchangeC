@@ -1288,7 +1288,8 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         
         smpls->mkup.anno.str = (char*)VCF_SAMPLES;
         
-        for (size_t i = 9; i < stt->vcf_col; i++)
+        size_t i = 9;
+        for (; i < stt->vcf_col; i++)
         {
             if (coff[i])
                 vcf_proc_smpl(smpls, stt, i - 9, coff[8], coff[i], coff[3], vseqs, vnum);
