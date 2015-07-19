@@ -57,6 +57,7 @@ ExternalProject_Add(curl-lib
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 
+if(APPLE)
 ExternalProject_Add(openssl-lib
     GIT_REPOSITORY https://github.com/openssl/openssl.git
     GIT_TAG OpenSSL_1_0_1m
@@ -65,6 +66,7 @@ ExternalProject_Add(openssl-lib
     CONFIGURE_COMMAND ./Configure no-shared darwin64-x86_64-cc
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
+endif(APPLE)
 
 ExternalProject_Add(python
     HG_REPOSITORY https://hg.python.org/cpython
@@ -96,6 +98,7 @@ add_library(libpython-static STATIC IMPORTED)
 set_target_properties(libpython-static PROPERTIES
     IMPORTED_LOCATION src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+if(APPLE)
 add_library(libcrypto-static STATIC IMPORTED)
 set_target_properties(libcrypto-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -103,6 +106,7 @@ set_target_properties(libcrypto-static PROPERTIES
 add_library(libssl-static STATIC IMPORTED)
 set_target_properties(libssl-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif(APPLE)
 
 add_library(biointerchange-static STATIC ${biointerchange_SRC})
 set_target_properties(biointerchange-static PROPERTIES
@@ -111,9 +115,17 @@ set_target_properties(biointerchange-static PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_RELEASE lib
     IMPORT_LOCATION lib/${CMAKE_CFG_INTDIR}/biointerchange${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+if(APPLE)
 add_dependencies(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
+else(APPLE)
+add_dependencies(biointerchange-static libdocument-static libcurl-static libpython-static)
+endif(APPLE)
 
+if(APPLE)
 target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
+else(APPLE)
+target_link_libraries(biointerchange-static libdocument-static dl m pthread util ssl crypto libcurl-static libpython-static)
+endif(APPLE)
 
 add_executable(biointerchange src/biointerchange/main.c)
 add_dependencies(biointerchange biointerchange-static)
