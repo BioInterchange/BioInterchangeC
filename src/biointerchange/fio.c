@@ -15,7 +15,11 @@
 
 int fio_opn(const char* path)
 {
+#ifdef __APPLE__
     int fd = open(path, O_RDONLY | O_NONBLOCK | O_SYMLINK);
+#else
+    int fd = open(path, O_RDONLY | O_NONBLOCK);
+#endif
     
     if (fd == -1)
     {
