@@ -5,7 +5,11 @@ set -e
 cmake -DCMAKE_BUILD_TYPE=Release -G 'Unix Makefiles'
 
 make python
-make openssl-lib
+
+if [[ "`uname`" == "Darwin" ]] ; then
+    make openssl-lib
+fi
+
 make curl-lib
 #make googletest-lib
 make libdocument-lib

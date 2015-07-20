@@ -1,0 +1,21 @@
+Package: biointerchange
+Version: VERSION
+Section: science
+Priority: optional
+Maintainer: Joachim Baran <kim@codamono.com>
+Depends: libc6 (>= 2.14), libssl1.0.0 (>= 1.0)
+Standards-Version: 3.9.4
+Architecture: amd64
+Files: usr/bin/biointerchange /usr/bin/biointerchange
+Description: Genomic data integration tool.
+ BioInterchange makes genomic data integration easy.
+ .
+ Cloud and NoSQL genomics data integration made easy.
+ BioInterchange transforms multiple genomic data formats
+ into an annotated JSON format to enable harmonized data
+ access and data mining. Instantly upload BioInterchange's
+ JSON output into the Cloud or contemporary NoSQL databases.
+ Elasticsearch, MongoDB, RethinkDB, and many other databases
+ become immediately available for genomics data hosting with
+ the press of a key.
+
