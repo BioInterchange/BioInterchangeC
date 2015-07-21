@@ -104,11 +104,13 @@ extern const char* GEN_ATTRS;
 extern const char* GEN_AVG_COVERAGE;
 extern const char* GEN_AVG_COVERAGE_GVF;
 extern const char* GEN_BUILD;
+extern const char* GEN_BUILD_GFF3;
 extern const char* GEN_BUILD_VAL;
 extern const char* GEN_CIGAR;
 extern const char* GEN_CIGAR_GFF3;
 extern const char* GEN_CODON;
 extern const char* GEN_COMMENT;
+extern const char* GEN_COMMENT_GVF;
 extern const char* GEN_DATA_SRC;
 extern const char* GEN_DATA_TPE;
 extern const char* GEN_DATA_TPE_GVF;
@@ -139,8 +141,12 @@ extern const char* GEN_HAP_QUALITIES;
 extern const char* GEN_HAP_QUALITIES_VCF;
 extern const char* GEN_ID;
 extern const char* GEN_ID_GFF3;
+extern const char* GEN_INDIVIDUALS;
+extern const char* GEN_INDIVIDUALS_GVF1;
+extern const char* GEN_INDIVIDUALS_GVF2;
 extern const char* GEN_LANDMARK;
 extern const char* GEN_LANDMARKS;
+extern const char* GEN_LANDMARKS_GVF;
 extern const char* GEN_LOCUS;
 extern const char* GEN_MEMBER_1000G;
 extern const char* GEN_MEMBER_1000G_VCF;
@@ -172,6 +178,9 @@ extern const char* GEN_SAMPLES_DATA;
 extern const char* GEN_SAMPLES_DATA_VCF;
 extern const char* GEN_SCORE_MTHD;
 extern const char* GEN_SEQUENCE;
+extern const char* GEN_SEQUENCE_REGION;
+extern const char* GEN_SEQUENCE_REGION_GFF3;
+extern const char* GEN_SEQUENCE_REGION_VCF;
 extern const char* GEN_SEQUENCES;
 extern const char* GEN_SEX;
 extern const char* GEN_START;
@@ -182,11 +191,13 @@ extern const char* GEN_SOMATIC;
 extern const char* GEN_SOMATIC_VCF;
 extern const char* GEN_SOURCE;
 extern const char* GEN_SOURCES;
+extern const char* GEN_SOURCES_GVF;
 extern const char* GEN_SOURCE_MTHD;
 extern const char* GEN_TECHNOLOGY;
 extern const char* GEN_TYPE;
 extern const char* GEN_TYPE_GVF;
 extern const char* GEN_TYPES;
+extern const char* GEN_TYPES_GVF;
 extern const char* GEN_VALIDATED;
 extern const char* GEN_VALIDATED_VCF;
 extern const char* GEN_VARIANTS;
@@ -414,6 +425,8 @@ char* gen_quoskp(char* str);
 void gen_kwd(char* str, gen_attr_t* attr, bi_attr upfail);
 char gen_inv(char c);
     
+void gen_csepstr_dup(ldoc_nde_t* dst, char* val, bool dup);
+    
 /**
  *  Returns the ordered-list node that was added to `dst`.
  */
@@ -454,6 +467,8 @@ void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc_t* opt
 // Genomics file formatting
 //
 
+void gen_proc_doc_prgm_kv(ldoc_nde_t* cntnr, char* ky, char* alt, char* sep);
+bool gen_proc_doc_prgm(ldoc_nde_t* prgm, char* sep);
 bool gen_proc_doc_usr(ldoc_nde_t* ftr);
 bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vnum);
     

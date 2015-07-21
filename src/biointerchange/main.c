@@ -78,8 +78,8 @@ int main(int argc, char* argv[])
         exit(MAIN_ERR_PGSZ);
     }
     
-    // Allocate quick memory heap (10MB):
-    if (!qk_alloc(10*1024*1024))
+    // Allocate quick memory heap (20MB):
+    if (!qk_alloc(20*1024*1024))
     {
         fprintf(stderr, "Sorry, there is not enough memory available to fire up the software.\n\n");
         

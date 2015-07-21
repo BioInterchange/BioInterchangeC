@@ -393,8 +393,12 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
                 dst = usr; // User defined pragmas.
             
             // TODO Use own types, so that this conversion is not necessary:
-            stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_OL : tpe);
-            stmt->mkup.anno.str = strdup(ln);
+            stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_UA : tpe);
+            
+            if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
+                stmt->mkup.anno.str = strdup(GEN_SEQUENCE_REGION);
+            else
+                stmt->mkup.anno.str = strdup(ln);
             
             ldoc_nde_dsc_push(dst, stmt);
         }
@@ -1211,20 +1215,62 @@ static inline void gff_join_almnt(ldoc_nde_t* nde, char* attrs)
 
 inline void gff_proc_doc_prgm(ldoc_nde_t* prgm)
 {
-    // Version info:
-    ldoc_res_t* ver = ldoc_find_anno_ent(prgm, (char*)GEN_GFFVERSION);
+    // Version info; gff-version
+    gen_proc_doc_prgm_kv(prgm, (char*)GEN_GFFVERSION, (char*)GEN_GFFVERSION_GFF3, " ");
     
-    if (ver)
+    // Genome build; genome-build
+    char* gb_pth[] = { (char*)GEN_BUILD };
+    ldoc_res_t* gb = ldoc_find_anno_nde(prgm, gb_pth, 1);
+    
+    if (gb)
     {
-        if (!ver->info.ent->pld.pair.dtm.str)
-            return;
-        
-        qk_strcat("##");
-        qk_strcat(GEN_GFFVERSION_GFF3);
-        qk_strcat(" ");
-        qk_strcat(ver->info.ent->pld.pair.dtm.str);
-        return;
+        ldoc_nde_t* bld;
+        TAILQ_FOREACH(bld, &(gb->info.nde->dscs), ldoc_nde_entries)
+        {
+            ldoc_res_t* bld_src = ldoc_find_anno_ent(bld, (char*)GEN_SOURCE);
+            
+            ldoc_res_t* bld_nme = ldoc_find_anno_ent(bld, (char*)GEN_BUILD_VAL);
+            
+            if (!qk_heap_empty())
+                qk_strcat("\n");
+            
+            qk_strcat("##");
+            qk_strcat(GEN_BUILD_GFF3);
+            qk_strcat(" ");
+            qk_strcat(bld_src->info.ent->pld.pair.dtm.str);
+            qk_strcat(" ");
+            qk_strcat(bld_nme->info.ent->pld.pair.dtm.str);
+        }
     }
+    
+    // Sequence region; sequence-region (but "contig" in doc)
+    char* sr_pth[] = { (char*)GEN_SEQUENCE_REGION };
+    ldoc_res_t* sr = ldoc_find_anno_nde(prgm, sr_pth, 1);
+    
+    if (sr)
+    {
+        ldoc_nde_t* reg;
+        TAILQ_FOREACH(reg, &(sr->info.nde->dscs), ldoc_nde_entries)
+        {
+            ldoc_res_t* reg_st = ldoc_find_anno_ent(reg, (char*)GEN_START);
+            
+            ldoc_res_t* reg_en = ldoc_find_anno_ent(reg, (char*)GEN_END);
+            
+            if (!qk_heap_empty())
+                qk_strcat("\n");
+            
+            qk_strcat("##");
+            qk_strcat(GEN_SEQUENCE_REGION_GFF3);
+            qk_strcat(" ");
+            qk_strcat(reg->mkup.anno.str);
+            qk_strcat(" ");
+            qk_strcat(reg_st->info.ent->pld.pair.dtm.str);
+            qk_strcat(" ");
+            qk_strcat(reg_en->info.ent->pld.pair.dtm.str);
+        }
+    }
+    
+    gen_proc_doc_prgm(prgm, " ");
 }
 
 inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)

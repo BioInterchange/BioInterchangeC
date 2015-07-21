@@ -69,12 +69,14 @@ const char* GEN_ATTRS = "user-defined";                 // (documented)
 const char* GEN_AVG_COVERAGE = "average-coverage";      // (documented)
 const char* GEN_AVG_COVERAGE_GVF = "Average_coverage";  // N/A
 const char* GEN_BUILD = "genome-build";                 // (documented; takes value from line -- not this constant)
+const char* GEN_BUILD_GFF3 = "genome-build";                 // N/A
 const char* GEN_BUILD_VAL = "build";                    // (documented)
 const char* GEN_CIGAR = "cigar-string";                 // (documented)
 const char* GEN_CIGAR_GFF3 = "Gap";                     // N/A
 const char* GEN_CODON = "codon";                        // (documented)
 const char* GEN_CODON_PHASE = "codon-phase";            // (documented)
 const char* GEN_COMMENT = "comment";                    // (documented)
+const char* GEN_COMMENT_GVF = "Comment";
 const char* GEN_DATA_SRC = "data-source";               // (documented; takes value from line -- see `gvf_proc_prgm`)
 const char* GEN_DATA_TPE = "data-type";                 // (documented; takes value from line -- see `gvf_tags`)
 const char* GEN_DATA_TPE_GVF = "Data_type";
@@ -106,8 +108,12 @@ const char* GEN_HAP_QUALITIES = "haplotype-qualities";
 const char* GEN_HAP_QUALITIES_VCF = "HQ";
 const char* GEN_ID = "id";                              // (documented)
 const char* GEN_ID_GFF3 = "ID";                         // N/A
+const char* GEN_INDIVIDUALS = "individuals";            // (documented)
+const char* GEN_INDIVIDUALS_GVF1 = "individual-id";     // N/A
+const char* GEN_INDIVIDUALS_GVF2 = "multi-individual";  // N/A
 const char* GEN_LANDMARK = "landmark";                  // (documented)
 const char* GEN_LANDMARKS = "landmarks";                // (documented)
+const char* GEN_LANDMARKS_GVF = "Seqid";
 const char* GEN_LOCUS = "locus";                        // (documented)
 const char* GEN_MEMBER_1000G = "membership-1000G";      // (documented)
 const char* GEN_MEMBER_1000G_VCF = "1000G";
@@ -139,6 +145,9 @@ const char* GEN_SAMPLES_DATA = "samples-with-data";     // (documented)
 const char* GEN_SAMPLES_DATA_VCF = "NS";
 const char* GEN_SCORE_MTHD = "score-method";            // (documented)
 const char* GEN_SEQUENCE = "sequence";                  // (documented)
+const char* GEN_SEQUENCE_REGION = "contig";             // (documented)
+const char* GEN_SEQUENCE_REGION_GFF3 = "sequence-region";
+const char* GEN_SEQUENCE_REGION_VCF = "contig";
 const char* GEN_SEQUENCES = "sequences";                // (documented)
 const char* GEN_SEX = "sex";                            // (documented)
 const char* GEN_START = "start";                        // (documented)
@@ -149,11 +158,13 @@ const char* GEN_SOMATIC = "somatic-mutation";           // (documented)
 const char* GEN_SOMATIC_VCF = "SOMATIC";
 const char* GEN_SOURCE = "source";                      // (documented)
 const char* GEN_SOURCES = "sources";                    // (documented)
+const char* GEN_SOURCES_GVF = "Source";
 const char* GEN_SOURCE_MTHD = "source-method";          // (documented)
 const char* GEN_TECHNOLOGY = "technology-platform";     // (documented; takes value from line -- see `gvf_proc_prgm`)
 const char* GEN_TYPE = "type";                          // (documented)
 const char* GEN_TYPE_GVF = "Type";
 const char* GEN_TYPES = "types";                        // (documented)
+const char* GEN_TYPES_GVF = "Type";
 const char* GEN_VALIDATED = "experimentally-validated"; // (documented)
 const char* GEN_VALIDATED_VCF = "VALIDATED";
 const char* GEN_VARIANTS = "variants";                  // (documented)
@@ -1278,6 +1289,52 @@ inline bool gen_join_attrs_nde(char* id, ldoc_nde_t* nde, char* attrs)
     return gen_join_nde(nde);
 }
 
+void gen_csepstr_dup(ldoc_nde_t* dst, char* val, bool dup)
+{
+    bool cnt = true;
+    char* val_cmp = val;
+    char* val_cmp_;
+    ldoc_ent_t* kv_ent;
+    do
+    {
+        // Check: this should always work, since strlen(val) > 0; but check!?
+        val++;
+        
+        if (*val == ',' || !*val)
+        {
+            if (!*val)
+                cnt = false;
+            
+            *val = 0;
+            
+            kv_ent = ldoc_ent_new(gen_smrt_flttpe(val_cmp));
+            
+            if (!kv_ent)
+            {
+                // TODO Error handling.
+            }
+            
+            if (dup)
+            {
+                val_cmp_ = strdup(val_cmp);
+                
+                // TODO Error handling.
+            }
+            else
+                val_cmp_ = val_cmp;
+            
+            // Remove quotes -- if those exist:
+            val_cmp_ = gen_quoskp(val_cmp_);
+            
+            kv_ent->pld.str = val_cmp_;
+            
+            ldoc_nde_ent_push(dst, kv_ent);
+            
+            val_cmp = val + 1;
+        }
+    } while (cnt);
+}
+
 ldoc_nde_t* gen_csep(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val)
 {
     return gen_csep_dup(dst, kwd, ky, val, false);
@@ -2185,6 +2242,51 @@ char* gen_exp_ky(char* ky)
     }
 
     return ky;
+}
+
+inline void gen_proc_doc_prgm_kv(ldoc_nde_t* cntnr, char* ky, char* alt, char* sep)
+{
+    ldoc_res_t* ent = ldoc_find_anno_ent(cntnr, ky);
+    
+    if (ent && ent->info.ent->pld.pair.dtm.str)
+    {
+        if (!qk_heap_empty())
+            qk_strcat("\n");
+        
+        qk_strcat("##");
+        qk_strcat(alt);
+        qk_strcat(sep);
+        qk_strcat(ent->info.ent->pld.pair.dtm.str);
+    }
+}
+
+bool gen_proc_doc_prgm(ldoc_nde_t* prgm, char* sep)
+{
+    const char* usr_id[] = { GEN_ATTRS };
+    ldoc_res_t* usr = ldoc_find_anno_nde(prgm, (char**)usr_id, 1);
+    
+    // TODO Error handling.
+    
+    if (!usr)
+        return true;
+    
+    ldoc_nde_t* dsc;
+    TAILQ_FOREACH(dsc, &(usr->info.nde->dscs), ldoc_nde_entries)
+    {
+        ldoc_ent_t* ent;
+        TAILQ_FOREACH(ent, &(dsc->ents), ldoc_ent_entries)
+        {
+            if (!qk_heap_empty())
+                qk_strcat("\n");
+
+            qk_strcat("##");
+            qk_strcat(dsc->mkup.anno.str);
+            qk_strcat(sep);
+            qk_strcat(ent->pld.str);
+        }
+    }
+    
+    return true;
 }
 
 // TODO Obsolete?

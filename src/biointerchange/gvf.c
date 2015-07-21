@@ -270,7 +270,21 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
             {
                 ky++;
                 if (!strcmp(ky, "ividual-id"))
-                    return LDOC_NDE_UA; // individual-id
+                    return LDOC_NDE_OL; // individual-id
+            }
+        }
+    }
+    else if (*ky == 'm')
+    {
+        ky++;
+        if (*ky == 'u')
+        {
+            ky++;
+            if (*ky == 'l')
+            {
+                ky++;
+                if (!strcmp(ky, "ti-individual"))
+                    return LDOC_NDE_OL; // multi-individual
             }
         }
     }
@@ -974,7 +988,7 @@ static inline void gvf_proc_sctn(ldoc_nde_t* nde, char* sctn, char* ky, char* va
         // No scope for the meta information present yet? Create a new node:
         if (!scp)
         {
-            scp = ldoc_nde_new(LDOC_NDE_OL);
+            scp = ldoc_nde_new(LDOC_NDE_UA);
             scp->mkup.anno.str = strdup(GEN_GLOBAL);
             
             // TODO Error handling.
@@ -984,12 +998,18 @@ static inline void gvf_proc_sctn(ldoc_nde_t* nde, char* sctn, char* ky, char* va
         
         // Determine data type; default: LDOC_ENT_OR
         ldoc_content_t tpe;
-        if (!strcmp(ky, "technology-platform-read-length"))
+        if (!strcmp(ky, "technology-platform-read-length") ||
+            !strcmp(ky, "technology-platform-read-pair-span") ||
+            !strcmp(ky, "technology-platform-average-coverage"))
+        {
+            ky += 20;
             tpe = LDOC_ENT_NR;
-        else if (!strcmp(ky, "technology-platform-read-pair-span"))
-            tpe = LDOC_ENT_NR;
-        else if (!strcmp(ky, "technology-platform-average-coverage"))
-            tpe = LDOC_ENT_NR;
+        }
+        else if (!strncmp(ky, "technology-platform-", 20))
+        {
+            ky += 20;
+            tpe = LDOC_ENT_OR;
+        }
         else
             tpe = LDOC_ENT_OR;
         
@@ -1058,14 +1078,25 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         {
             ldoc_nde_t* dst;
             if (tpe != LDOC_NDE_OL ||
-                !strcmp(ln, "genome-build"))
+                !strcmp(ln, GEN_BUILD) ||
+                !strcmp(ln, GEN_INDIVIDUALS_GVF1) ||
+                !strcmp(ln, GEN_INDIVIDUALS_GVF2))
                 dst = doc->rt;
             else
                 dst = usr; // User defined pragmas.
             
             // TODO Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_UA : tpe);
-            stmt->mkup.anno.str = strdup(ln);
+            
+            if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
+                stmt->mkup.anno.str = strdup(GEN_SEQUENCE_REGION);
+            else if (!strcmp(ln, GEN_INDIVIDUALS_GVF1) ||
+                     !strcmp(ln, GEN_INDIVIDUALS_GVF2))
+                stmt->mkup.anno.str = strdup(GEN_INDIVIDUALS);
+            else if (!strncmp(ln, "technology-platform-", 20))
+                stmt->mkup.anno.str = strdup(ln + 20);
+            else
+                stmt->mkup.anno.str = strdup(ln);
             
             ldoc_nde_dsc_push(dst, stmt);
         }
@@ -1121,13 +1152,17 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     }
     else if (tpe == LDOC_NDE_OL)
     {
-        if (!strcmp(ln, "genome-build"))
+        if (!strcmp(ln, GEN_BUILD))
         {
             gff_proc_gbld(stmt, val);
         }
+        else if (!strcmp(ln, GEN_INDIVIDUALS_GVF2))
+        {
+            gen_csepstr_dup(stmt, val, true);
+        }
         else
         {
-            // Unknown pragmas:
+            // Unknown pragmas -- and GEN_INDIVIDUALS_GVF1 (individual-id):
             ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_TXT);
             
             // TODO Error handling.
@@ -1354,9 +1389,155 @@ void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
 
 // JSON to GVF
 
-char* gvf_proc_doc_prgm(ldoc_nde_t* prgm)
+static inline void gvf_proc_doc_entlst(ldoc_nde_t* cntnr, char* sep)
 {
-    //const char*
+    ldoc_ent_t* ent;
+    TAILQ_FOREACH(ent, &(cntnr->ents), ldoc_ent_entries)
+    {
+        if (ent != TAILQ_FIRST(&(cntnr->ents)))
+            qk_strcat(sep);
+        
+        qk_strcat(ent->pld.str);
+    }
+}
+
+static inline void gvf_proc_doc_strct(ldoc_nde_t* prgm, char* ky, char* alt)
+{
+    char* pth[] = { ky };
+    ldoc_res_t* res = ldoc_find_anno_nde(prgm, pth, 1);
+    
+    if (!res || !res->info.nde->dsc_cnt)
+        return;
+
+    ldoc_nde_t* cntnr;
+    TAILQ_FOREACH(cntnr, &(res->info.nde->dscs), ldoc_nde_entries)
+    {
+        if (!qk_heap_empty())
+            qk_strcat("\n");
+
+        qk_strcat("##");
+        qk_strcat(alt);
+        qk_strcat(" ");
+        
+        bool emty = true;
+        ldoc_nde_t* dsc;
+        TAILQ_FOREACH(dsc, &(cntnr->dscs), ldoc_nde_entries)
+        {
+            if (dsc != TAILQ_FIRST(&(cntnr->dscs)))
+            {
+                emty = false;
+                qk_strcat(";");
+            }
+            
+            if (!strcmp(dsc->mkup.anno.str, GEN_LANDMARKS))
+            {
+                qk_strcat(GEN_LANDMARKS_GVF);
+                qk_strcat("=");
+                gvf_proc_doc_entlst(dsc, ",");
+            }
+            else if (!strcmp(dsc->mkup.anno.str, GEN_SOURCES))
+            {
+                qk_strcat(GEN_SOURCES_GVF);
+                qk_strcat("=");
+                gvf_proc_doc_entlst(dsc, ",");
+            }
+            else if (!strcmp(dsc->mkup.anno.str, GEN_TYPES))
+            {
+                qk_strcat(GEN_TYPES_GVF);
+                qk_strcat("=");
+                gvf_proc_doc_entlst(dsc, ",");
+            }
+            else if (!strcmp(dsc->mkup.anno.str, GEN_DBXREF))
+            {
+                qk_strcat(GEN_DBXREF_GFF3);
+                qk_strcat("=");
+                gvf_proc_doc_entlst(dsc, ",");
+            }
+            else
+            {
+                // TODO Document format error.
+            }
+        }
+        
+        ldoc_ent_t* ent;
+        TAILQ_FOREACH(ent, &(cntnr->ents), ldoc_ent_entries)
+        {
+            if (!emty)
+                qk_strcat(";");
+            else
+                emty = false;
+            
+            if (!strcmp(ent->pld.pair.anno.str, GEN_COMMENT))
+            {
+                qk_strcat(GEN_COMMENT_GVF);
+                qk_strcat("=");
+                qk_strcat(ent->pld.pair.dtm.str);
+            }
+            else
+            {
+                qk_strcat(ent->pld.pair.anno.str);
+                qk_strcat("=");
+                qk_strcat(ent->pld.pair.dtm.str);
+            }
+        }
+    }
+}
+
+static inline void gvf_proc_doc_prgm(ldoc_nde_t* prgm)
+{
+    // Version info; gff-version
+    gen_proc_doc_prgm_kv(prgm, (char*)GEN_GVFVERSION, (char*)GEN_GVFVERSION_GVF, " ");
+
+    gff_proc_doc_prgm(prgm);
+
+    gen_proc_doc_prgm_kv(prgm, "file-version", "file-version", " ");
+    gen_proc_doc_prgm_kv(prgm, "file-date", "file-date", " ");
+    
+    const char* ind_pth[] = { GEN_INDIVIDUALS };
+    ldoc_res_t* ind = ldoc_find_anno_nde(prgm, (char**)ind_pth, 1);
+    if (ind)
+    {
+        if (ind->info.nde->ent_cnt == 1)
+        {
+            if (!qk_heap_empty())
+                qk_strcat("\n");
+            
+            qk_strcat("##");
+            qk_strcat(GEN_INDIVIDUALS_GVF1);
+            qk_strcat(" ");
+            qk_strcat(TAILQ_FIRST(&(ind->info.nde->ents))->pld.str);
+        }
+        else if (ind->info.nde->ent_cnt > 1)
+        {
+            if (!qk_heap_empty())
+                qk_strcat("\n");
+            
+            qk_strcat("##");
+            qk_strcat(GEN_INDIVIDUALS_GVF2);
+            qk_strcat(" ");
+            ldoc_ent_t* ind_ent;
+            TAILQ_FOREACH(ind_ent, &(ind->info.nde->ents), ldoc_ent_entries)
+            {
+                if (ind_ent != TAILQ_FIRST(&(ind->info.nde->ents)))
+                    qk_strcat(",");
+                
+                qk_strcat(ind_ent->pld.str);
+            }
+        }
+    }
+    
+    gen_proc_doc_prgm_kv(prgm, (char*)GEN_POP, (char*)GEN_POP, " "); // population
+    gen_proc_doc_prgm_kv(prgm, (char*)GEN_SEX, (char*)GEN_SEX, " "); // sex
+    
+    gvf_proc_doc_strct(prgm, (char*)GEN_TECHNOLOGY, (char*)GEN_TECHNOLOGY);
+    gvf_proc_doc_strct(prgm, (char*)GEN_DATA_SRC, (char*)GEN_DATA_SRC);
+    gvf_proc_doc_strct(prgm, (char*)GEN_SCORE_MTHD, (char*)GEN_SCORE_MTHD);
+    gvf_proc_doc_strct(prgm, (char*)GEN_SOURCE_MTHD, (char*)GEN_SOURCE_MTHD);
+    gvf_proc_doc_strct(prgm, (char*)GEN_ATTRIBUTE_MTHD, (char*)GEN_ATTRIBUTE_MTHD);
+    gvf_proc_doc_strct(prgm, (char*)GEN_PHENO_DESCR, (char*)GEN_PHENO_DESCR);
+    gvf_proc_doc_strct(prgm, (char*)GEN_PHASED_GENO, (char*)GEN_PHASED_GENO);
+    
+    gen_proc_doc_prgm(prgm, " ");
 }
 
 char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
@@ -1461,8 +1642,9 @@ char* gvf_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
     switch (tpe)
     {
         case GEN_FMT_INF:
-            // gff_proc_doc_ftr(doc->rt);
-            return NULL;
+            gvf_proc_doc_prgm(doc->rt);
+            
+            return qk_heap_ptr();
         case GEN_FMT_FTR:
             attr = gvf_proc_doc_ftr_attrs(doc->rt);
             
