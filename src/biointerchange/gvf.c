@@ -318,6 +318,20 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
             }
         }
     }
+    else if (*ky == 'r')
+    {
+        ky++;
+        if (*ky == 'e')
+        {
+            ky++;
+            if (*ky == 'f')
+            {
+                ky++;
+                if (!strcmp(ky, "erence-fasta"))
+                    return LDOC_NDE_UA; // reference-fasta
+            }
+        }
+    }
     else if (*ky == 's')
     {
         ky++;

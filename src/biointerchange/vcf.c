@@ -240,8 +240,19 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
     
     inf++;
 
-    id = strdup(id);
-    gen_lwr(id);
+    if (!strcmp(id, GEN_FMT_ALT_VCF))
+        id = strdup(GEN_FMT_ALT);
+    else if (!strcmp(id, GEN_FMT_INFO_VCF))
+        id = strdup(GEN_FMT_INFO);
+    else if (!strcmp(id, GEN_FMT_FLT_VCF))
+        id = strdup(GEN_FMT_FLT);
+    else if (!strcmp(id, GEN_FMT_GT_VCF))
+        id = strdup(GEN_FMT_GT);
+    else
+    {
+        id = strdup(id);
+        gen_lwr(id);
+    }
 
     char* pth[] = { id };
     ldoc_res_t* res = ldoc_find_anno_nde(cntnr, pth, 1);
@@ -488,6 +499,15 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
                     if (!strncmp(val, "VCFv", 4))
                         val += 4;
                 }
+                else if (!strcmp(ln, GEN_FILE_DATE_VCF1) ||
+                         !strcmp(ln, GEN_FILE_DATE_VCF2))
+                {
+                    ln = (char*)GEN_FILE_DATE;
+                }
+                else if (!strcmp(ln, GEN_FST_BKPNT_VCF))
+                {
+                    ln = (char*)GEN_FST_BKPNT;
+                }
                 
                 ent->pld.pair.anno.str = strdup(ln);
                 ent->pld.pair.dtm.str = strdup(val);
@@ -520,39 +540,19 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         // Fine with string comparisons here, since this case
         // will (hopefully) not be true many times.
         if (!strcmp(ln, "FILTER"))
-        {
-            gen_lwr(ln);
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "INFO"))
-        {
-            gen_lwr(ln);
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "FORMAT"))
-        {
-            gen_lwr(ln);
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "contig"))
-        {
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "SAMPLE"))
-        {
-            gen_lwr(ln);
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "ALT"))
-        {
-            gen_lwr(ln);
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "PEDIGREE"))
-        {
-            gen_lwr(ln);
             vcf_proc_brckt(doc->rt, ln, val);
-        }
         else if (!strcmp(ln, "PEDIGREEDB") || !strcmp(ln, "pedigreeDB"))
         {
             
@@ -1419,6 +1419,81 @@ ldoc_doc_t* vcf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
 
 // JSON to VCF
 
+static inline void vcf_proc_doc_strct(ldoc_nde_t* meta, char* ky, char* alt)
+{
+    char* pth[] = { ky };
+    ldoc_res_t* res = ldoc_find_anno_nde(meta, pth, 1);
+    
+    if (!res || !res->info.nde->dsc_cnt)
+        return;
+    
+    ldoc_nde_t* cntnr;
+    TAILQ_FOREACH(cntnr, &(res->info.nde->dscs), ldoc_nde_entries)
+    {
+        if (cntnr->dsc_cnt)
+        {
+            // TODO Format error.
+        }
+        
+        if (!qk_heap_empty())
+            qk_strcat("\n");
+        
+        qk_strcat("##");
+        qk_strcat(alt);
+        qk_strcat("=<ID=");
+        qk_strcat(cntnr->mkup.anno.str);
+        
+        ldoc_ent_t* ent;
+        TAILQ_FOREACH(ent, &(cntnr->ents), ldoc_ent_entries)
+        {
+            qk_strcat(",");
+        
+            // Figure out whether `dtm.str` contains spaces, if so,
+            // then it is necessary to add quotes:
+            bool sp = false;
+            char* s = ent->pld.pair.dtm.str;
+            while (*s)
+            {
+                if (*s == ' ' || *s == '\t')
+                {
+                    sp = true;
+                    break;
+                }
+                
+                s++;
+            }
+            
+            qk_strcat(ent->pld.pair.anno.str);
+            qk_strcat("=");
+            
+            if (sp)
+                qk_strcat("\"");
+            qk_strcat(ent->pld.pair.dtm.str);
+            if (sp)
+                qk_strcat("\"");
+        }
+        
+        qk_strcat(">");
+    }
+}
+
+static inline void vcf_proc_doc_meta(ldoc_nde_t* meta)
+{
+    gen_proc_doc_prgm_kv(meta, (char*)GEN_VCFVERSION, (char*)GEN_VCFVERSION_VCF, "=VCFv");
+    gen_proc_doc_prgm_kv(meta, (char*)GEN_FILE_DATE, (char*)GEN_FILE_DATE_VCF1, "=");
+    gen_proc_doc_prgm_kv(meta, (char*)GEN_REFERENCE, (char*)GEN_REFERENCE, "=");
+    gen_proc_doc_prgm_kv(meta, "phasing", "phasing", "=");
+    gen_proc_doc_prgm_kv(meta, (char*)GEN_FST_BKPNT, (char*)GEN_FST_BKPNT_VCF, "=");
+    
+    vcf_proc_doc_strct(meta, (char*)GEN_SEQUENCE_REGION, (char*)GEN_SEQUENCE_REGION_VCF);
+    vcf_proc_doc_strct(meta, (char*)GEN_FMT_INFO, (char*)GEN_FMT_INFO_VCF);
+    vcf_proc_doc_strct(meta, (char*)GEN_FMT_FLT, (char*)GEN_FMT_FLT_VCF);
+    vcf_proc_doc_strct(meta, (char*)GEN_FMT_GT, (char*)GEN_FMT_GT_VCF);
+    vcf_proc_doc_strct(meta, (char*)GEN_FMT_ALT, (char*)GEN_FMT_ALT_VCF);
+    
+    gen_proc_doc_prgm(meta, "=");
+}
+
 static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
 {
     // If filters are an entity, then the assigned value should be NULL!
@@ -1597,8 +1672,9 @@ char* vcf_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
     switch (tpe)
     {
         case GEN_FMT_INF:
-            // gff_proc_doc_ftr(doc->rt);
-            return NULL;
+            vcf_proc_doc_meta(doc->rt);
+            
+            return qk_heap_ptr();
         case GEN_FMT_FTR:
             attr = vcf_proc_doc_ftr_attrs(doc->rt);
             
