@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2015 CODAMONO, Ontario, Canada
  *
@@ -442,7 +441,7 @@ static inline void vcf_proc_idlst(ldoc_nde_t* ftr, char* lst)
 static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     bool usr_nw;
-    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw);
+    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw, JSONLD_VCF_X1);
     
     // Skip leading markup:
     ln += 2;
@@ -503,6 +502,10 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
                          !strcmp(ln, GEN_FILE_DATE_VCF2))
                 {
                     ln = (char*)GEN_FILE_DATE;
+                }
+                else if (!strcmp(ln, GEN_FST_REF_VCF))
+                {
+                    ln = (char*)GEN_FST_REF;
                 }
                 else if (!strcmp(ln, GEN_FST_BKPNT_VCF))
                 {
@@ -1201,6 +1204,11 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
     ctx->pld.pair.dtm.str = (char*)JSONLD_VCF_1;
     ldoc_nde_ent_push(ftr, ctx);
+
+    ldoc_ent_t* tpe = ldoc_ent_new(LDOC_ENT_OR);
+    tpe->pld.pair.anno.str = (char*)JSONLD_TPE;
+    tpe->pld.pair.dtm.str = (char*)JSONLD_CLSS_FTR;
+    ldoc_nde_ent_push(ftr, tpe);
     
     ldoc_nde_t* lc = ldoc_nde_new(LDOC_NDE_UA);
     lc->mkup.anno.str = (char*)GEN_LOCUS;
@@ -1481,7 +1489,7 @@ static inline void vcf_proc_doc_meta(ldoc_nde_t* meta)
 {
     gen_proc_doc_prgm_kv(meta, (char*)GEN_VCFVERSION, (char*)GEN_VCFVERSION_VCF, "=VCFv");
     gen_proc_doc_prgm_kv(meta, (char*)GEN_FILE_DATE, (char*)GEN_FILE_DATE_VCF1, "=");
-    gen_proc_doc_prgm_kv(meta, (char*)GEN_REFERENCE, (char*)GEN_REFERENCE, "=");
+    gen_proc_doc_prgm_kv(meta, (char*)GEN_FST_REF, (char*)GEN_FST_REF_VCF, "=");
     gen_proc_doc_prgm_kv(meta, "phasing", "phasing", "=");
     gen_proc_doc_prgm_kv(meta, (char*)GEN_FST_BKPNT, (char*)GEN_FST_BKPNT_VCF, "=");
     
@@ -1537,8 +1545,325 @@ static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
     }
 }
 
+static bool vcf_hdr = false;
+static char vcf_smpls[1024 * 1024];
+static char vcf_fmt[512];
+
+static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const char* alt, bool nde)
+{
+    ldoc_res_t* fmt;
+    
+    if (nde)
+    {
+        if (!alt)
+        {
+            const char* fld_pth[] = { ky };
+            fmt = ldoc_find_anno_nde(smpl, (char**)fld_pth, 1);
+            
+            if (fmt)
+            {
+                ldoc_ent_t* usr;
+                TAILQ_FOREACH(usr, &(fmt->info.nde->ents), ldoc_ent_entries)
+                {
+                    if (*vcf_fmt)
+                        strcat(vcf_fmt, ":");
+                    
+                    strcat(vcf_fmt, usr->pld.pair.anno.str);
+                }
+                return;
+            }
+        }
+        if (!strcmp(ky, GEN_GENOTYPE_LIKE) ||
+            !strcmp(ky, GEN_GENOTYPE_LIKEP))
+        {
+            const char* fld_pth[] = { "AA", ky };
+            fmt = ldoc_find_anno_nde(smpl, (char**)fld_pth, 2);
+        }
+        else
+        {
+            const char* fld_pth[] = { ky };
+            fmt = ldoc_find_anno_nde(smpl, (char**)fld_pth, 1);
+        }
+    }
+    else
+        fmt = ldoc_find_anno_ent(smpl, (char*)ky);
+    
+    if (fmt)
+    {
+        if (*vcf_fmt)
+            strcat(vcf_fmt, ":");
+        
+        strcat(vcf_fmt, alt);
+    }
+}
+
+static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
+{
+    ldoc_nde_t* smpl;
+    
+    const char* smpl_pth[] = { "samples" };
+    ldoc_res_t* res = ldoc_find_anno_nde(ftr, (char**)smpl_pth, 1);
+    
+    if (!vcf_hdr)
+    {
+        vcf_smpls[0] = 0;
+
+        qk_strcat("##CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+        
+        TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
+        {
+            char* sid = smpl->mkup.anno.str;
+            
+            if (!*vcf_smpls)
+            {
+                strcat(vcf_smpls, sid);
+                vcf_smpls[strlen(vcf_smpls) + 1] = 0;
+            }
+            else
+            {
+                char* s = &vcf_smpls[strlen(vcf_smpls)];
+                
+                s++;
+                strcat(s, sid);
+                s[strlen(s) + 1] = 0;
+            }
+            
+            qk_strcat("\t");
+            qk_strcat(sid);
+        }
+        
+        qk_strcat("\n");
+    }
+    
+    vcf_fmt[0] = 0;
+    
+    TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
+    {
+        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE, GEN_GENOTYPE_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_DEPTH, GEN_DEPTH_VCF, false);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_ANNOTATIONS, GEN_ANNOTATIONS_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_LIKE, GEN_GENOTYPE_LIKE_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_LIKEP, GEN_GENOTYPE_LIKEP_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_PROB, GEN_GENOTYPE_PROB_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_QUAL, GEN_GENOTYPE_QUAL_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_HAP_QUALITIES, GEN_HAP_QUALITIES_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_SET, GEN_PHASE_SET_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_QUAL, GEN_PHASE_QUAL_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_CNTEXP, GEN_ALLELE_CNTEXP_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_QUALITY_MAP, GEN_QUALITY_MAP_VCF, true);
+        vcf_proc_doc_smpl_fmt(smpl, GEN_ATTRS, NULL, true);
+    }
+    
+    vcf_hdr = true;
+}
+
+static inline void vcf_proc_doc_gt(ldoc_nde_t* smpl)
+{
+    const char* gt_pth[] = { GEN_GENOTYPE };
+    ldoc_res_t* fld = ldoc_find_anno_nde(smpl, (char**)gt_pth, 1);
+    
+    if (!fld)
+    {
+        qk_strcat(".");
+        return;
+    }
+    
+    ldoc_res_t* ph = ldoc_find_anno_ent(fld->info.nde, "phased");
+    bool phsd = ph ? (ph->info.ent->tpe == LDOC_ENT_BR ? ph->info.ent->pld.pair.dtm.bl : false) : false;
+    
+    ldoc_res_t* all = ldoc_find_anno_ent(fld->info.nde, "alleles");
+    
+    char* astr = all->info.ent->pld.pair.dtm.str;
+    char gt[2] = { 0, 0 };
+    while (*astr)
+    {
+        if (astr > all->info.ent->pld.pair.dtm.str)
+            qk_strcat(phsd ? "|" : "/");
+        
+        gt[0] = *astr - 'A' + '0';
+        qk_strcat(gt);
+        
+        astr++;
+    }
+}
+
+static inline void vcf_proc_doc_ent(ldoc_nde_t* smpl, const char* ky)
+{
+    ldoc_res_t* fld = ldoc_find_anno_ent(smpl, (char*)ky);
+    
+    if (!fld)
+    {
+        qk_strcat(".");
+        return;
+    }
+
+    qk_strcat(fld->info.ent->pld.pair.dtm.str);
+}
+
+static inline void vcf_proc_doc_lst(ldoc_nde_t* smpl, const char* ky, char* sep)
+{
+    const char* pth[] = { ky };
+    ldoc_res_t* fld = ldoc_find_anno_nde(smpl, (char**)pth, 1);
+    
+    if (!fld)
+    {
+        qk_strcat(".");
+        return;
+    }
+    
+    ldoc_ent_t* ent;
+    TAILQ_FOREACH(ent, &(fld->info.nde->ents), ldoc_ent_entries)
+    {
+        if (ent != TAILQ_FIRST(&(fld->info.nde->ents)))
+            qk_strcat(sep);
+        
+        qk_strcat(ent->pld.str);
+    }
+}
+
+static inline void vcf_proc_doc_glgppl(ldoc_nde_t* smpl, gen_alt_t tpe)
+{
+    ldoc_res_t* res;
+    uint8_t n = 0;
+    for (; n < GEN_MAX_ALT; n++)
+    {
+        char* pth[] = { &GEN_ALLELES[GEN_STEP * n] };
+        res = ldoc_find_anno_nde(smpl, pth, 1);
+        
+        if (!res)
+            return;
+        
+        ldoc_res_t* res_ent = NULL;
+        switch (tpe)
+        {
+            case GEN_ALT_GL:
+                res_ent = ldoc_find_anno_ent(res->info.nde, (char*)GEN_GENOTYPE_LIKE);
+                break;
+            case GEN_ALT_GP:
+                res_ent = ldoc_find_anno_ent(res->info.nde, (char*)GEN_GENOTYPE_PROB);
+                break;
+            case GEN_ALT_PL:
+                res_ent = ldoc_find_anno_ent(res->info.nde, (char*)GEN_GENOTYPE_LIKEP);
+                break;
+            default:
+                // TODO: Internal error
+                break;
+        }
+        
+        if (!res_ent)
+            return;
+        
+        if (n)
+            qk_strcat(",");
+        
+        qk_strcat(res_ent->info.ent->pld.pair.dtm.str);
+
+    }
+}
+
+static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
+{
+    const char* smpl_pth[] = { "samples" };
+    ldoc_res_t* res = ldoc_find_anno_nde(ftr, (char**)smpl_pth, 1);
+    
+    if (!res)
+        return true;
+
+    qk_strcat("\t");
+    qk_strcat(vcf_fmt);
+    
+    char* soff;
+    char* sid = vcf_smpls;
+    while (*sid)
+    {
+        qk_strcat("\t");
+        soff = qk_working_ptr();
+        
+        const char* pth[] = { sid };
+        ldoc_res_t* smpl_res = ldoc_find_anno_nde(res->info.nde, (char**)pth, 1);
+
+        if (!smpl_res)
+            gen_err(MAIN_ERR_JFMT_KY, sid);
+        
+        char* fmt = strdup(vcf_fmt);
+        char* fid = fmt;
+        while (*fid)
+        {
+            // Separate fields:
+            if (fid > fmt)
+                qk_strcat(":");
+            
+            // Terminate this format ID:
+            char* fid_ = fid;
+            while (*fid_ && *fid_ != ':')
+                fid_++;
+            *fid_ = 0;
+            
+            if (!strcmp(fid, GEN_GENOTYPE_VCF))
+                vcf_proc_doc_gt(smpl_res->info.nde); // GT: genotype
+            else if (!strcmp(fid, GEN_DEPTH_VCF))
+                vcf_proc_doc_ent(smpl_res->info.nde, GEN_DEPTH); // DP: depth
+            else if (!strcmp(fid, GEN_ANNOTATIONS_VCF))
+                vcf_proc_doc_lst(smpl_res->info.nde, GEN_ANNOTATIONS, ";"); // FT: filter
+            else if (!strcmp(fid, GEN_GENOTYPE_LIKE_VCF))
+                vcf_proc_doc_glgppl(smpl_res->info.nde, GEN_ALT_GL); // GL: genotype likelihood
+            else if (!strcmp(fid, GEN_GENOTYPE_PROB_VCF))
+                vcf_proc_doc_glgppl(smpl_res->info.nde, GEN_ALT_GP); // GP: genotype probabilities phred scaled
+            else if (!strcmp(fid, GEN_GENOTYPE_LIKEP_VCF))
+                vcf_proc_doc_glgppl(smpl_res->info.nde, GEN_ALT_PL); // PL: genotype likelihood phred scaled
+            else if (!strcmp(fid, GEN_GENOTYPE_QUAL_VCF))
+                vcf_proc_doc_ent(smpl_res->info.nde, GEN_GENOTYPE_QUAL); // GQ: genotype quality
+            else if (!strcmp(fid, GEN_HAP_QUALITIES_VCF))
+                vcf_proc_doc_lst(smpl_res->info.nde, GEN_HAP_QUALITIES, ","); // HQ: haplotype qualities
+            else if (!strcmp(fid, GEN_PHASE_QUAL_VCF))
+                vcf_proc_doc_ent(smpl_res->info.nde, GEN_PHASE_QUAL); // PQ: phasing quality
+            else if (!strcmp(fid, GEN_QUALITY_MAP_VCF))
+                vcf_proc_doc_ent(smpl_res->info.nde, GEN_QUALITY_MAP); // MQ: mapping quality
+            else if (!strcmp(fid, GEN_PHASE_SET_VCF))
+                vcf_proc_doc_ent(smpl_res->info.nde, GEN_PHASE_SET); // PS: phase set
+            else
+            {
+                // User defined attributes:
+                const char* usr_pth[] = { GEN_ATTRS };
+                ldoc_res_t* res_usr = ldoc_find_anno_nde(smpl_res->info.nde, (char**)usr_pth, 1);
+                
+                if (!res_usr)
+                    gen_err(MAIN_ERR_JFMT_KY, GEN_ATTRS);
+                
+                ldoc_res_t* res_fid = ldoc_find_anno_ent(res_usr->info.nde, fid);
+                
+                if (!res_fid)
+                    gen_err(MAIN_ERR_JFMT_KY, fid);
+                
+                qk_strcat(res_fid->info.ent->pld.pair.dtm.str);
+                
+                ldoc_res_free(res_fid);
+                ldoc_res_free(res_usr);
+            }
+            
+            // Proceed to the next format ID:
+            while (*fid)
+                fid++;
+            fid++;
+        }
+        
+        free(fmt);
+        ldoc_res_free(smpl_res);
+        
+        // Proceed to the next sample ID:
+        while (*sid)
+            sid++;
+        sid++;
+    }
+    
+    ldoc_res_free(res);
+    
+    return true;
+}
+
 static inline bool vcf_proc_doc_info(ldoc_nde_t* ftr, char* attrs)
 {
+    /*
     ldoc_res_t* res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_CNT);
     if (res)
         gen_join_attrs_ent((char*)GEN_ALLELE_CNT_VCF, res->info.ent, attrs);
@@ -1546,16 +1871,146 @@ static inline bool vcf_proc_doc_info(ldoc_nde_t* ftr, char* attrs)
     res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_FRQ);
     if (res)
         gen_join_attrs_ent((char*)GEN_ALLELE_FRQ_VCF, res->info.ent, attrs);
-
-    res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_TTL);
+    */
+    
+    // Alleles:
+    
+    ldoc_res_t* res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_TTL);
     if (res)
+    {
         gen_join_attrs_ent((char*)GEN_ALLELE_TTL_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_ANCESTRAL_ALLELE);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_ANCESTRAL_ALLELE_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    // Memberships/truth-tags:
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_MEMBER_1000G);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_MEMBER_1000G_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_MEMBER_DBSNP);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_MEMBER_DBSNP_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_MEMBER_HM2);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_MEMBER_HM2_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_MEMBER_HM3);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_MEMBER_HM3_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_SOMATIC);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_SOMATIC_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    // Qualities:
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_QUALITY_MAP);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_QUALITY_MAP_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_QUALITY_RMS);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_QUALITY_RMS_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_QUALITY_MAP0);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_QUALITY_MAP0_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    // Samples:
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_SAMPLES_DATA);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_SAMPLES_DATA_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    // Other:
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_DEPTH);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_DEPTH_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_STRAND_BIAS);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_STRAND_BIAS_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    res = ldoc_find_anno_ent(ftr, (char*)GEN_VALIDATED);
+    if (res)
+    {
+        gen_join_attrs_ent((char*)GEN_VALIDATED_VCF, res->info.ent, attrs);
+        ldoc_res_free(res);
+    }
+    
+    const char* algn_pth[] = { GEN_ALIGNMENT };
+    res = ldoc_find_anno_nde(ftr, (char**)algn_pth, 1);
+    if (res && res->nde)
+    {
+        res = ldoc_find_anno_ent(res->info.nde, (char*)GEN_CIGAR);
+        
+        if (res && !res->nde)
+        {
+            // Add attribute separator, if other attributes are present:
+            if (qk_working_ptr() != attrs)
+                qk_strcat(";");
+
+            qk_strcat(GEN_CIGAR_VCF);
+            qk_strcat("=");
+            qk_strcat(res->info.ent->pld.pair.dtm.str);
+        }
+    }
+    
+    if (res)
+        ldoc_res_free(res);
+
+    vcf_proc_doc_smpl(ftr, attrs);
     
     return true;
 }
 
 inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
 {
+    vcf_proc_doc_smpl_hdrfmt(ftr);
+    
     const char* lc_id[] = { GEN_LOCUS };
     ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)lc_id, 1);
     
@@ -1563,7 +2018,24 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
     ldoc_res_t* st = ldoc_find_anno_ent(lc->info.nde, (char*)VCF_C2_1);
     ldoc_res_t* en = ldoc_find_anno_ent(lc->info.nde, (char*)VCF_C2_2);
     
+    ldoc_res_free(lc);
+    
     // TODO Check that st and en value are the same!
+    if (!st || !en)
+    {
+        // TODO Format error.
+    }
+    else
+    {
+        if (st->nde ||
+            en->nde ||
+            st->info.ent->tpe != LDOC_ENT_NR ||
+            en->info.ent->tpe != LDOC_ENT_NR ||
+            strcmp(st->info.ent->pld.str, en->info.ent->pld.str))
+        {
+            gen_err(MAIN_ERR_JFMT_DEP, "Start/end coordinate mismatched or malformatted");
+        }
+    }
     
     const char* ref_id[] = { VCF_C4 };
     ldoc_res_t* ref = ldoc_find_anno_nde(ftr, (char**)ref_id, 1);
@@ -1573,7 +2045,37 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
     qk_strcat("\t");
     qk_strcat(gen_res_req(st));
     qk_strcat("\t");
-    vcf_proc_doc_optlst(ftr, (char*)VCF_C3, (char*)GEN_UNKNOWN);
+    
+    ldoc_res_free(lm);
+    ldoc_res_free(st);
+    ldoc_res_free(en);
+    
+    // ID and aliases:
+    ldoc_res_t* ftr_id = ldoc_find_anno_ent(ftr, (char*)VCF_C3);
+    if (ftr_id && !ftr_id->nde)
+    {
+        if (ftr_id->info.ent->pld.str)
+            qk_strcat(ftr_id->info.ent->pld.str);
+        
+        // TODO: If there is NO id, then there SHOULD NOT be any aliases (document format error).
+        const char* alias_id[] = { GEN_ALIAS };
+        ldoc_res_t* als = ldoc_find_anno_nde(ftr, (char**)alias_id, 1);
+        if (als)
+        {
+            ldoc_ent_t* als_str;
+            TAILQ_FOREACH(als_str, &(als->info.nde->ents), ldoc_ent_entries)
+            {
+                if (ftr_id->info.ent->pld.str)
+                    qk_strcat(";");
+                
+                qk_strcat(als_str->pld.str);
+            }
+        }
+    }
+    
+    if (ftr_id)
+        ldoc_res_free(ftr_id);
+    
     qk_strcat("\t");
     qk_strcat(gen_res_opt(ref_seq));
     qk_strcat("\t");
@@ -1597,21 +2099,30 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
         if (!seq)
             str = ".";
         else
+        {
             str = seq->info.ent->pld.pair.dtm.str;
+            ldoc_res_free(seq);
+        }
         
         if (allele)
             qk_strcat(",");
         
         qk_strcat(str);
         
+        ldoc_res_free(var);
+        
         allele++;
     }
     qk_strcat("\t");
+    
+    ldoc_res_free(vars);
     
     // SCORE column:
     ldoc_res_t* scr = ldoc_find_anno_ent(ftr, (char*)VCF_C6);
     qk_strcat(gen_res_opt(scr));
     qk_strcat("\t");
+    
+    ldoc_res_free(scr);
 
     // FILTER column:
     vcf_proc_doc_optlst(ftr, (char*)GEN_ANNOTATIONS, "PASS");
@@ -1631,6 +2142,8 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
         {
             gen_join_attrs_ent(NULL, ent, attrs);
         }
+        
+        ldoc_res_free(usr);
     }
     
     /*
@@ -1656,6 +2169,9 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
     if (dbxref && dbxref->nde)
         gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
     */
+    
+    ldoc_res_free(ref);
+    ldoc_res_free(ref_seq);
     
     return NULL;
 }

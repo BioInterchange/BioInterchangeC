@@ -55,6 +55,12 @@ extern "C" {
 #define MAIN_ERR_SBIO 12
 // X509_STORE_add_cert failed:
 #define MAIN_ERR_SADD 13
+// Format errors:
+#define MAIN_ERR_GFMT_ATTR 14
+#define MAIN_ERR_JFMT_KY 15
+#define MAIN_ERR_JFMT_KYMAP 16
+#define MAIN_ERR_JFMT_VAL 17
+#define MAIN_ERR_JFMT_DEP 18
     
 // Ensure that no statistics are sent during license check:
 #define GEN_STATS_PRIVATE 1
@@ -63,7 +69,13 @@ extern "C" {
 #define BI_GEN_PG_MUL 4096
 
 extern const char* JSONLD_CTX;
+extern const char* JSONLD_TPE;
 
+extern const char* JSONLD_CLSS_CTX;
+extern const char* JSONLD_CLSS_MTA;
+extern const char* JSONLD_CLSS_FTR;
+extern const char* JSONLD_CLSS_SUM;
+    
 extern const char* JSONLD_GFF3_CTX1;
 extern const char* JSONLD_GTF_CTX1;
 extern const char* JSONLD_GVF_CTX1;
@@ -108,6 +120,7 @@ extern const char* GEN_BUILD_GFF3;
 extern const char* GEN_BUILD_VAL;
 extern const char* GEN_CIGAR;
 extern const char* GEN_CIGAR_GFF3;
+extern const char* GEN_CIGAR_VCF;
 extern const char* GEN_CODON;
 extern const char* GEN_COMMENT;
 extern const char* GEN_COMMENT_GVF;
@@ -136,6 +149,7 @@ extern const char* GEN_FST_BKPNT;
 extern const char* GEN_FST_BKPNT_VCF;
 extern const char* GEN_FST_REF;
 extern const char* GEN_FST_REF_GVF;
+extern const char* GEN_FST_REF_VCF;
 extern const char* GEN_GENOMIC_SRC;
 extern const char* GEN_GENOTYPE;
 extern const char* GEN_GENOTYPE_VCF;
@@ -424,6 +438,8 @@ typedef struct gen_ctxt_t
     char* ver;
 } gen_ctxt_t;
     
+void gen_err(int err, const char* s);
+    
 void gen_init();
     
 void gen_nde_dsc_opt(ldoc_nde_t* nde, ldoc_nde_t* dsc, char* lbl);
@@ -457,7 +473,7 @@ size_t gen_csplit(char* str, char c);
 
 void gff_proc_tgt(ldoc_nde_t* nde, char* val);
     
-ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw);
+ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw, const char* ctx);
 ldoc_nde_t* gen_find_nde(ldoc_nde_t* ctnr1, ldoc_nde_t* ctnr2, char* ky);
 void gen_add_nw(ldoc_nde_t* nde, ldoc_nde_t* usr);
 

@@ -333,7 +333,7 @@ ldoc_struct_t gff_prgm_tpe(char* ky)
 static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     bool usr_nw;
-    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw);
+    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw, JSONLD_GFF3_X1);
     
     // Skip leading markup:
     ln += 2;
@@ -587,6 +587,11 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ctx->pld.pair.dtm.str = (char*)JSONLD_GFF3_1;
     ldoc_nde_ent_push(ftr, ctx);
 
+    ldoc_ent_t* ldtpe = ldoc_ent_new(LDOC_ENT_OR);
+    ldtpe->pld.pair.anno.str = (char*)JSONLD_TPE;
+    ldtpe->pld.pair.dtm.str = (char*)JSONLD_CLSS_FTR;
+    ldoc_nde_ent_push(ftr, ldtpe);
+    
     // User-defined attributes:
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
@@ -1314,12 +1319,18 @@ inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)
     ldoc_res_t* id = ldoc_find_anno_ent(ftr, (char*)GEN_ID);
     ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
     
-    const char* dbxref_id[] = { "dbxref" };
+    const char* dbxref_id[] = { GEN_DBXREF };
     ldoc_res_t* dbxref = ldoc_find_anno_nde(ftr, (char**)dbxref_id, 1);
     
     const char* prnt_pth[] = { "parent" };
     ldoc_res_t* prnt = ldoc_find_anno_nde(ftr, (char**)prnt_pth, 1);
+
+    const char* als_pth[] = { GEN_ALIAS };
+    ldoc_res_t* als = ldoc_find_anno_nde(ftr, (char**)als_pth, 1);
     
+    const char* ont_id[] = { GEN_ONT_TERM };
+    ldoc_res_t* ont = ldoc_find_anno_nde(ftr, (char**)ont_id, 1);
+
     const char* almnt_pth[] = { GEN_ALIGNMENT };
     ldoc_res_t* almnt = ldoc_find_anno_nde(ftr, (char**)almnt_pth, 1);
     
@@ -1334,9 +1345,15 @@ inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)
     if (prnt && prnt->nde)
         gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
 
+    if (als && als->nde)
+        gen_join_attrs_nde((char*)GEN_ALIAS_GFF3, als->info.nde, attrs);
+
     if (dbxref && dbxref->nde)
-        gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
-    
+        gen_join_attrs_nde((char*)GEN_DBXREF_GFF3, dbxref->info.nde, attrs);
+
+    if (ont && ont->nde)
+        gen_join_attrs_nde("Ontology_term", ont->info.nde, attrs);
+
     if (almnt && almnt->nde)
         gff_join_almnt(almnt->info.nde, attrs);
     

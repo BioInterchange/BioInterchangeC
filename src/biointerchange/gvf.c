@@ -586,6 +586,11 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     ctx->pld.pair.dtm.str = (char*)JSONLD_GVF_1;
     ldoc_nde_ent_push(ftr, ctx);
     
+    ldoc_ent_t* ldtpe = ldoc_ent_new(LDOC_ENT_OR);
+    ldtpe->pld.pair.anno.str = (char*)JSONLD_TPE;
+    ldtpe->pld.pair.dtm.str = (char*)JSONLD_CLSS_FTR;
+    ldoc_nde_ent_push(ftr, ldtpe);
+    
     ldoc_nde_t* attrs = ldoc_nde_new(LDOC_NDE_UA);
     attrs->mkup.anno.str = (char*)GEN_ATTRS;
     
@@ -1041,7 +1046,7 @@ static inline void gvf_proc_sctn(ldoc_nde_t* nde, char* sctn, char* ky, char* va
 static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     bool usr_nw;
-    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw);
+    ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw, JSONLD_GVF_X1);
 
     // Skip leading markup:
     ln += 2;
@@ -1600,7 +1605,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
         // TODO Data error. Not supported.
     }
     
-    // TODO Is this iteration right? Necessary to find 'B', 'C', etc. in order?
+    // TODO: Is this iteration right? Necessary to find 'B', 'C', etc. in order?
     // Note 1: this assumes that all allele nodes contain the
     //         the same named entities.
     // Note 2: alleles must be labeled 'B', 'C', etc.

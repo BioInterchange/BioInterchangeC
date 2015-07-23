@@ -16,6 +16,7 @@
 #include "vcf.h"
 
 const char* JSONLD_CTX = "@context";
+const char* JSONLD_TPE = "@type";
 
 /*
 {
@@ -29,6 +30,12 @@ const char* JSONLD_CTX = "@context";
   }
 }
  */
+
+const char* JSONLD_CLSS_CTX = "https://www.codamono.com/gfvo-squared#Context";
+const char* JSONLD_CLSS_MTA = "https://www.codamono.com/gfvo-squared#Meta";
+const char* JSONLD_CLSS_FTR = "https://www.codamono.com/gfvo-squared#Feature";
+const char* JSONLD_CLSS_SUM = "https://www.codamono.com/gfvo-squared#Summary";
+
 const char* JSONLD_GFF3_CTX1 = "https://www.codamono.com/jsonld/gff3-c1.json";
 const char* JSONLD_GTF_CTX1 = "https://www.codamono.com/jsonld/gtf-c1.json";
 const char* JSONLD_GVF_CTX1 = "https://www.codamono.com/jsonld/gvf-c1.json";
@@ -73,6 +80,7 @@ const char* GEN_BUILD_GFF3 = "genome-build";                 // N/A
 const char* GEN_BUILD_VAL = "build";                    // (documented)
 const char* GEN_CIGAR = "cigar-string";                 // (documented)
 const char* GEN_CIGAR_GFF3 = "Gap";                     // N/A
+const char* GEN_CIGAR_VCF = "CIGAR";                    // N/A
 const char* GEN_CODON = "codon";                        // (documented)
 const char* GEN_CODON_PHASE = "codon-phase";            // (documented)
 const char* GEN_COMMENT = "comment";                    // (documented)
@@ -91,18 +99,19 @@ const char* GEN_END_VCF = "END";
 const char* GEN_FILE_DATE = "file-date";                // (documented)
 const char* GEN_FILE_DATE_VCF1 = "filedate";
 const char* GEN_FILE_DATE_VCF2 = "fileDate";
-const char* GEN_FMT_ALT = "allele-format";              //
+const char* GEN_FMT_ALT = "allele-format";              // (documented)
 const char* GEN_FMT_ALT_VCF = "ALT";
-const char* GEN_FMT_INFO = "feature-format";            //
+const char* GEN_FMT_INFO = "feature-format";            // (documented)
 const char* GEN_FMT_INFO_VCF = "INFO";
-const char* GEN_FMT_FLT = "annotation-format";          //
+const char* GEN_FMT_FLT = "annotation-format";          // (documented)
 const char* GEN_FMT_FLT_VCF = "FILTER";
-const char* GEN_FMT_GT = "genotype-format";             //
+const char* GEN_FMT_GT = "genotype-format";             // (documented)
 const char* GEN_FMT_GT_VCF = "FORMAT";
-const char* GEN_FST_BKPNT = "breakpoint-fasta";         //
+const char* GEN_FST_BKPNT = "breakpoint-fasta";         // (documented)
 const char* GEN_FST_BKPNT_VCF = "assembly";
-const char* GEN_FST_REF = "reference-fasta";            // (left untouched)
+const char* GEN_FST_REF = "reference-fasta";            // (documented; code left untouched in GVF)
 const char* GEN_FST_REF_GVF = "reference-fasta";
+const char* GEN_FST_REF_VCF = "reference";
 const char* GEN_GENOMIC_SRC = "genomic-source";         // (documented)
 const char* GEN_GENOTYPE = "genotype";                  // (documented)
 const char* GEN_GENOTYPE_VCF = "GT";
@@ -230,6 +239,32 @@ static inline void gen_allele_lbl(char* s, size_t j, size_t k)
     GEN_ALLELES[idx] = 'A' + j;
     GEN_ALLELES[idx + 1] = 'A' + k;
     GEN_ALLELES[idx + 2] = 0;
+}
+
+void gen_err(int err, const char* s)
+{
+    switch (err)
+    {
+        case MAIN_ERR_JFMT_KY:
+            fprintf(stderr, "Invalid JSON document structure.\n");
+            if (s)
+                fprintf(stderr, "Cannot find key: %s\n", s);
+            break;
+        case MAIN_ERR_JFMT_KYMAP:
+            fprintf(stderr, "Invalid JSON document structure.\n");
+            if (s)
+                fprintf(stderr, "Cannot find key for genomic attribute: %s\n", s);
+            break;
+        case MAIN_ERR_JFMT_DEP:
+            fprintf(stderr, "Invalid JSON document structure.\n");
+            if (s)
+                fprintf(stderr, "Cause: %s\n", s);
+            break;
+        default:
+            break;
+    }
+    
+    exit(err);
 }
 
 void gen_init()
@@ -533,6 +568,21 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     }
                 }
             }
+            else if (*str == 'e')
+            {
+                str++;
+                if (*str == 'r')
+                {
+                    str++;
+                    if (!strcmp(str, "ives_from"))
+                    {
+                        // GFF3:
+                        kwd->attr = BI_VAL;
+                        kwd->alt = NULL;
+                        return;
+                    }
+                }
+            }
         }
         else if (*str == 'E')
         {
@@ -694,6 +744,21 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     return;
                 }
             }
+            else if(*str == 's')
+            {
+                str++;
+                if (*str == '_')
+                {
+                    str++;
+                    if (!strcmp(str, "circular"))
+                    {
+                        // GFF3: Is_circular
+                        kwd->attr = BI_BL;
+                        kwd->alt = NULL;
+                        return;
+                    }
+                }
+            }
         }
         else if (*str == 'M')
         {
@@ -744,7 +809,7 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     if (!strcmp(str, "e"))
                     {
                         // GFF3: Note
-                        kwd->attr = BI_CSEP;
+                        kwd->attr = BI_VAL;
                         kwd->alt = NULL;
                         return;
                     }
@@ -1059,6 +1124,10 @@ inline ldoc_content_t gen_smrt_flttpe(char* val)
 
 void gen_xcig(char* str)
 {
+    // CIGAR format seems fine already (digits followed by operations):
+    if (*str >= '0' && *str <= '9')
+        return;
+    
     char* wptr = str;
     
     // `c` stores the alignment operation ('M', 'D', etc.)
@@ -1135,7 +1204,7 @@ size_t gen_csplit(char* str, char c)
     return n;
 }
 
-inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw)
+inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw, const char* ctx_url)
 {
     ldoc_nde_t* usr;
     
@@ -1146,8 +1215,16 @@ inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw)
         // TODO Error handling.
         
         ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
-        ctx->pld.pair.dtm.str = (char*)JSONLD_GVF_X1;
+        ctx->pld.pair.dtm.str = (char*)ctx_url;
         ldoc_nde_ent_push(nde, ctx);
+
+        ldoc_ent_t* tpe = ldoc_ent_new(LDOC_ENT_OR);
+        
+        // TODO Error handling.
+        
+        tpe->pld.pair.anno.str = (char*)JSONLD_TPE;
+        tpe->pld.pair.dtm.str = (char*)JSONLD_CLSS_MTA;
+        ldoc_nde_ent_push(nde, tpe);
         
         // User-defined pragmas:
         usr = ldoc_nde_new(LDOC_NDE_UA);
@@ -1243,9 +1320,29 @@ inline bool gen_join_attrs_ent(char* id, ldoc_ent_t* ent, char* attrs)
     
     gen_join_attrs_key(id, NULL, ent, attrs);
     
+    char* s;
+    bool sp = false;
     switch (ent->tpe)
     {
         case LDOC_ENT_OR:
+            s = ent->pld.pair.dtm.str;
+            while (*s)
+            {
+                if (*s == ' ' || *s == '\t')
+                {
+                    sp = true;
+                    break;
+                }
+                
+                s++;
+            }
+            
+            if (sp)
+                qk_strcat("\"");
+            qk_strcat(ent->pld.pair.dtm.str);
+            if (sp)
+                qk_strcat("\"");
+            break;
         case LDOC_ENT_NR:
             qk_strcat(ent->pld.pair.dtm.str);
             break;
@@ -1507,7 +1604,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             {
                 dst = ftr;
                 
-                gen_lwr(attr);
+                gen_lwrhyph(attr);
                 
                 // Fall back to comma separated list handing, if
                 // this is a comma separated variant list but no
@@ -1645,7 +1742,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     //   LDOC_ENT_NR  -- if attribute is a number
                     //   LDOC_ENT_OR  -- if attribute is a string
                     //   gen_smrt_tpe -- otherwise
-                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : (kwd.attr == BI_VAL ? LDOC_ENT_OR : gen_smrt_tpe(val)));
+                    kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : (kwd.attr == BI_VAL ? LDOC_ENT_OR : (kwd.attr == BI_BL ? LDOC_ENT_BR : gen_smrt_tpe(val))));
                     
                     if (!kv_ent)
                     {
@@ -1659,10 +1756,23 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         kv_ent->pld.pair.anno.str = attr;
                     
                     // Assign value, or, truth value if only a keyword was seen:
-                    if (val)
+                    if (kv_ent->tpe == LDOC_ENT_OR)
+                    {
+                        kv_ent->pld.pair.dtm.str = gen_quoskp(val);
+                    }
+                    else if (kv_ent->tpe != LDOC_ENT_BR)
                         kv_ent->pld.pair.dtm.str = val;
-                    else
+                    else if (!val)
                         kv_ent->pld.pair.dtm.bl = true;
+                    else
+                    {
+                        gen_lwr(val);
+                        
+                        if (!strcmp(val, "true"))
+                            kv_ent->pld.pair.dtm.bl = true;
+                        else
+                            kv_ent->pld.pair.dtm.bl = false;
+                    }
                     
                     ldoc_nde_ent_push(dst, kv_ent);
                     
@@ -2011,6 +2121,11 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                             break;
                     }
                     ldoc_nde_ent_push(cdoc->rt, ent);
+
+                    ldoc_ent_t* tpe = ldoc_ent_new(LDOC_ENT_OR);
+                    tpe->pld.pair.anno.str = strdup(JSONLD_TPE);
+                    tpe->pld.pair.dtm.str = strdup(JSONLD_CLSS_CTX);
+                    ldoc_nde_ent_push(cdoc->rt, tpe);
                     
                     ent = ldoc_ent_new(LDOC_ENT_OR);
                     ent->pld.pair.anno.str = strdup("biointerchange-version");
@@ -2107,6 +2222,11 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     ent->pld.pair.anno.str = strdup(JSONLD_CTX);
     ent->pld.pair.dtm.str = strdup(JSONLD_STAT_1);
     ldoc_nde_ent_push(sdoc->rt, ent);
+    
+    ldoc_ent_t* stat_tpe = ldoc_ent_new(LDOC_ENT_OR);
+    stat_tpe->pld.pair.anno.str = strdup(JSONLD_TPE);
+    stat_tpe->pld.pair.dtm.str = strdup(JSONLD_CLSS_SUM);
+    ldoc_nde_ent_push(sdoc->rt, stat_tpe);
     
     ldoc_nde_t* fstat = ldoc_nde_new(LDOC_NDE_UA);
     fstat->mkup.anno.str = strdup(GEN_STATS);
