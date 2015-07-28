@@ -28,13 +28,11 @@ Terms and conditions
 
     b. Reviewer License: Licensor grants Licensee a personal license for the sole purpose of aiding the academic peer-review process, with a termination date set 30 days after Licensee's agreement to the terms and conditions herein.
 
-    c. Individual License: Licensor grants Licensee a personal license.
+    c. Individual License: Licensor grants Licensee a personal license for use in personal, non-collaborative, projects.
 
-    d. Small Lab License: Licensor grants Licensee the right to simultaneously run The Software by five colocated individuals who are affiliated with the Licensee's laboratory, research group, or other departmental structure that is under the direct supervision of the Licensee.
+    d. Team License: Licensor grants Licensee the right to simultaneously run The Software by five colocated individuals who are affiliated with the Licensee.
 
-    e. Team License: Licensor grants Licensee the right to simultaneously run The Software by twenty individuals within the Licensee's organization.
-
-    f. Cloud, Cluster & HIPAA License: Licensor grants Licensee the right to run The Software within the Licensee's organization.
+    e. Cloud, Cluster & HIPAA License: Licensor grants Licensee the right to run The Software within the Licensee's organization.
 
 4.  Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee’s license in the case where Licensee:
 
@@ -44,7 +42,7 @@ Terms and conditions
 
     c.  Licensee was in breach of any of this license's terms and conditions and such breach was not cured, immediately upon notification; or 
 
-    d.  Licensee in breach of any of the terms of clause 2 to this license; or 
+    d.  Licensee in breach of any of the terms of clause 2 or clause 3 to this license; or
 
     e.  Licensee otherwise entered into any arrangement which caused Licensor to be unable to enforce his rights under this License.
 
