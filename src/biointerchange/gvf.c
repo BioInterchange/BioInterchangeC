@@ -78,7 +78,9 @@ static inline void gvf_idx(ldoc_nde_t* seqid, ldoc_nde_t* type, ldoc_nde_t* sour
             
             lbl = (char*)malloc(GVF_SPGM_MAXLBL);
             
-            // TODO Error handling.
+            if (!lbl)
+                gen_err(MAIN_ERR_SYSMALL, "Index label allocation.");
+            
             break;
         case 1:
             nde = type;
@@ -113,7 +115,8 @@ static inline void gvf_idx(ldoc_nde_t* seqid, ldoc_nde_t* type, ldoc_nde_t* sour
         // used on this node to iterate through/append information:
         ldoc_nde_t* nde = ldoc_nde_new(LDOC_NDE_OL);
         
-        // TODO Error handling.
+        if (!nde)
+            gen_err(MAIN_ERR_SYSMALL, "Indexing; ordered list allocation.");
         
         ldoc_nde_ent_push(nde, pld);
         
@@ -131,9 +134,7 @@ static inline void gvf_idx(ldoc_nde_t* seqid, ldoc_nde_t* type, ldoc_nde_t* sour
         TAILQ_FOREACH(ent, &(nde->ents), ldoc_ent_entries)
         {
             if (GVF_SPGM_MAXLBL - (long)lbllen - (long)strlen(ent->pld.str) - 2 < 0)
-            {
-                // TODO Error handling; data labels too long.
-            }
+                gen_err(MAIN_ERR_FMT, "Label too long (1).");
             
             // Only add a space for value separation if the value itself
             // is not a wildcard ('.'):
@@ -152,9 +153,7 @@ static inline void gvf_idx(ldoc_nde_t* seqid, ldoc_nde_t* type, ldoc_nde_t* sour
     else
     {
         if (GVF_SPGM_MAXLBL - (long)strlen(lbl) - 2 < 0)
-        {
-            // TODO Error handling; data labels too long.
-        }
+            gen_err(MAIN_ERR_FMT, "Label too long (2).");
         
         strncat(lbl, ".", GVF_SPGM_MAXLBL - strlen(lbl) - 2);
         
@@ -178,11 +177,11 @@ static inline ldoc_nde_t* gvf_idx_dsc(ldoc_nde_t* prnt, ldoc_res_t* idx, char* m
     
     dsc = ldoc_nde_new(LDOC_NDE_UA);
     
-    // TODO Error handling.
+    // TODO: Error handling.
     
     dsc->mkup.anno.str = strdup(mkup);
     
-    // TODO Error handling.
+    // TODO: Error handling.
     
     ldoc_nde_dsc_push(prnt, dsc);
     
@@ -387,7 +386,7 @@ static inline ldoc_struct_t gvf_prgm_tpe(char* ky)
 
 inline void gvf_proc_effct(ldoc_nde_t* vars, char** val_cmp, bool* lend)
 {
-    // TODO This function seems long and uses many variables. Can be shortened?
+    // TODO: This function seems long and uses many variables. Can be shortened?
     
     // Remember where the processing started.
     char* val = *val_cmp;
@@ -427,15 +426,13 @@ inline void gvf_proc_effct(ldoc_nde_t* vars, char** val_cmp, bool* lend)
             spc++;
         *spc = 0;
         eff = strtoll(val_spc, NULL, 10);
-        // TODO Check that eff is a number and less than dsc_cnt!
+        // TODO: Check that eff is a number and less than dsc_cnt!
         // Find the node (can the desclaration be moved up?):
         const char* vars_id[] = { &GEN_ALLELE[(eff + 1) * 2] };
         nde_res = ldoc_find_anno_nde(vars, (char**)vars_id, 1);
         
         if (!nde_res)
-        {
-            // TODO Error in data format.
-        }
+            gen_err(MAIN_ERR_FMT, "Variants.");
         
         const char* effs_id[] = { GEN_EFFECTS };
         nde_eff = ldoc_find_anno_nde(nde_res->info.nde, (char**)effs_id, 1);
@@ -530,9 +527,7 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     ldoc_doc_t* doc = ldoc_doc_new();
     
     if (!doc)
-    {
-        // TODO Error handling.
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Feature document allocation.");
     
     // Remove trailing line breaks:
     off_t off = lnlen - 1;
@@ -550,9 +545,7 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
             off++;
         
         if (off >= lnlen)
-        {
-            // TODO Error handling.
-        }
+            gen_err(MAIN_ERR_INT, "Feature line exhausted.");
         
         ln[off] = 0;
         coff[col] = ln + off + 1;
@@ -568,8 +561,8 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     if (idx && coff[3] && coff[4])
     {
         bool rv = coff[6][0] == '+' ? true : false;
-        uint64_t fst = strtoull(coff[3], NULL, 10); // TODO Add second parameter to figure out errors.
-        uint64_t fen = strtoull(coff[4], NULL, 10); // TODO Ditto.
+        uint64_t fst = strtoull(coff[3], NULL, 10); // TODO: Add second parameter to figure out errors.
+        uint64_t fen = strtoull(coff[4], NULL, 10); // TODO: Ditto.
         seq = gff_seq(fd, mx, idx, coff[0], fst, fen, rv);
     }
     else
@@ -647,7 +640,7 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     }
     
     // Add structured pragma links -- if available:
-    // TODO Optimize, so that not all 2^3-1 choices need to be probed:
+    // TODO: Optimize, so that not all 2^3-1 choices need to be probed:
     uint8_t i = 1;
     for (; i < 8; i++)
     {
@@ -731,7 +724,7 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
                     
                     break;
                 default:
-                    // TODO Internal error.
+                    gen_err(MAIN_ERR_INT, "Reference/variant state.");
                     break;
             }
             
@@ -1104,7 +1097,7 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             else
                 dst = usr; // User defined pragmas.
             
-            // TODO Use own types, so that this conversion is not necessary:
+            // TODO: Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_UA : tpe);
             
             if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
@@ -1128,8 +1121,8 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     {
         // Fine with string comparisons here, since this case
         // will (hopefully) not be true many times.
-        // TODO Can GEN_DATA, SCORE, ATTRIBUTE, etc. be merged
-        //      by passing ln instead of a constant?
+        // TODO: Can GEN_DATA, SCORE, ATTRIBUTE, etc. be merged
+        //       by passing ln instead of a constant?
         if (!strcmp(ln, "sequence-region"))
         {
             ldoc_nde_t* nde = gff_proc_sregion(val, &id);
@@ -1166,7 +1159,7 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
         }
         else
         {
-            // TODO Internal error.
+            gen_err(MAIN_ERR_INT, "Key handling.");
         }
     }
     else if (tpe == LDOC_NDE_OL)
@@ -1320,7 +1313,8 @@ ldoc_doc_t* gvf_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
                     size_t cmtlen = strlen(*cmt) + ccmtlen;
                     *cmt = realloc(*cmt, cmtlen + 1);
                     
-                    // TODO Error handling.
+                    if (!*cmt)
+                        gen_err(MAIN_ERR_SYSMALL, "Memory expansion for comment.");
                     
                     strncat(*cmt, ccmt, ccmtlen);
                     
@@ -1372,7 +1366,9 @@ void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
         eff = effs->dscs.tqh_first;
         
         ent = ldoc_find_anno_ent(eff, "effect");
-        // TODO Error handling. Data format error.
+        
+        if (!ent)
+            gen_err(MAIN_ERR_FMT, "\"effect\" key missing.");
         
         strcat(astr, ent->info.ent->pld.pair.dtm.str);
         strcat(astr, " ");
@@ -1382,11 +1378,14 @@ void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
         sprintf(e, "%u ", allele[0] - 'B');
         
         ent = ldoc_find_anno_ent(eff, "affected-feature-type");
-        // TODO Error handling. Data format error.
+        
+        if (!ent)
+            gen_err(MAIN_ERR_FMT, "\"affected-feature-type\" key missing.");
         
         strcat(astr, ent->info.ent->pld.pair.dtm.str);
         
-        // TODO There should be only one descendant.
+        // TODO: There should be only one descendant.
+        
         ftrs = eff->dscs.tqh_first;
         
         while (ftrs->ent_cnt)
@@ -1474,7 +1473,7 @@ static inline void gvf_proc_doc_strct(ldoc_nde_t* prgm, char* ky, char* alt)
             }
             else
             {
-                // TODO Document format error.
+                gen_err(MAIN_ERR_FMT, "Structure error.");
             }
         }
         
@@ -1569,7 +1568,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     const char* vars_id[] = { GEN_VARIANTS };
     ldoc_res_t* vars = ldoc_find_anno_nde(ftr, (char**)vars_id, 1);
     
-    // TODO Replace with some quick-heap implementation!
+    // TODO: Replace with some quick-heap implementation!
     char* astr = (char*)malloc(1*1024*1024);
     *astr = 0;
 
@@ -1601,9 +1600,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     size_t vnum = vars->info.nde->dsc_cnt; // Number of alleles ('B', 'C', etc.)
     
     if (vnum > 26)
-    {
-        // TODO Data error. Not supported.
-    }
+        gen_err(MAIN_ERR_FMT, "Number of alleles exceeded.");
     
     // TODO: Is this iteration right? Necessary to find 'B', 'C', etc. in order?
     // Note 1: this assumes that all allele nodes contain the
@@ -1642,7 +1639,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
             nde = allele->dscs.tqh_first;
             nde_nme = nde->mkup.anno.str;
             
-            // TODO nde_nme will have to be "effects" here.
+            // TODO: nde_nme will have to be "effects" here.
             
             gvf_proc_attr_effct(nde, allele->mkup.anno.str, astr);
             
@@ -1677,7 +1674,7 @@ char* gvf_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
             
             return qk_heap_ptr();
         default:
-            // TODO Internal error.
+            gen_err(MAIN_ERR_INT, "Unknown document format.");
             return NULL;
     }
     

@@ -877,8 +877,7 @@ static inline void vcf_proc_glgppl(ldoc_nde_t* cntnr, char* val, size_t len, gen
                     ent->pld.pair.anno.str = (char*)GEN_GENOTYPE_LIKEP;
                     break;
                 default:
-                    // TODO Internal error.
-                    exit(123);
+                    gen_err(MAIN_ERR_INT, "A76412");
                     break;
             }
             
@@ -1156,9 +1155,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     ldoc_doc_t* doc = ldoc_doc_new();
     
     if (!doc)
-    {
-        // TODO Error handling.
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Feature document allocation.");
     
     // Remove trailing line breaks:
     off_t off = lnlen - 1;
@@ -1177,10 +1174,8 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
         while (ln[off] != '\t' && off < lnlen)
             off++;
         
-        if (off >= lnlen)
-        {
-            // TODO Error handling.
-        }
+        if (off >= lnlen && col < stt->vcf_col)
+            gen_err(MAIN_ERR_INT, "Feature line exhausted.");
         
         ln[off] = 0;
         coff[col] = ln + off + 1;
@@ -1460,23 +1455,33 @@ static inline void vcf_proc_doc_strct(ldoc_nde_t* meta, char* ky, char* alt)
             // then it is necessary to add quotes:
             bool sp = false;
             char* s = ent->pld.pair.dtm.str;
-            while (*s)
-            {
-                if (*s == ' ' || *s == '\t')
+            
+            if (s)
+                while (*s)
                 {
-                    sp = true;
-                    break;
+                    if (*s == ' ' || *s == '\t')
+                    {
+                        sp = true;
+                        break;
+                    }
+                    
+                    s++;
                 }
-                
-                s++;
-            }
+            
+            // TODO: Auto-capitalization should depend on known keywords.
+            if (*ent->pld.pair.anno.str >= 'a' &&
+                *ent->pld.pair.anno.str <= 'z')
+                *ent->pld.pair.anno.str = *ent->pld.pair.anno.str - 'a' + 'A';
             
             qk_strcat(ent->pld.pair.anno.str);
             qk_strcat("=");
             
             if (sp)
                 qk_strcat("\"");
-            qk_strcat(ent->pld.pair.dtm.str);
+            if (s)
+                qk_strcat(ent->pld.pair.dtm.str);
+            else
+                qk_strcat(".");
             if (sp)
                 qk_strcat("\"");
         }
@@ -1608,51 +1613,53 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
     {
         vcf_smpls[0] = 0;
 
-        qk_strcat("##CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+        qk_strcat("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
         
-        TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
-        {
-            char* sid = smpl->mkup.anno.str;
-            
-            if (!*vcf_smpls)
+        if (res)
+            TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
             {
-                strcat(vcf_smpls, sid);
-                vcf_smpls[strlen(vcf_smpls) + 1] = 0;
-            }
-            else
-            {
-                char* s = &vcf_smpls[strlen(vcf_smpls)];
+                char* sid = smpl->mkup.anno.str;
                 
-                s++;
-                strcat(s, sid);
-                s[strlen(s) + 1] = 0;
+                if (!*vcf_smpls)
+                {
+                    strcat(vcf_smpls, sid);
+                    vcf_smpls[strlen(vcf_smpls) + 1] = 0;
+                }
+                else
+                {
+                    char* s = &vcf_smpls[strlen(vcf_smpls)];
+                    
+                    s++;
+                    strcat(s, sid);
+                    s[strlen(s) + 1] = 0;
+                }
+                
+                qk_strcat("\t");
+                qk_strcat(sid);
             }
-            
-            qk_strcat("\t");
-            qk_strcat(sid);
-        }
         
         qk_strcat("\n");
     }
     
     vcf_fmt[0] = 0;
     
-    TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
-    {
-        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE, GEN_GENOTYPE_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_DEPTH, GEN_DEPTH_VCF, false);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_ANNOTATIONS, GEN_ANNOTATIONS_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_LIKE, GEN_GENOTYPE_LIKE_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_LIKEP, GEN_GENOTYPE_LIKEP_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_PROB, GEN_GENOTYPE_PROB_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_QUAL, GEN_GENOTYPE_QUAL_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_HAP_QUALITIES, GEN_HAP_QUALITIES_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_SET, GEN_PHASE_SET_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_QUAL, GEN_PHASE_QUAL_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_CNTEXP, GEN_ALLELE_CNTEXP_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_QUALITY_MAP, GEN_QUALITY_MAP_VCF, true);
-        vcf_proc_doc_smpl_fmt(smpl, GEN_ATTRS, NULL, true);
-    }
+    if (res)
+        TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
+        {
+            vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE, GEN_GENOTYPE_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_DEPTH, GEN_DEPTH_VCF, false);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_ANNOTATIONS, GEN_ANNOTATIONS_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_LIKE, GEN_GENOTYPE_LIKE_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_LIKEP, GEN_GENOTYPE_LIKEP_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_PROB, GEN_GENOTYPE_PROB_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_GENOTYPE_QUAL, GEN_GENOTYPE_QUAL_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_HAP_QUALITIES, GEN_HAP_QUALITIES_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_SET, GEN_PHASE_SET_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_QUAL, GEN_PHASE_QUAL_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_CNTEXP, GEN_ALLELE_CNTEXP_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_QUALITY_MAP, GEN_QUALITY_MAP_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_ATTRS, NULL, true);
+        }
     
     vcf_hdr = true;
 }

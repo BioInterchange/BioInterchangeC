@@ -120,11 +120,11 @@ static CURLcode sslctx_function(CURL * curl, void * sslctx, void * parm)
          */
         PEM_read_bio_X509(bio, &cert[i], 0, NULL);
         if (cert == NULL)
-            exit(MAIN_ERR_SBIO);
+            gen_err(MAIN_ERR_SBIO, NULL);
         
         /* add our certificate to this store */
         if (X509_STORE_add_cert(store, cert[i]) == 0)
-            exit(MAIN_ERR_SADD);
+            gen_err(MAIN_ERR_SADD, NULL);
         
         /* decrease reference counts */
         X509_free(cert[i]);
@@ -329,24 +329,24 @@ size_t function(char* ptr, size_t size, size_t nmemb, void* userdata)
         
         long ret = strtol(off, &endptr, 10);
         
-        if (*endptr == '}')
-            *status_ptr = LICENSE_OK;
-        else
+        if (*endptr != '}')
+            *status_ptr = LICENSE_INVFMT;
+        
+        switch (ret)
         {
-            switch (ret)
-            {
-                case LICENSE_NET:
-                case LICENSE_NENC:
-                case LICENSE_NREC:
-                case LICENSE_INVFMT:
-                case LICENSE_INT:
-                case LICENSE_EXP:
-                case LICENSE_LMT:
-                    *status_ptr = ret;
-                default:
-                    *status_ptr = LICENSE_SRV;
-                    break;
-            }
+            case LICENSE_OK:
+            case LICENSE_NET:
+            case LICENSE_NENC:
+            case LICENSE_NREC:
+            case LICENSE_INVFMT:
+            case LICENSE_INT:
+            case LICENSE_EXP:
+            case LICENSE_LMT:
+                *status_ptr = ret;
+                break;
+            default:
+                *status_ptr = LICENSE_SRV;
+                break;
         }
         
         return sz;

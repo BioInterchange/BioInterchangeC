@@ -245,6 +245,12 @@ void gen_err(int err, const char* s)
 {
     switch (err)
     {
+        case MAIN_ERR_LICN:
+            fprintf(stderr, "Could not connect to the licensing server.\n");
+            break;
+        case MAIN_ERR_LICV:
+            fprintf(stderr, "License invalid.\n");
+            break;
         case MAIN_ERR_JFMT_KY:
             fprintf(stderr, "Invalid JSON document structure.\n");
             if (s)
@@ -260,7 +266,47 @@ void gen_err(int err, const char* s)
             if (s)
                 fprintf(stderr, "Cause: %s\n", s);
             break;
+        case MAIN_ERR_PYMD:
+            fprintf(stderr, "Loading Python module failed.\n");
+            if (s)
+                fprintf(stderr, "Cannot import: %s\n", s);
+            break;
+        case MAIN_ERR_PYMEM:
+            fprintf(stderr, "Internal Python error.\n");
+            if (s)
+                fprintf(stderr, "Cause: %s\n", s);
+            break;
+        case MAIN_ERR_SYSMMAP:
+            fprintf(stderr, "Memory mapping failed.\n");
+            break;
+        case MAIN_ERR_SYSMALL:
+            fprintf(stderr, "Memory allocation failed. Not enough memory available.\n");
+            if (s)
+                fprintf(stderr, "Context: %s\n", s);
+            break;
+        case MAIN_ERR_FMT:
+            fprintf(stderr, "Format error.\n");
+            if (s)
+                fprintf(stderr, "Cause: %s\n", s);
+            break;
+        case MAIN_ERR_SBIO:
+            fprintf(stderr, "License framework error. (PEM)\n");
+            break;
+        case MAIN_ERR_SADD:
+            fprintf(stderr, "License framework error. (X509)\n");
+            break;
+        case MAIN_ERR_INT:
+            fprintf(stderr, "Internal error.\n");
+            if (s)
+                fprintf(stderr, "Context: %s\n", s);
+            break;
+        case MAIN_ERR_FLE:
+            fprintf(stderr, "File opening error.\n");
+            if (s)
+                fprintf(stderr, "Path: %s\n", s);
+            break;
         default:
+            fprintf(stderr, "An error occurred (%u).\n", err);
             break;
     }
     
@@ -355,11 +401,9 @@ inline char* gen_res_opt(ldoc_res_t* res)
         return (char*)GEN_UNKNOWN;
     
     if (res->nde)
-    {
-        // TODO Internal error.
-    }
+        gen_err(MAIN_ERR_FMT, "Did not expect an object.");
     
-    // TODO Should handle various entity types?
+    // TODO: Should handle various entity types?
     if (res->info.ent->pld.pair.dtm.str)
         return res->info.ent->pld.pair.dtm.str;
     
@@ -376,11 +420,9 @@ inline char* gen_res_optx(ldoc_res_t* res)
 
 char* gen_res_req(ldoc_res_t* res)
 {
-    // TODO Does this cover all used entity types?
-    if (!res || res->nde || res->info.ent->pld.pair.dtm.str)
-    {
-        // TODO Data error.
-    }
+    // TODO: Does this cover all used entity types?
+    if (!res || (!res->nde && !res->info.ent->pld.pair.dtm.str))
+        gen_err(MAIN_ERR_FMT, "Required value not present.");
     
     return res->info.ent->pld.pair.dtm.str;
 }
@@ -608,7 +650,7 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     {
                         // VCF: END, end position of variant description
                         kwd->attr = BI_NUM;
-                        kwd->alt = NULL; // TODO Check whether this is correct.
+                        kwd->alt = NULL; // TODO: Check whether this is correct.
                         return;
                     }
                 }
@@ -1055,7 +1097,7 @@ inline char gen_inv(char c)
         case 'T':
             return 'A';
         default:
-            // TODO Error.
+            gen_err(MAIN_ERR_FMT, "Not a nucleotide sequence.");
             break;
     }
     
@@ -1212,7 +1254,8 @@ inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw, const char* ctx_url)
     {
         ldoc_ent_t* ctx = ldoc_ent_new(LDOC_ENT_OR);
         
-        // TODO Error handling.
+        if (!ctx)
+            gen_err(MAIN_ERR_SYSMALL, "JSON-LD context allocation.");
         
         ctx->pld.pair.anno.str = (char*)JSONLD_CTX;
         ctx->pld.pair.dtm.str = (char*)ctx_url;
@@ -1220,7 +1263,8 @@ inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw, const char* ctx_url)
 
         ldoc_ent_t* tpe = ldoc_ent_new(LDOC_ENT_OR);
         
-        // TODO Error handling.
+        if (!tpe)
+            gen_err(MAIN_ERR_SYSMALL, "JSON-LD type allocation.");
         
         tpe->pld.pair.anno.str = (char*)JSONLD_TPE;
         tpe->pld.pair.dtm.str = (char*)JSONLD_CLSS_MTA;
@@ -1371,7 +1415,7 @@ inline bool gen_join_nde(ldoc_nde_t* nde)
         else
             qk_strcat(",");
         
-        // TODO Account for more entity types?
+        // TODO: Account for more entity types?
         switch (ent->tpe)
         {
             case LDOC_ENT_TXT:
@@ -1422,15 +1466,14 @@ void gen_csepstr_dup(ldoc_nde_t* dst, char* val, bool dup)
             kv_ent = ldoc_ent_new(gen_smrt_flttpe(val_cmp));
             
             if (!kv_ent)
-            {
-                // TODO Error handling.
-            }
+                gen_err(MAIN_ERR_SYSMALL, "Key/value allocation (comma separation).");
             
             if (dup)
             {
                 val_cmp_ = strdup(val_cmp);
                 
-                // TODO Error handling.
+                if (!val_cmp_)
+                    gen_err(MAIN_ERR_SYSMALL, "Comma separated string.");
             }
             else
                 val_cmp_ = val_cmp;
@@ -1457,9 +1500,7 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
     ldoc_nde_t* kv_nde = ldoc_nde_new(LDOC_NDE_OL);
     
     if (!kv_nde)
-    {
-        // TODO Error handling.
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Comma separation.");
     
     if (kwd.alt)
         kv_nde->mkup.anno.str = (char*)kwd.alt;
@@ -1471,7 +1512,8 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
         {
             ky_ = strdup(ky);
             
-            // TODO Error handling.
+            if (!ky_)
+                gen_err(MAIN_ERR_SYSMALL, "Key allocation.");
         }
         else
             ky_ = ky;
@@ -1479,7 +1521,7 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
         kv_nde->mkup.anno.str = ky_;
     }
     
-    // TODO Bug? `splt` is never set below!? -- Might be okay, since all tests are fine.
+    // TODO: Bug? `splt` is never set below!? -- Might be okay, since all tests are fine.
     bool cnt = true;
     char splt = 0;
     char* val_cmp = val;
@@ -1509,15 +1551,14 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
             kv_ent = ldoc_ent_new(gen_smrt_flttpe(val_cmp));
             
             if (!kv_ent)
-            {
-                // TODO Error handling.
-            }
+                gen_err(MAIN_ERR_SYSMALL, "Key/value allocation. Comma separation.");
             
             if (dup)
             {
                 val_cmp_ = strdup(val_cmp);
                 
-                // TODO Error handling.
+                if (!val_cmp_)
+                    gen_err(MAIN_ERR_SYSMALL, "Value allocation. Comma separated string (1).");
             }
             else
                 val_cmp_ = val_cmp;
@@ -1528,7 +1569,8 @@ ldoc_nde_t* gen_csep_dup(ldoc_nde_t* dst, gen_attr_t kwd, char* ky, char* val, b
                 {
                     val_splt_ = strdup(val_splt);
                     
-                    // TODO Error handling.
+                    if (!val_splt_)
+                        gen_err(MAIN_ERR_SYSMALL, "Value allocation. Comma separated string (2).");
                 }
                 else
                     val_splt_ = val_splt;
@@ -1638,9 +1680,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     TAILQ_FOREACH(kv_nde, &(vars->dscs), ldoc_nde_entries)
                     {
                         if (lend)
-                        {
-                            // TODO Data format error.
-                        }
+                            gen_err(MAIN_ERR_FMT, "Not enough values.");
                         
                         // Check: this should always work, since strlen(val) > 0; but check!?
                         while (*val && *val != ',')
@@ -1654,9 +1694,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         kv_ent = ldoc_ent_new(kwd.attr == BI_CSEPVARN ? LDOC_ENT_NR : LDOC_ENT_OR);
                         
                         if (!kv_ent)
-                        {
-                            // TODO Error handling.
-                        }
+                            gen_err(MAIN_ERR_SYSMALL, "Key/value allocation (separation).");
                         
                         if (kwd.alt)
                             kv_ent->pld.pair.anno.str = (char*)kwd.alt;
@@ -1671,7 +1709,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     break;
                 case BI_GVFEFFECT:
                     val_cmp = val;
-                    // TODO Make this a function in gvf.{c,h}!
+                    // TODO: Make this a function in gvf.{c,h}!
                     
                     gvf_proc_effct(vars, &val_cmp, &lend);
                     break;
@@ -1685,9 +1723,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     kv_ent = ldoc_ent_new(kwd.attr == BI_REFSEQN ? LDOC_ENT_NR : LDOC_ENT_OR);
                     
                     if (!kv_ent)
-                    {
-                        // TODO Error handling.
-                    }
+                        gen_err(MAIN_ERR_SYSMALL, "Reference sequence");
                     
                     if (kwd.alt)
                         kv_ent->pld.pair.anno.str = (char*)kwd.alt;
@@ -1714,7 +1750,8 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                         {
                             almnt_nde = ldoc_nde_new(LDOC_NDE_UA);
                             
-                            // TODO Error handling.
+                            if (!almnt_nde)
+                                gen_err(MAIN_ERR_SYSMALL, "Alignment.");
                             
                             almnt_nde->mkup.anno.str = (char*)GEN_ALIGNMENT;
                             
@@ -1745,9 +1782,7 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
                     kv_ent = ldoc_ent_new(kwd.attr == BI_NUM ? LDOC_ENT_NR : (kwd.attr == BI_VAL ? LDOC_ENT_OR : (kwd.attr == BI_BL ? LDOC_ENT_BR : gen_smrt_tpe(val))));
                     
                     if (!kv_ent)
-                    {
-                        // TODO Error handling.
-                    }
+                        gen_err(MAIN_ERR_SYSMALL, "Generic key/value allocation.");
                     
                     // Assign alternative label, if given:
                     if (kwd.alt)
@@ -1795,7 +1830,8 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
 {
     ldoc_nde_t* vars = ldoc_nde_new(LDOC_NDE_UA);
     
-    // TODO Error handling.
+    if (!vars)
+        gen_err(MAIN_ERR_SYSMALL, "Variant handling.");
     
     vars->mkup.anno.str = (char*)GEN_VARIANTS;
     
@@ -1829,11 +1865,13 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
         
         ldoc_nde_t* var = ldoc_nde_new(LDOC_NDE_UA);
         
-        // TODO Error handling.
+        if (!var)
+            gen_err(MAIN_ERR_SYSMALL, "Variant allocation.");
         
         ldoc_ent_t* seq_i = ldoc_ent_new(LDOC_ENT_OR);
 
-        // TODO Error handling.
+        if (!seq_i)
+            gen_err(MAIN_ERR_SYSMALL, "Sequence allocation.");
         
         seq_i->pld.pair.anno.str = (char*)GEN_SEQUENCE;
         seq_i->pld.pair.dtm.str = v;
@@ -1898,7 +1936,8 @@ char* gen_escstr(char* str, gen_filetype_t tpe)
     size_t nlen = strlen(str) + escchr + 1;
     str = realloc(str, nlen);
     
-    // TODO Error handling.
+    if (!str)
+        gen_err(MAIN_ERR_SYSMALL, "Escaped string allocation.");
     
     // Escape characters:
     char tmp[nlen];
@@ -1967,7 +2006,7 @@ char* gen_escstr(char* str, gen_filetype_t tpe)
                     }
                     break;
                 default:
-                    // TODO Error handling. Internal error.
+                    gen_err(MAIN_ERR_INT, "Escaped string handling.");
                     break;
             }
         }
@@ -1989,10 +2028,7 @@ char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, o
     }
 
     if (!ln)
-    {
-        // TODO Error handling. Initial alloc failed.
-        exit(98);
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Reading line.");
     
     if (llen > *ln_len)
     {
@@ -2001,10 +2037,7 @@ char* gen_rd_ln(fio_mem* mem, off_t mx, size_t llen, char* ln, size_t* ln_len, o
     }
     
     if (!ln)
-    {
-        // TODO Error handling. Realloc failed.
-        exit(99);
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Expanding line memory.");
     
     // Reached end-of-file:
     if (mem->mx < off + *ln_len)
@@ -2027,9 +2060,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     ldoc_doc_t* ldoc;
     
     if (!fdoc)
-    {
-        // TODO Error handling.
-    }
+        gen_err(MAIN_ERR_SYSMALL, "JSON file document.");
     
     off_t off = 0;
     off_t skp = 0;
@@ -2065,7 +2096,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
     rd_incr_mem:
         mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
         
-        // TODO Error checking.
+        // TODO: Error checking. -- figure out how to handle
         
         // Figure out if (at least) one line can be read (based on current pointer):
         lnlen = fio_lnlen(mem, mem->off + skp);
@@ -2117,7 +2148,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                             ent->pld.pair.dtm.str = strdup(JSONLD_VCF_CTX1);
                             break;
                         default:
-                            // TODO Internal error.
+                            gen_err(MAIN_ERR_INT, "Wrong file type assignment.");
                             break;
                     }
                     ldoc_nde_ent_push(cdoc->rt, ent);
@@ -2162,7 +2193,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
                             ent->pld.pair.dtm.str = strdup("VCF");
                             break;
                         default:
-                            // TODO Internal error.
+                            gen_err(MAIN_ERR_INT, "Input filetype unknown.");
                             break;
                     }
                     ldoc_nde_ent_push(cdoc->rt, ent);
@@ -2327,7 +2358,7 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
                     stat->cbk_ftrs_fltr++;
                 break;
             default:
-                // TODO Internal error.
+                gen_err(MAIN_ERR_INT, "Context type invalid.");
                 break;
         }
         
@@ -2400,8 +2431,6 @@ bool gen_proc_doc_prgm(ldoc_nde_t* prgm, char* sep)
     const char* usr_id[] = { GEN_ATTRS };
     ldoc_res_t* usr = ldoc_find_anno_nde(prgm, (char**)usr_id, 1);
     
-    // TODO Error handling.
-    
     if (!usr)
         return true;
     
@@ -2424,13 +2453,11 @@ bool gen_proc_doc_prgm(ldoc_nde_t* prgm, char* sep)
     return true;
 }
 
-// TODO Obsolete?
+// TODO: Obsolete?
 bool gen_proc_doc_usr(ldoc_nde_t* ftr)
 {
     const char* usr_id[] = { GEN_ATTRS };
     ldoc_res_t* usr = ldoc_find_anno_nde(ftr, (char**)usr_id, 1);
-    
-    // TODO Error handling.
     
     if (!usr)
         return true;
@@ -2451,7 +2478,7 @@ bool gen_proc_doc_usr(ldoc_nde_t* ftr)
     return true;
 }
 
-// TODO Replace vstr with parametrizable quick-heap implementation.
+// TODO: Replace vstr with parametrizable quick-heap implementation.
 bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vnum)
 {
     // Attribute name might need adjusting:
@@ -2549,7 +2576,7 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
     doc_incr_mem:
         mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
         
-        // TODO Error checking.
+        // TODO Error checking. -- figure out how
         
         // Figure out if (at least) one line can be read (based on current pointer):
         lnlen = fio_lnlen(mem, mem->off + skp);
@@ -2582,22 +2609,13 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
             ldoc_res_t* json_ctx = ldoc_find_anno_ent(ldoc->rt, (char*)JSONLD_CTX);
             
             if (!json_ctx)
-            {
-                // TODO Error handling.
-                exit(100);
-            }
+                gen_err(MAIN_ERR_FMT, "No JSON-LD context found.");
             
             if (json_ctx->nde)
-            {
-                // TODO Error handling.
-                exit(100);
-            }
+                gen_err(MAIN_ERR_FMT, "JSON-LD context is an object.");
             
             if (json_ctx->info.ent->tpe != LDOC_ENT_OR)
-            {
-                // TODO Error handling.
-                exit(101);
-            }
+                gen_err(MAIN_ERR_FMT, "JSON-LD context is not a string.");
             
             if (out == GEN_FMT_LDJ)
             {
@@ -2610,10 +2628,7 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
                 else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_VCF_CTX1))
                     out = GEN_FMT_VCF;
                 else
-                {
-                    // TODO Error handling.
-                    exit(102);
-                }
+                    gen_err(MAIN_ERR_FMT, "Unknown JSON-LD context.");
                 
                 tpe = GEN_FMT_CTX;
             }
@@ -2641,8 +2656,7 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
                         lns = gff_proc_doc(ldoc, tpe);
                         break;
                     case GEN_FMT_GTF:
-                        // TODO
-                        exit(1001);
+                        gen_err(MAIN_ERR_INT, "A10293");
                         break;
                     case GEN_FMT_GVF:
                         lns = gvf_proc_doc(ldoc, tpe);
@@ -2651,8 +2665,7 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
                         lns = vcf_proc_doc(ldoc, tpe);
                         break;
                     default:
-                        // TODO Internal error.
-                        exit(100);
+                        gen_err(MAIN_ERR_INT, "A98613");;
                 }
             }
             

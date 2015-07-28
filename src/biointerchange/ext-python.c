@@ -11,6 +11,8 @@
  *   As DOCX: http://www.codamono.com/license/biointerchange-l1.docx
  */
 
+#include "gen.h"
+
 #include "ext-python.h"
 
 const char* test_python_fn = "multiply";
@@ -83,9 +85,8 @@ void py_init(char* pypath)
     else
     {
         PyErr_Print();
-        fprintf(stderr, "Failed to load \"%s\"\n", "TODO");
         
-        exit(1);
+        gen_err(MAIN_ERR_PYMD, (const char*)pypath);
     }
 }
 
@@ -104,9 +105,7 @@ static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
     ldoc_ser_t* ser1 = ldoc2py(d1);
     
     if (!ser1)
-    {
-        // TODO Error handling.
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Python Dict creation for function call (1).");
     
     PyObject* py_d1 = ser1->pld.py.dtm;
     
@@ -118,9 +117,7 @@ static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
         ldoc_ser_t* ser2 = ldoc2py(d2);
         
         if (!ser2)
-        {
-            // TODO Error handling;
-        }
+            gen_err(MAIN_ERR_SYSMALL, "Python Dict creation for function call (2).");
         
         PyObject* py_d2 = ser2->pld.py.dtm;
         
@@ -139,10 +136,7 @@ static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
     free(ser1);
     
     if (!dict)
-    {
-        // TODO Error handling.
-        exit(123);
-    }
+        gen_err(MAIN_ERR_PYMEM, "Function call returned a garbled result.");
     
     ldoc_doc_t* ret = NULL;
     if (dict != Py_None)

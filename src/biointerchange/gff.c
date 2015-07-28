@@ -94,8 +94,12 @@ static inline char* gff_proc_optval(char* str)
     if (*str == '.' && *(str + 1) == 0)
         return NULL;
     
-    // TODO Error handling.
-    return strdup(str);
+    char* dp = strdup(str);
+    
+    if (!dp)
+        gen_err(MAIN_ERR_SYSMALL, "Optional value allocation.");
+    
+    return dp;
 }
 
 /**
@@ -546,9 +550,7 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
             off++;
         
         if (off >= lnlen)
-        {
-            // TODO Error handling.
-        }
+            gen_err(MAIN_ERR_INT, "Feature line exhausted.");
         
         ln[off] = 0;
         coff[col] = ln + off + 1;
@@ -829,9 +831,7 @@ off_t gff_fnd_fa(int fd, gen_fstat* stat, off_t mx)
     
     // Sanity check: If page size smaller than 3 bytes, then lookback below will cause an error.
     if (pg_size < 3)
-    {
-        // TODO Error.
-    }
+        gen_err(MAIN_ERR_INT, "Page size too small for FASTA indexing.");
     
     fio_mem* mem = NULL;
     const size_t len = pg_size * BI_FA_IDX_MUL;
@@ -967,7 +967,8 @@ static inline void gff_idx_fa_pg(ldoc_trie_t* trie, off_t abs, char* txt, size_t
         
         gen_fa_ntry_t* ntry = (gen_fa_ntry_t*)malloc(sizeof(gen_fa_ntry_t));
         
-        // TODO Error handling.
+        if (!ntry)
+            gen_err(MAIN_ERR_SYSMALL, "FASTA entry.");
         
         ntry->off = abs + off;
         ntry->llen = llen;
@@ -1071,7 +1072,8 @@ ldoc_doc_t* gff_proc_ln(int fd, off_t mx, ldoc_doc_t* fdoc, ldoc_trie_t* idx, ch
                     size_t cmtlen = strlen(*cmt) + ccmtlen;
                     *cmt = realloc(*cmt, cmtlen + 1);
 
-                    // TODO Error handling.
+                    if (!*cmt)
+                        gen_err(MAIN_ERR_SYSMALL, "Memory expansion for comment.");
                     
                     strncat(*cmt, ccmt, ccmtlen);
                     
@@ -1104,7 +1106,7 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     if (!fa)
         return NULL;
     
-    // TODO Check annotation type.
+    // TODO: Check annotation type.
     
     // Adjust start coordinate to match 0-based memory indexing:
     st--;
@@ -1120,15 +1122,13 @@ char* gff_seq(int fd, off_t mx, ldoc_trie_t* idx, const char* id, off_t st, off_
     size_t mlen = (((lraw + lbrk + seq_pg_off) / pg_size) + 1) * pg_size;
     mem = fio_mmap(mem, fd, mx, mlen, seq_pg * pg_size);
     
-    // TODO Error check.
+    // TODO: Error check. -- how?
     
     size_t slen = en - st;
     char* seq = (char*)malloc(slen + 1);
     
     if (!seq)
-    {
-        // TODO Error handling.
-    }
+        gen_err(MAIN_ERR_SYSMALL, "Sequence allocation.");
     
     // Stop the string:
     seq[slen] = 0;
@@ -1390,8 +1390,8 @@ char* gff_proc_doc(ldoc_doc_t* doc, gen_doctype_t tpe)
             
             return qk_heap_ptr();
         default:
-            // TODO Internal error.
-            return NULL;
+            gen_err(MAIN_ERR_INT, "Unknown document format.");
+            break;
     }
     
     //printf("%s\n", qk_heap_ptr());

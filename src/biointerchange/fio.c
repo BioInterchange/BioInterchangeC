@@ -11,6 +11,8 @@
  *   As DOCX: http://www.codamono.com/license/biointerchange-l1.docx
  */
 
+#include "gen.h"
+
 #include "fio.h"
 
 int fio_opn(const char* path)
@@ -22,9 +24,7 @@ int fio_opn(const char* path)
 #endif
     
     if (fd == -1)
-    {
-        // TODO Error.
-    }
+        gen_err(MAIN_ERR_FLE, path);
     
     return fd;
 }
@@ -47,9 +47,7 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
         mem = (fio_mem*)malloc(sizeof(fio_mem));
         
         if (!mem)
-        {
-            // TODO Error.
-        }
+            gen_err(MAIN_ERR_SYSMALL, "File/memory mapping (new).");
         
         mem->fd = fd;
         mem->mx = mx;
@@ -59,7 +57,7 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
         // Change page size/offset of an existing memory mapping:
         munmap(mem->pg, mem->ln);
         
-        // TODO Error checking.
+        // TODO: Error checking. -- not clear how.
     }
     
     // Adjust len, in case it exceeds the maximum size:
@@ -69,11 +67,7 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
     mem->pg = mmap(0, len, PROT_READ, MAP_FILE | MAP_SHARED, mem->fd, off);
 
     if (mem->pg == MAP_FAILED)
-    {
-        // TODO Error.
-        printf("%s\n", strerror(errno));
-        exit(123);
-    }
+        gen_err(MAIN_ERR_SYSMMAP, "File/memory mapping.");
     
     mem->ln = len;
     mem->off = off;
@@ -83,7 +77,7 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
 
 void fio_munmap(fio_mem* m)
 {
-    // TODO Error checking.
+    // TODO Error checking. -- not clear what to check for
     munmap(m->pg, m->ln);
 }
 
@@ -94,7 +88,7 @@ inline char* fio_rd(fio_mem* mem, size_t len, off_t off)
         off >= mem->off + mem->ln ||
         off + len >= mem->off + mem->ln)
     {
-        // TODO Error handling.
+        // TODO Error handling. -- check again
         mem = fio_mmap(mem, 0, 0, len, off);
     }
     

@@ -61,6 +61,22 @@ extern "C" {
 #define MAIN_ERR_JFMT_KYMAP 16
 #define MAIN_ERR_JFMT_VAL 17
 #define MAIN_ERR_JFMT_DEP 18
+// Python errors:
+#define MAIN_ERR_PYMD 19
+#define MAIN_ERR_PYMEM 20
+// System errors:
+#define MAIN_ERR_SYSMMAP 21
+#define MAIN_ERR_SYSMALL 22
+#define MAIN_ERR_FLE 23
+// Format errors:
+#define MAIN_ERR_FMT 24
+// Internal errors:
+#define MAIN_ERR_INT 25
+    
+    // Internal error keys:
+    //   A10293
+    //   A76412
+    //   A98613
     
 // Ensure that no statistics are sent during license check:
 #define GEN_STATS_PRIVATE 1

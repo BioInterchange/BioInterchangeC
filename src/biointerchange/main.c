@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "Sorry, there is not enough memory available to fire up the software.\n\n");
         
-        exit(MAIN_ERR_PGSZ); // TODO
+        exit(MAIN_ERR_SYSMALL);
     }
     
     // Get home directory:
@@ -301,9 +301,9 @@ int main(int argc, char* argv[])
         case LICENSE_OK:
             break;
         case LICENSE_NET:
-            exit(MAIN_ERR_LICN);
+            gen_err(MAIN_ERR_LICN, NULL);
         default:
-            exit(MAIN_ERR_LICV);
+            gen_err(MAIN_ERR_LICV, NULL);
     }
     
     // Set up callback functions based on the file type:
