@@ -8,7 +8,7 @@ Terms and conditions
 
 2.  License Grant: Licensor grants Licensee a non-assignable & non-transferable, commercial, royalty free, without the rights to create derivative works, non-exclusive license, all with accordance with the terms set forth and other legal restrictions set forth in 3rd party software used while running The Software.
 
-    a.  Limited: Licensee may use The Software for the purpose of:  
+    a.  Limited: Licensee may use The Software for the purpose of:
 
         i.  Running The Software; and
 
@@ -36,11 +36,11 @@ Terms and conditions
 
 4.  Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee’s license in the case where Licensee:
 
-    a.  Became insolvent or otherwise entered into any liquidation process; or 
+    a.  Became insolvent or otherwise entered into any liquidation process; or
 
-    b.  Exported The Software to any jurisdiction where licensor may not enforce his rights under this agreements in; or 
+    b.  Exported The Software to any jurisdiction where licensor may not enforce his rights under this agreements in; or
 
-    c.  Licensee was in breach of any of this license's terms and conditions and such breach was not cured, immediately upon notification; or 
+    c.  Licensee was in breach of any of this license's terms and conditions and such breach was not cured, immediately upon notification; or
 
     d.  Licensee in breach of any of the terms of clause 2 or clause 3 to this license; or
 
@@ -60,11 +60,11 @@ Terms and conditions
 
     a.  Bug Notification: Licensee may provide Licensor of details regarding any bug, defect or failure in The Software promptly and with no delay from such event; Licensee shall comply with Licensor's request for information regarding bugs, defects or failures and furnish him with information, terminal (shell, command line) output and try to reproduce such bugs, defects or failures.
 
-    b.  Feature Request: Licensee may request additional features in The Software, provided, however, that (i) Licensee shall waive any claim or right in such feature should feature be developed by Licensor; (ii) Licensee shall be prohibited from developing the feature, or disclose such feature request, or feature, to any 3rd party directly competing with Licensor or any 3rd party which may be, following the development of such feature, in direct competition with Licensor; (iii) Licensee warrants that feature does not infringe any 3rd party patent, trademark, trade-secret or any other intellectual property right; and (iv) Licensee developed, envisioned or created the feature solely by himself.  
+    b.  Feature Request: Licensee may request additional features in The Software, provided, however, that (i) Licensee shall waive any claim or right in such feature should feature be developed by Licensor; (ii) Licensee shall be prohibited from developing the feature, or disclose such feature request, or feature, to any 3rd party directly competing with Licensor or any 3rd party which may be, following the development of such feature, in direct competition with Licensor; (iii) Licensee warrants that feature does not infringe any 3rd party patent, trademark, trade-secret or any other intellectual property right; and (iv) Licensee developed, envisioned or created the feature solely by himself.
 
 8.  Liability: To the extent permitted under Law, The Software is provided under an as is basis. Licensor shall never, and without any limit, be liable for any damage, cost, expense or any other payment incurred by Licensee as a result of The Software’s actions, failure, bugs and/or any other interaction between The Software  and Licensee’s end-equipment, computers, other software or any 3rd party, end-equipment, computer or services. Moreover, Licensor shall never be liable for any defect in source code written by Licensee when relying on The Software or using The Software’s source code.
 
-9.  Warranty:    
+9.  Warranty:
 
     a.  Intellectual Property: Licensor warrants that The Software does not violate or infringe any 3rd party claims in regards to intellectual property, patents and/or trademarks and that to the best of its knowledge no legal action has been taken against it for any infringement or violation of any 3rd party intellectual property rights.
 
