@@ -143,7 +143,8 @@ static inline ldoc_doc_t* py_call(PyObject* fn, ldoc_doc_t* d1, ldoc_doc_t* d2)
     {
         ret = ldoc_pydict2doc(dict);
     
-        Py_DECREF(dict);
+        if (py_d1 != dict)
+            Py_DECREF(dict);
     }
     
     // Note: DO NOT call the garbage collector by force! Garbage collection
