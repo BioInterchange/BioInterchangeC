@@ -12,9 +12,9 @@ Terms and conditions
 
         i.  Running The Software; and
 
-        ii. Use The Software’s output; and
+        ii. Use The Software's output; and
 
-        iii. Distribute verbatim copies of Software’s output.
+        iii. Distribute verbatim copies of Software's output.
 
     b.  Binary Limited: Licensee may not distribute nor sublicense The Software as a part of a larger work.
 
@@ -34,7 +34,7 @@ Terms and conditions
 
     e. Cloud, Cluster & HIPAA License: Licensor grants Licensee the right to run The Software within the Licensee's organization.
 
-4.  Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee’s license in the case where Licensee:
+4.  Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee's license in the case where Licensee:
 
     a.  Became insolvent or otherwise entered into any liquidation process; or
 
@@ -62,19 +62,19 @@ Terms and conditions
 
     b.  Feature Request: Licensee may request additional features in The Software, provided, however, that (i) Licensee shall waive any claim or right in such feature should feature be developed by Licensor; (ii) Licensee shall be prohibited from developing the feature, or disclose such feature request, or feature, to any 3rd party directly competing with Licensor or any 3rd party which may be, following the development of such feature, in direct competition with Licensor; (iii) Licensee warrants that feature does not infringe any 3rd party patent, trademark, trade-secret or any other intellectual property right; and (iv) Licensee developed, envisioned or created the feature solely by himself.
 
-8.  Liability: To the extent permitted under Law, The Software is provided under an as is basis. Licensor shall never, and without any limit, be liable for any damage, cost, expense or any other payment incurred by Licensee as a result of The Software’s actions, failure, bugs and/or any other interaction between The Software  and Licensee’s end-equipment, computers, other software or any 3rd party, end-equipment, computer or services. Moreover, Licensor shall never be liable for any defect in source code written by Licensee when relying on The Software or using The Software’s source code.
+8.  Liability: To the extent permitted under Law, The Software is provided under an as is basis. Licensor shall never, and without any limit, be liable for any damage, cost, expense or any other payment incurred by Licensee as a result of The Software's actions, failure, bugs and/or any other interaction between The Software  and Licensee's end-equipment, computers, other software or any 3rd party, end-equipment, computer or services. Moreover, Licensor shall never be liable for any defect in source code written by Licensee when relying on The Software or using The Software's source code.
 
 9.  Warranty:
 
     a.  Intellectual Property: Licensor warrants that The Software does not violate or infringe any 3rd party claims in regards to intellectual property, patents and/or trademarks and that to the best of its knowledge no legal action has been taken against it for any infringement or violation of any 3rd party intellectual property rights.
 
-    b.  No-Warranty: The Software is provided without any warranty; Licensor disclaims any warranty that The Software shall be error free, without defects or code that may cause damage to Licensee’s computers or to Licensee, and that Software shall be functional. Licensee shall be solely liable to any damage, defect or loss incurred as a result of operating software and undertake the risks contained in running The Software.
+    b.  No-Warranty: The Software is provided without any warranty; Licensor disclaims any warranty that The Software shall be error free, without defects or code that may cause damage to Licensee's computers or to Licensee, and that Software shall be functional. Licensee shall be solely liable to any damage, defect or loss incurred as a result of operating software and undertake the risks contained in running The Software.
 
     c.  Prior Inspection: Licensee states that he inspected The Software thoroughly and found it satisfactory and adequate to his needs, that it does not interfere with his regular operation and that it does meet the standards and scope of his computer systems and architecture. Licensee found that The Software interacts with his software environment and that it does not infringe any of End User License Agreement of any software Licensee may use in performing his services. Licensee waives any claims regarding The Software's incompatibility, performance, results and features, and warrants that he inspected The Software.
 
 10.  No Refunds: Licensee warrants that he inspected The Software according to clause 9.c and that it is adequate to his needs. Accordingly, as The Software is intangible goods, Licensee shall not be, ever, entitled to any refund, rebate, compensation or restitution for any reason whatsoever, even if The Software contains material flaws.
 
-11. Indemnification: Licensee warrants to hold Licensor harmless and indemnify Licensor for any lawsuit brought against it in regards to Licensee’s use of The Software in means that violate, breach or otherwise circumvent this license, Licensor's intellectual property rights or Licensor's title in The Software. Licensor shall promptly notify Licensee in case of such legal action and request Licensee’s consent prior to any settlement in relation to such lawsuit or claim.
+11. Indemnification: Licensee warrants to hold Licensor harmless and indemnify Licensor for any lawsuit brought against it in regards to Licensee's use of The Software in means that violate, breach or otherwise circumvent this license, Licensor's intellectual property rights or Licensor's title in The Software. Licensor shall promptly notify Licensee in case of such legal action and request Licensee's consent prior to any settlement in relation to such lawsuit or claim.
 
 12. Governing Law, Jurisdiction: Licensee agrees not to initiate class-action lawsuits against Licensor in relation to this license. Licensee agrees to compensate Licensor for any legal fees, cost or attorney fees should any claim brought by Licensee against Licensor be denied, in part or in full.
 
