@@ -1297,6 +1297,8 @@ inline ldoc_nde_t* gen_ctx(ldoc_nde_t* nde, bool* nw, const char* ctx_url)
             
             if (nw)
                 *nw = false;
+            
+            ldoc_res_free(usr_);
         }
     }
     
@@ -2424,6 +2426,9 @@ inline void gen_proc_doc_prgm_kv(ldoc_nde_t* cntnr, char* ky, char* alt, char* s
         qk_strcat(sep);
         qk_strcat(ent->info.ent->pld.pair.dtm.str);
     }
+    
+    if (ent)
+        ldoc_res_free(ent);
 }
 
 bool gen_proc_doc_prgm(ldoc_nde_t* prgm, char* sep)
@@ -2450,6 +2455,8 @@ bool gen_proc_doc_prgm(ldoc_nde_t* prgm, char* sep)
         }
     }
     
+    ldoc_res_free(usr);
+    
     return true;
 }
 
@@ -2474,6 +2481,8 @@ bool gen_proc_doc_usr(ldoc_nde_t* ftr)
         qk_strcat("=");
         qk_strcat(ent->pld.pair.dtm.str);
     }
+    
+    ldoc_res_free(usr);
     
     return true;
 }
@@ -2522,6 +2531,9 @@ bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vn
         // same information is serialized at a later stage again.
         ldoc_ent_rm(ent->info.ent);
         ldoc_ent_free(ent->info.ent);
+        
+        ldoc_res_free(var);
+        ldoc_res_free(ent);
     }
 
     return true;
@@ -2645,6 +2657,8 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
             else if (!strcmp(json_ctx->info.ent->pld.pair.dtm.str, JSONLD_STAT_1))
                 tpe = GEN_FMT_STT;
     
+            ldoc_res_free(json_ctx);
+            
             // Output data:
             
             char* lns = NULL;

@@ -258,7 +258,11 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
     
     ldoc_nde_t* nde;
     if (res)
+    {
         nde = res->info.nde;
+        
+        ldoc_res_free(res);
+    }
     else
         nde = ldoc_nde_new(LDOC_NDE_UA);
     
@@ -355,6 +359,7 @@ static inline void vcf_proc_brckt(ldoc_nde_t* cntnr, char* id, char* inf)
     
     ldoc_nde_dsc_push(nde, nde_brckt);
     
+    // Note that `res` is pointing to deallocated memory!
     if (!res)
         ldoc_nde_dsc_push(cntnr, nde);
 }
@@ -766,7 +771,11 @@ static inline void vcf_proc_ec(ldoc_nde_t* cntnr, char* val, size_t len)
     
     ldoc_nde_t* vars;
     if (res)
+    {
         vars = res->info.nde;
+        
+        ldoc_res_free(res);
+    }
     else
     {
         vars = ldoc_nde_new(LDOC_NDE_UA);
@@ -792,7 +801,11 @@ static inline void vcf_proc_ec(ldoc_nde_t* cntnr, char* val, size_t len)
             res = ldoc_find_anno_nde(vars, alt, 1);
             
             if (res)
+            {
                 nde = res->info.nde;
+                
+                ldoc_res_free(res);
+            }
             else
             {
                 nde = ldoc_nde_new(LDOC_NDE_UA);
@@ -851,7 +864,11 @@ static inline void vcf_proc_glgppl(ldoc_nde_t* cntnr, char* val, size_t len, gen
             ldoc_res_t* res = ldoc_find_anno_nde(cntnr, pth, 1);
             
             if (res)
+            {
                 nde = res->info.nde;
+                
+                ldoc_res_free(res);
+            }
             else
             {
                 nde = ldoc_nde_new(LDOC_NDE_UA);
@@ -1129,7 +1146,11 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
                 ldoc_nde_dsc_push(s, usr);
             }
             else
+            {
                 usr = res->info.nde;
+                
+                ldoc_res_free(res);
+            }
             
             char* qk_val = qk_strndup(val, smpl - val);
             ldoc_ent_t* anno = ldoc_ent_new(gen_smrt_tpe(qk_val));
@@ -1427,8 +1448,15 @@ static inline void vcf_proc_doc_strct(ldoc_nde_t* meta, char* ky, char* alt)
     char* pth[] = { ky };
     ldoc_res_t* res = ldoc_find_anno_nde(meta, pth, 1);
     
-    if (!res || !res->info.nde->dsc_cnt)
+    if (!res)
         return;
+    
+    if (!res->info.nde->dsc_cnt)
+    {
+        ldoc_res_free(res);
+        
+        return;
+    }
     
     ldoc_nde_t* cntnr;
     TAILQ_FOREACH(cntnr, &(res->info.nde->dscs), ldoc_nde_entries)
@@ -1519,6 +1547,8 @@ static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
         }
         
         qk_strcat(GEN_UNKNOWN);
+        
+        ldoc_res_free(lst);
     }
     else
     {
@@ -1544,6 +1574,8 @@ static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
                     qk_strcat(fltr->pld.str);
                 }
             }
+            
+            ldoc_res_free(lst);
         }
         else
             qk_strcat(GEN_UNKNOWN);
@@ -1575,6 +1607,9 @@ static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const
                     
                     strcat(vcf_fmt, usr->pld.pair.anno.str);
                 }
+                
+                ldoc_res_free(fmt);
+                
                 return;
             }
         }
@@ -1599,6 +1634,8 @@ static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const
             strcat(vcf_fmt, ":");
         
         strcat(vcf_fmt, alt);
+        
+        ldoc_res_free(fmt);
     }
 }
 
@@ -1662,6 +1699,8 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
         }
     
     vcf_hdr = true;
+    
+    ldoc_res_free(res);
 }
 
 static inline void vcf_proc_doc_gt(ldoc_nde_t* smpl)
@@ -1692,6 +1731,9 @@ static inline void vcf_proc_doc_gt(ldoc_nde_t* smpl)
         
         astr++;
     }
+    
+    ldoc_res_free(fld);
+    ldoc_res_free(all);
 }
 
 static inline void vcf_proc_doc_ent(ldoc_nde_t* smpl, const char* ky)
@@ -1705,6 +1747,8 @@ static inline void vcf_proc_doc_ent(ldoc_nde_t* smpl, const char* ky)
     }
 
     qk_strcat(fld->info.ent->pld.pair.dtm.str);
+    
+    ldoc_res_free(fld);
 }
 
 static inline void vcf_proc_doc_lst(ldoc_nde_t* smpl, const char* ky, char* sep)
@@ -1726,6 +1770,8 @@ static inline void vcf_proc_doc_lst(ldoc_nde_t* smpl, const char* ky, char* sep)
         
         qk_strcat(ent->pld.str);
     }
+    
+    ldoc_res_free(fld);
 }
 
 static inline void vcf_proc_doc_glgppl(ldoc_nde_t* smpl, gen_alt_t tpe)
@@ -1757,6 +1803,8 @@ static inline void vcf_proc_doc_glgppl(ldoc_nde_t* smpl, gen_alt_t tpe)
                 break;
         }
         
+        ldoc_res_free(res);
+        
         if (!res_ent)
             return;
         
@@ -1764,7 +1812,8 @@ static inline void vcf_proc_doc_glgppl(ldoc_nde_t* smpl, gen_alt_t tpe)
             qk_strcat(",");
         
         qk_strcat(res_ent->info.ent->pld.pair.dtm.str);
-
+        
+        ldoc_res_free(res_ent);
     }
 }
 

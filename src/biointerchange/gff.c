@@ -1245,7 +1245,12 @@ inline void gff_proc_doc_prgm(ldoc_nde_t* prgm)
             qk_strcat(bld_src->info.ent->pld.pair.dtm.str);
             qk_strcat(" ");
             qk_strcat(bld_nme->info.ent->pld.pair.dtm.str);
+            
+            ldoc_res_free(bld_src);
+            ldoc_res_free(bld_nme);
         }
+        
+        ldoc_res_free(gb);
     }
     
     // Sequence region; sequence-region (but "contig" in doc)
@@ -1272,7 +1277,12 @@ inline void gff_proc_doc_prgm(ldoc_nde_t* prgm)
             qk_strcat(reg_st->info.ent->pld.pair.dtm.str);
             qk_strcat(" ");
             qk_strcat(reg_en->info.ent->pld.pair.dtm.str);
+            
+            ldoc_res_free(reg_st);
+            ldoc_res_free(reg_en);
         }
+        
+        ldoc_res_free(sr);
     }
     
     gen_proc_doc_prgm(prgm, " ");
@@ -1316,6 +1326,22 @@ inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)
     qk_strcat(gen_res_opt(ph));
     qk_strcat("\t");
     
+    ldoc_res_free(lm);
+    if (src)
+        ldoc_res_free(src);
+    if (tpe)
+        ldoc_res_free(tpe);
+    if (st)
+        ldoc_res_free(st);
+    if (en)
+        ldoc_res_free(en);
+    if (scr)
+        ldoc_res_free(scr);
+    if (strnd)
+        ldoc_res_free(strnd);
+    if (ph)
+        ldoc_res_free(ph);
+    
     ldoc_res_t* id = ldoc_find_anno_ent(ftr, (char*)GEN_ID);
     ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
     
@@ -1336,26 +1362,61 @@ inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)
     
     char* attrs = qk_working_ptr();
     
-    if (id && !id->nde)
-        gen_join_attrs_ent((char*)GEN_ID_GFF3, id->info.ent, attrs);
+    if (id)
+    {
+        if (!id->nde)
+            gen_join_attrs_ent((char*)GEN_ID_GFF3, id->info.ent, attrs);
+        
+        ldoc_res_free(id);
+    }
     
-    if (nme && !nme->nde)
-        gen_join_attrs_ent("Name", nme->info.ent, attrs);
+    if (nme)
+    {
+        if (!nme->nde)
+            gen_join_attrs_ent("Name", nme->info.ent, attrs);
+        
+        ldoc_res_free(nme);
+    }
     
-    if (prnt && prnt->nde)
-        gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
+    if (prnt)
+    {
+        if (prnt->nde)
+            gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
+        
+        ldoc_res_free(prnt);
+    }
 
-    if (als && als->nde)
-        gen_join_attrs_nde((char*)GEN_ALIAS_GFF3, als->info.nde, attrs);
+    if (als)
+    {
+        if (als->nde)
+            gen_join_attrs_nde((char*)GEN_ALIAS_GFF3, als->info.nde, attrs);
+        
+        ldoc_res_free(als);
+    }
 
-    if (dbxref && dbxref->nde)
-        gen_join_attrs_nde((char*)GEN_DBXREF_GFF3, dbxref->info.nde, attrs);
+    if (dbxref)
+    {
+        if (dbxref->nde)
+            gen_join_attrs_nde((char*)GEN_DBXREF_GFF3, dbxref->info.nde, attrs);
+        
+        ldoc_res_free(dbxref);
+    }
 
-    if (ont && ont->nde)
-        gen_join_attrs_nde("Ontology_term", ont->info.nde, attrs);
+    if (ont)
+    {
+        if (ont->nde)
+            gen_join_attrs_nde("Ontology_term", ont->info.nde, attrs);
+        
+        ldoc_res_free(ont);
+    }
 
-    if (almnt && almnt->nde)
-        gff_join_almnt(almnt->info.nde, attrs);
+    if (almnt)
+    {
+        if (almnt->nde)
+            gff_join_almnt(almnt->info.nde, attrs);
+        
+        ldoc_res_free(almnt);
+    }
     
     const char* usr_pth[] = { GEN_ATTRS };
     ldoc_res_t* usr = ldoc_find_anno_nde(ftr, (char**)usr_pth, 1);
@@ -1367,6 +1428,8 @@ inline void gff_proc_doc_ftr(ldoc_nde_t* ftr)
         {
             gen_join_attrs_ent(NULL, ent, attrs);
         }
+        
+        ldoc_res_free(usr);
     }
 }
 

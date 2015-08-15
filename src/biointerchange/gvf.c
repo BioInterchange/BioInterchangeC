@@ -447,7 +447,13 @@ inline void gvf_proc_effct(ldoc_nde_t* vars, char** val_cmp, bool* lend)
             ldoc_nde_dsc_push(nde_res->info.nde, eff_lst);
         }
         else
+        {
             eff_lst = nde_eff->info.nde;
+            
+            ldoc_res_free(nde_eff);
+        }
+        
+        ldoc_res_free(nde_res);
         
         eff_ctnr = ldoc_nde_new(LDOC_NDE_UA);
         
@@ -1373,6 +1379,8 @@ void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
         strcat(astr, ent->info.ent->pld.pair.dtm.str);
         strcat(astr, " ");
         
+        ldoc_res_free(ent);
+        
         // Index.
         char* e = &astr[strlen(astr)];
         sprintf(e, "%u ", allele[0] - 'B');
@@ -1383,6 +1391,8 @@ void gvf_proc_attr_effct(ldoc_nde_t* effs, char* allele, char* astr)
             gen_err(MAIN_ERR_FMT, "\"affected-feature-type\" key missing.");
         
         strcat(astr, ent->info.ent->pld.pair.dtm.str);
+        
+        ldoc_res_free(ent);
         
         // TODO: There should be only one descendant.
         
@@ -1424,8 +1434,15 @@ static inline void gvf_proc_doc_strct(ldoc_nde_t* prgm, char* ky, char* alt)
     char* pth[] = { ky };
     ldoc_res_t* res = ldoc_find_anno_nde(prgm, pth, 1);
     
-    if (!res || !res->info.nde->dsc_cnt)
+    if (!res)
         return;
+    
+    if (!res->info.nde->dsc_cnt)
+    {
+        ldoc_res_free(res);
+        
+        return;
+    }
 
     ldoc_nde_t* cntnr;
     TAILQ_FOREACH(cntnr, &(res->info.nde->dscs), ldoc_nde_entries)
@@ -1499,6 +1516,8 @@ static inline void gvf_proc_doc_strct(ldoc_nde_t* prgm, char* ky, char* alt)
             }
         }
     }
+    
+    ldoc_res_free(res);
 }
 
 static inline void gvf_proc_doc_prgm(ldoc_nde_t* prgm)
@@ -1542,6 +1561,8 @@ static inline void gvf_proc_doc_prgm(ldoc_nde_t* prgm)
                 qk_strcat(ind_ent->pld.str);
             }
         }
+        
+        ldoc_res_free(ind);
     }
     
     gen_proc_doc_prgm_kv(prgm, (char*)GEN_POP, (char*)GEN_POP, " "); // population
@@ -1582,6 +1603,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     strcat(astr, "Reference_sequence=");
     strcat(astr, ref_seq->info.ent->pld.pair.dtm.str);
     fst = false;
+    ldoc_res_free(ref_seq);
     
     const char* cdn_id[] = { GEN_CODON };
     ldoc_res_t* cdn = ldoc_find_anno_nde(ref->info.nde, (char**)cdn_id, 1);
@@ -1591,6 +1613,7 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
             strcat(astr, ";");
         strcat(astr, "Reference_codon=");
         strcat(astr, cdn->info.ent->pld.pair.dtm.str);
+        ldoc_res_free(cdn);
     }
     
     //
@@ -1647,6 +1670,9 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
             ldoc_nde_free(nde);
         }
     }
+    
+    ldoc_res_free(ref);
+    ldoc_res_free(vars);
 
     return astr;
 }
