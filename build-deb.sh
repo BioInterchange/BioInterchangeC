@@ -18,5 +18,16 @@ vim deb/DEBIAN/changelog
 
 cat deb/DEBIAN/changelog >> templates/changelog
 
-dpkg-deb -b deb biointerchange_${version}.deb
+dpkg-deb -b deb biointerchange_${version}_amd64.deb
+
+mkdir -p debs/amd64
+
+mv biointerchange_${version}_amd64.deb debs/amd64
+
+cd debs
+
+dpkg-scanpackages amd64 | gzip -9c > amd64/Packages.gz
+
+cd ..
+
 
