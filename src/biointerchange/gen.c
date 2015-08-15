@@ -2377,7 +2377,7 @@ inline void gen_ser(gen_ctxt_t* ctxt, gen_ctpe_t ctpe, ldoc_doc_t* doc, ldoc_doc
         fprintf(ctxt->fout, "%s\n", ser->pld.str);
         ldoc_ser_free(ser);
         
-        if (opt)
+        if (opt && (opt->rt->ent_cnt || opt->rt->dsc_cnt))
         {
             ser = ldoc_format(opt, json_vis_nde, json_vis_ent);
             fprintf(ctxt->fout, "%s\n", ser->pld.str);
