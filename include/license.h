@@ -40,7 +40,7 @@
 #define LIC_URL     "http://localhost:8000/license/"
 #endif // NDEBUG
 
-#define EXE_SYMID   "n13S4oMoMYGxTNSj"
+#define EXE_SYMID   "5G1sHWA5kDvo1XEP"
 
 #ifdef BIOINTERCHANGE_CRYPT
 #define LIC_KEYLEN  32
