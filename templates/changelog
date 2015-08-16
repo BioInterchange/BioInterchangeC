@@ -1,6 +1,25 @@
 biointerchange (VERSION)
 
- * Initial Release.
+ * TODO
 
 -- Joachim Baran <kim@codamono.com> DATE
+
+biointerchange (2.0.2+84)
+
+ * Bugfix: Memory leak that affected reading GVF/VCF and LDJ.
+ * Update: License clarifications; reverse engineering clause.
+
+-- Joachim Baran <kim@codamono.com> Sun Aug 16 02:57:18 UTC 2015
+
+biointerchange (2.0.1+75)
+
+ * Bugfix: Python reference counting.
+
+-- Joachim Baran <kim@codamono.com> Wed Jul 29 13:06:25 UTC 2015
+
+biointerchange (2.0.0+71)
+
+ * Initial Release.
+
+-- Joachim Baran <kim@codamono.com> Wed Jul 29 13:06:25 UTC 2015
 
