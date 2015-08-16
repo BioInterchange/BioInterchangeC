@@ -2,7 +2,7 @@
 
 set -e
 
-license_version=1
+license_version=2
 version="`./biointerchange -v`"
 
 mkdir -p brew/biointerchange
