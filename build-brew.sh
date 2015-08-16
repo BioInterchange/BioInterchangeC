@@ -20,5 +20,5 @@ tar cfz "biointerchange-$version.tar.gz" biointerchange
 
 cd ..
 
-shasum "brew/biointerchange-$version.tar.gz"
+shasum -a 256 "brew/biointerchange-$version.tar.gz"
 
