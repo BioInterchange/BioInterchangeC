@@ -446,6 +446,7 @@ typedef struct gen_ctxt_t
 {
     gen_filetype_t tpe;
     bool py;
+    bool qk;
     char* fgen;
     char* pycall;
     char* fname;
@@ -471,6 +472,8 @@ void gen_lwrhyph(char* str);
 char* gen_quoskp(char* str);
 void gen_kwd(char* str, gen_attr_t* attr, bi_attr upfail);
 char gen_inv(char c);
+char* gen_seq_enc(char* s);
+char* gen_seq_dec(char* s, gen_filetype_t tpe);
     
 void gen_csepstr_dup(ldoc_nde_t* dst, char* val, bool dup);
     

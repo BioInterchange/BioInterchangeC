@@ -1104,6 +1104,52 @@ inline char gen_inv(char c)
     return 0;
 }
 
+inline char* gen_seq_enc(char* s)
+{
+    if (!s || !*s)
+        return NULL;
+    
+    // No sequence. GVF: -, VCF: *
+    if (*s == '-' || *s == '*')
+    {
+        *s = 0;
+        return s;
+    }
+    
+    return s;
+}
+
+
+inline char* gen_seq_dec(char* s, gen_filetype_t tpe)
+{
+    char* ret;
+    
+    if (!s)
+    {
+        ret = strdup(".");
+        if (!ret)
+            gen_err(MAIN_ERR_SYSMALL, "GVF sequence decoding (unknown sequence).");
+        return ret;
+    }
+    
+    if (!*s)
+    {
+        // Default decoding behaviour: fallback to GFF3/GVF
+        if (tpe == GEN_FMT_VCF)
+            ret = strdup("*");
+        else
+            ret = strdup("-");
+        if (!ret)
+            gen_err(MAIN_ERR_SYSMALL, "GVF sequence decoding (empty sequence).");
+        return ret;
+    }
+    
+    ret = strdup(s);
+    if (!ret)
+        gen_err(MAIN_ERR_SYSMALL, "GVF sequence decoding (sequence copy).");
+    return ret;
+}
+
 inline ldoc_content_t gen_smrt_tpe(char* val)
 {
     if (!val)
@@ -1876,7 +1922,11 @@ ldoc_nde_t* gen_variants(char* seq, char sep, char** vseqs, size_t* vnum)
             gen_err(MAIN_ERR_SYSMALL, "Sequence allocation.");
         
         seq_i->pld.pair.anno.str = (char*)GEN_SEQUENCE;
-        seq_i->pld.pair.dtm.str = v;
+        
+        if (*v == '.')
+            seq_i->pld.pair.dtm.str = NULL;
+        else
+            seq_i->pld.pair.dtm.str = gen_seq_enc(v);
         
         vseqs[(*vnum)++] = v;
         
@@ -2525,7 +2575,14 @@ bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vn
         
         // TODO Error handling. Data error -- not supported.
         
-        strcat(astr, ent->info.ent->pld.pair.dtm.str);
+        if (!strcmp(attr, GEN_SEQUENCE))
+        {
+            char* dec_seq = gen_seq_dec(ent->info.ent->pld.pair.dtm.str, GEN_FMT_GVF);
+            strcat(astr, dec_seq);
+            free(dec_seq);
+        }
+        else
+            strcat(astr, ent->info.ent->pld.pair.dtm.str);
         
         // Entity has been processed, so remove it. Prevents that the
         // same information is serialized at a later stage again.

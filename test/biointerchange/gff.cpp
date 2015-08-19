@@ -141,6 +141,7 @@ TEST(gff, gff_rd)
     {
         GEN_FMT_GFF3,
         false, // No Python API.
+        false, // Not "quick".
         (char*)"unit-test.gff3", // Input filename; this file does not really exist.
         NULL,
         NULL,

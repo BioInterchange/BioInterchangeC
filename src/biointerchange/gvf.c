@@ -720,13 +720,12 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
                     
                     ldoc_ent_t* ref_seq = ldoc_ent_new(LDOC_ENT_OR);
                     ref_seq->pld.pair.anno.str = (char*)GEN_SEQUENCE;
-                    ref_seq->pld.pair.dtm.str = val;
+                    ref_seq->pld.pair.dtm.str = gen_seq_enc(val);
                     ldoc_nde_ent_push(ref, ref_seq);
                     
                     break;
                 case GVF_PRS_VAR:
-                    if (*val != '.')
-                        vars = gen_variants(val, ',', vseqs, &vnum);
+                    vars = gen_variants(val, ',', vseqs, &vnum);
                     
                     break;
                 default:
@@ -1600,8 +1599,10 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     //
     
     ldoc_res_t* ref_seq = ldoc_find_anno_ent(ref->info.nde, (char*)GEN_SEQUENCE);
-    strcat(astr, "Reference_sequence=");
-    strcat(astr, ref_seq->info.ent->pld.pair.dtm.str);
+    strcat(astr, "Reference_seq=");
+    char* dec_seq = gen_seq_dec(ref_seq->info.ent->pld.pair.dtm.str, GEN_FMT_GVF);
+    strcat(astr, dec_seq);
+    free(dec_seq);
     fst = false;
     ldoc_res_free(ref_seq);
     
@@ -1649,9 +1650,8 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     else
         strcat(astr, ";");
     
-    strcat(astr, "Variant_effect=");
-    
     // Note: this assumes that the only descendant (if any) is "effects":
+    bool ky_ser = false;
     char* nde_nme;
     ldoc_nde_t* allele;
     ldoc_nde_t* nde;
@@ -1659,6 +1659,12 @@ char* gvf_proc_doc_ftr_attrs(ldoc_nde_t* ftr)
     {
         while (allele->dsc_cnt)
         {
+            if (!ky_ser)
+            {
+                strcat(astr, "Variant_effect=");
+                ky_ser = true;
+            }
+            
             nde = allele->dscs.tqh_first;
             nde_nme = nde->mkup.anno.str;
             

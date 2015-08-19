@@ -2153,10 +2153,14 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
         seq = ldoc_find_anno_ent(var->info.nde, (char*)GEN_SEQUENCE);
         
         if (!seq)
-            str = ".";
+        {
+            str = strdup(".");
+            if (!str)
+                gen_err(MAIN_ERR_SYSMALL, "VCF sequence decoding (unknown sequence).");
+        }
         else
         {
-            str = seq->info.ent->pld.pair.dtm.str;
+            str = gen_seq_dec(seq->info.ent->pld.pair.dtm.str, GEN_FMT_VCF);
             ldoc_res_free(seq);
         }
         
@@ -2164,6 +2168,7 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
             qk_strcat(",");
         
         qk_strcat(str);
+        free(str);
         
         ldoc_res_free(var);
         
