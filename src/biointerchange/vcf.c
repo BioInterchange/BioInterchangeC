@@ -584,6 +584,9 @@ static inline ldoc_doc_t* vcf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             // TODO Error handling.
             
             ent->pld.str = strdup(val);
+            if (!ent->pld.str)
+                gen_err(MAIN_ERR_SYSMALL, "Non-standard information field description allocation.");
+            ent->pld.str = gen_escstr(ent->pld.str, GEN_FMT_VCF);
             
             // TODO Error handling.
             
