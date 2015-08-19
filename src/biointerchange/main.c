@@ -48,11 +48,13 @@ static const char* eula_txt = "BioInterchange Software License\n================
 void usage(char* bname, char* version, int err)
 {
     fprintf(stderr, "Usage: %s [parameters] genomicsfile\n\n", bname);
-    fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON/JSON-LD.\n");
-    fprintf(stderr, "    Outputs one JSON document per line.\n");
+    fprintf(stderr, "Description:\n    Converts GFF3, GVF and VCF files to JSON/JSON-LD and vice versa.\n");
+    fprintf(stderr, "    GFF3, GVF, VCF input: Outputs one JSON document per line.\n");
+    fprintf(stderr, "    JSON-LD input       : Outputs the original genomics file format.\n");
     fprintf(stderr, "Parameters:\n");
     fprintf(stderr, "    -o file           : writes output into file (default: STDOUT)\n");
     fprintf(stderr, "    -p package.module : Python API called on package.module\n");
+    fprintf(stderr, "    -q                : \"quick\" mode; skips search, indexing, and inclusion of FASTA lines (GFF3/GVF)\n");
     fprintf(stderr, "    -e                : prints EULA and exits\n");
     fprintf(stderr, "    -v                : prints version number and exits\n");
     fprintf(stderr, "    -h                : this help text\n");
@@ -114,6 +116,7 @@ int main(int argc, char* argv[])
     ctxt.fname = NULL;
     ctxt.fout = stdout;
     ctxt.py = false;
+    ctxt.qk = false;
     ctxt.pycall = NULL;
     ctxt.usr = NULL;
     ctxt.ver = BIOINTERCHANGE_VERSION;
@@ -123,7 +126,7 @@ int main(int argc, char* argv[])
     char* py_opt = NULL;
     
     int err = MAIN_ERR_PARA;
-    while ((c = getopt(argc, argv, "o:p:u:vhe")) != -1)
+    while ((c = getopt(argc, argv, "o:p:u:vheq")) != -1)
     {
         switch (c)
         {
@@ -134,6 +137,9 @@ int main(int argc, char* argv[])
                 py_opt = strdup(optarg);
                 ctxt.py = true;
                 ctxt.pycall = py_opt; // TODO Cleanup.
+                break;
+            case 'q':
+                ctxt.qk = true;
                 break;
             case 'u':
                 ctxt.usr = strdup(optarg);
@@ -287,7 +293,8 @@ int main(int argc, char* argv[])
         case GEN_FMT_GFF3:
         case GEN_FMT_GVF:
             gvf_init();
-            idx = gff_idx_fa(fd, &stat, mx);
+            if (!ctxt.qk)
+                idx = gff_idx_fa(fd, &stat, mx);
             break;
         default:
             // Do nothing.
