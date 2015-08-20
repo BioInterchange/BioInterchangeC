@@ -36,6 +36,7 @@ static char vcf_smpls[1024 * 1024];
 static char vcf_fmt[512];
 static ldoc_trie_t* vcf_fmt_keys;
 
+
 void vcf_cbcks(gen_cbcks_t* cbcks)
 {
     cbcks->proc_ln = &vcf_proc_ln;
@@ -1053,7 +1054,14 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
     
     ldoc_nde_t* s = ldoc_nde_new(LDOC_NDE_UA);
     
-    s->mkup.anno.str = qk_strdup(stt->vcf_hdr_off[i]);
+    s->mkup.anno.str = NULL;
+    
+    ldoc_ent_t* s_id = ldoc_ent_new(LDOC_ENT_OR);
+    
+    s_id->pld.pair.anno.str = qk_strdup(GEN_ID);
+    s_id->pld.pair.dtm.str = qk_strdup(stt->vcf_hdr_off[i]);
+    
+    ldoc_nde_ent_push(s, s_id);
     
     // TODO Error handling.
 
@@ -1315,7 +1323,7 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     // Sample information -- if provided:
     if (stt->vcf_col > 8)
     {
-        ldoc_nde_t* smpls = ldoc_nde_new(LDOC_NDE_UA);
+        ldoc_nde_t* smpls = ldoc_nde_new(LDOC_NDE_OL);
         
         // TODO Error handling.
         
@@ -1328,14 +1336,19 @@ static inline ldoc_doc_t* vcf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
                 vcf_proc_smpl(smpls, stt, i - 9, coff[8], coff[i], coff[3], vseqs, vnum);
             else
             {
+                ldoc_nde_t* smpl_null_nde = ldoc_nde_new(LDOC_NDE_UA);
+                
+                smpl_null_nde->mkup.anno.str = NULL;
+                
                 ldoc_ent_t* smpl_null = ldoc_ent_new(LDOC_ENT_OR);
                 
                 // TODO Error handling.
                 
-                smpl_null->pld.pair.anno.str = qk_strdup(stt->vcf_hdr_off[i - 9]);
-                smpl_null->pld.pair.dtm.str = NULL;
+                smpl_null->pld.pair.anno.str = qk_strdup(GEN_ID);
+                smpl_null->pld.pair.dtm.str = qk_strdup(stt->vcf_hdr_off[i - 9]);
                 
-                ldoc_nde_ent_push(smpls, smpl_null);
+                ldoc_nde_ent_push(smpl_null_nde, smpl_null);
+                ldoc_nde_dsc_push(smpls, smpl_null_nde);
             }
         }
         
@@ -1669,7 +1682,11 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
         if (res)
             TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
             {
-                char* sid = smpl->mkup.anno.str;
+                ldoc_res_t* smpl_id = ldoc_find_anno_ent(smpl, (char*)GEN_ID);
+                
+                // TODO: Handle if ID is not present.
+                
+                char* sid = smpl_id->info.ent->pld.pair.dtm.str;
                 
                 // Appending a NULL at the very end is *not* to end the
                 // string; this has already been done by strcat. It ensures
@@ -1692,6 +1709,8 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
                 
                 qk_strcat("\t");
                 qk_strcat(sid);
+                
+                ldoc_res_free(smpl_id);
             }
         
         qk_strcat("\n");
@@ -1762,7 +1781,7 @@ static inline void vcf_proc_doc_ent(ldoc_nde_t* smpl, const char* ky)
 {
     ldoc_res_t* fld = ldoc_find_anno_ent(smpl, (char*)ky);
     
-    if (!fld)
+    if (!fld || !fld->info.ent->pld.pair.dtm.str)
     {
         qk_strcat(".");
         return;
@@ -1833,7 +1852,10 @@ static inline void vcf_proc_doc_glgppl(ldoc_nde_t* smpl, gen_alt_t tpe)
         if (n)
             qk_strcat(",");
         
-        qk_strcat(res_ent->info.ent->pld.pair.dtm.str);
+        if (res_ent->info.ent->pld.pair.dtm.str)
+            qk_strcat(res_ent->info.ent->pld.pair.dtm.str);
+        else
+            qk_strcat(".");
         
         ldoc_res_free(res_ent);
     }
@@ -1850,6 +1872,21 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
     qk_strcat("\t");
     qk_strcat(vcf_fmt);
     
+    ldoc_trie_t* vcf_smpls_nds = ldoc_trie_new();
+    
+    ldoc_nde_t* smpl;
+    TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
+    {
+        ldoc_res_t* res_ent = ldoc_find_anno_ent(smpl, (char*)GEN_ID);
+        
+        // TODO: Handle when ID is not present!
+        
+        ldoc_trie_anno_t smpl_anno = { 0, smpl };
+        ldoc_trie_add(vcf_smpls_nds, res_ent->info.ent->pld.str, ASCII, smpl_anno);
+        
+        ldoc_res_free(res_ent);
+    }
+    
     char* soff;
     char* sid = vcf_smpls;
     while (*sid)
@@ -1857,10 +1894,9 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
         qk_strcat("\t");
         soff = qk_working_ptr();
         
-        const char* pth[] = { sid };
-        ldoc_res_t* smpl_res = ldoc_find_anno_nde(res->info.nde, (char**)pth, 1);
-
-        if (!smpl_res)
+        ldoc_trie_nde_t* smpl_nde = ldoc_trie_lookup(vcf_smpls_nds, sid, false);
+        
+        if (!smpl_nde)
             gen_err(MAIN_ERR_JFMT_KY, sid);
         
         // Note that vcf_fmt is one NULL character longer than strlen will report!
@@ -1882,44 +1918,48 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
             *fid_ = 0;
             
             if (!strcmp(fid, GEN_GENOTYPE_VCF))
-                vcf_proc_doc_gt(smpl_res->info.nde); // GT: genotype
+                vcf_proc_doc_gt(smpl_nde->anno.pld); // GT: genotype
             else if (!strcmp(fid, GEN_DEPTH_VCF))
-                vcf_proc_doc_ent(smpl_res->info.nde, GEN_DEPTH); // DP: depth
+                vcf_proc_doc_ent(smpl_nde->anno.pld, GEN_DEPTH); // DP: depth
             else if (!strcmp(fid, GEN_ANNOTATIONS_VCF))
-                vcf_proc_doc_lst(smpl_res->info.nde, GEN_ANNOTATIONS, ";"); // FT: filter
+                vcf_proc_doc_lst(smpl_nde->anno.pld, GEN_ANNOTATIONS, ";"); // FT: filter
             else if (!strcmp(fid, GEN_GENOTYPE_LIKE_VCF))
-                vcf_proc_doc_glgppl(smpl_res->info.nde, GEN_ALT_GL); // GL: genotype likelihood
+                vcf_proc_doc_glgppl(smpl_nde->anno.pld, GEN_ALT_GL); // GL: genotype likelihood
             else if (!strcmp(fid, GEN_GENOTYPE_PROB_VCF))
-                vcf_proc_doc_glgppl(smpl_res->info.nde, GEN_ALT_GP); // GP: genotype probabilities phred scaled
+                vcf_proc_doc_glgppl(smpl_nde->anno.pld, GEN_ALT_GP); // GP: genotype probabilities phred scaled
             else if (!strcmp(fid, GEN_GENOTYPE_LIKEP_VCF))
-                vcf_proc_doc_glgppl(smpl_res->info.nde, GEN_ALT_PL); // PL: genotype likelihood phred scaled
+                vcf_proc_doc_glgppl(smpl_nde->anno.pld, GEN_ALT_PL); // PL: genotype likelihood phred scaled
             else if (!strcmp(fid, GEN_GENOTYPE_QUAL_VCF))
-                vcf_proc_doc_ent(smpl_res->info.nde, GEN_GENOTYPE_QUAL); // GQ: genotype quality
+                vcf_proc_doc_ent(smpl_nde->anno.pld, GEN_GENOTYPE_QUAL); // GQ: genotype quality
             else if (!strcmp(fid, GEN_HAP_QUALITIES_VCF))
-                vcf_proc_doc_lst(smpl_res->info.nde, GEN_HAP_QUALITIES, ","); // HQ: haplotype qualities
+                vcf_proc_doc_lst(smpl_nde->anno.pld, GEN_HAP_QUALITIES, ","); // HQ: haplotype qualities
             else if (!strcmp(fid, GEN_PHASE_QUAL_VCF))
-                vcf_proc_doc_ent(smpl_res->info.nde, GEN_PHASE_QUAL); // PQ: phasing quality
+                vcf_proc_doc_ent(smpl_nde->anno.pld, GEN_PHASE_QUAL); // PQ: phasing quality
             else if (!strcmp(fid, GEN_QUALITY_MAP_VCF))
-                vcf_proc_doc_ent(smpl_res->info.nde, GEN_QUALITY_MAP); // MQ: mapping quality
+                vcf_proc_doc_ent(smpl_nde->anno.pld, GEN_QUALITY_MAP); // MQ: mapping quality
             else if (!strcmp(fid, GEN_PHASE_SET_VCF))
-                vcf_proc_doc_ent(smpl_res->info.nde, GEN_PHASE_SET); // PS: phase set
+                vcf_proc_doc_ent(smpl_nde->anno.pld, GEN_PHASE_SET); // PS: phase set
             else
             {
                 // User defined attributes:
                 const char* usr_pth[] = { GEN_ATTRS };
-                ldoc_res_t* res_usr = ldoc_find_anno_nde(smpl_res->info.nde, (char**)usr_pth, 1);
+                ldoc_res_t* res_usr = ldoc_find_anno_nde(smpl_nde->anno.pld, (char**)usr_pth, 1);
                 
-                if (!res_usr)
-                    gen_err(MAIN_ERR_JFMT_KY, GEN_ATTRS);
+                if (res_usr)
+                {
+                    ldoc_res_t* res_fid = ldoc_find_anno_ent(res_usr->info.nde, fid);
+                    
+                    if (!res_fid)
+                        gen_err(MAIN_ERR_JFMT_KY, fid);
+                    
+                    qk_strcat(res_fid->info.ent->pld.pair.dtm.str);
+                    
+                    ldoc_res_free(res_fid);
+                }
+                else
+                    qk_strcat(".");
                 
-                ldoc_res_t* res_fid = ldoc_find_anno_ent(res_usr->info.nde, fid);
                 
-                if (!res_fid)
-                    gen_err(MAIN_ERR_JFMT_KY, fid);
-                
-                qk_strcat(res_fid->info.ent->pld.pair.dtm.str);
-                
-                ldoc_res_free(res_fid);
                 ldoc_res_free(res_usr);
             }
             
@@ -1930,7 +1970,7 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
         }
         
         free(fmt);
-        ldoc_res_free(smpl_res);
+        //ldoc_res_free(smpl_res);
         
         // Proceed to the next sample ID:
         while (*sid)
@@ -1939,6 +1979,7 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
     }
     
     ldoc_res_free(res);
+    ldoc_trie_free(vcf_smpls_nds);
     
     return true;
 }
