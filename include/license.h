@@ -37,10 +37,15 @@
 #ifdef NDEBUG
 #define LIC_URL     "https://www.codamono.com/license/"
 #else
-#define LIC_URL     "http://localhost:8000/license/"
+//#define LIC_URL     "http://localhost:8000/license/"
+#define LIC_URL     "https://www.codamono.com/license/"
 #endif // NDEBUG
 
-#define EXE_SYMID   "WwhRs9GjQu9xHB1p"
+#ifdef __APPLE__
+#define EXE_SYMID   "hZKDPTDyp6KNLfsD"
+#else
+#define EXE_SYMID   "hZKDPTDyp6KNLfsD"
+#endif
 
 #ifdef BIOINTERCHANGE_CRYPT
 #define LIC_KEYLEN  32
