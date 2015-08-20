@@ -296,6 +296,9 @@ int main(int argc, char* argv[])
             if (!ctxt.qk)
                 idx = gff_idx_fa(fd, &stat, mx);
             break;
+        case GEN_FMT_LDJ:
+            vcf_ldj_init();
+            break;
         default:
             // Do nothing.
             break;

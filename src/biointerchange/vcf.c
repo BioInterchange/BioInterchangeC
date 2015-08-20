@@ -30,6 +30,17 @@ static const char* VCF_PHREDLHOOD = "genotype-likelihood-phred-scaled";
 static const char* VCF_PHASED = "phased";
 static const char* VCF_SAMPLES = "samples";
 
+// For sample fields:
+static bool vcf_hdr = false;
+static char vcf_smpls[1024 * 1024];
+static char vcf_fmt[512];
+static ldoc_trie_t* vcf_fmt_keys;
+
+void vcf_ldj_init()
+{
+    vcf_fmt_keys = ldoc_trie_new();
+}
+
 void vcf_cbcks(gen_cbcks_t* cbcks)
 {
     cbcks->proc_ln = &vcf_proc_ln;
@@ -1585,9 +1596,20 @@ static inline void vcf_proc_doc_optlst(ldoc_nde_t* nde, char* id, char* empty)
     }
 }
 
-static bool vcf_hdr = false;
-static char vcf_smpls[1024 * 1024];
-static char vcf_fmt[512];
+static inline void vcf_proc_doc_smpl_fmt_ky(const char* ky)
+{
+    ldoc_trie_nde_t* nde = ldoc_trie_lookup(vcf_fmt_keys, ky, false);
+    
+    if (nde)
+        return;
+    
+    if (*vcf_fmt)
+        strcat(vcf_fmt, ":");
+    
+    strcat(vcf_fmt, ky);
+    
+    ldoc_trie_add(vcf_fmt_keys, ky, ASCII, LDOC_TRIE_ANNO_NULL);
+}
 
 static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const char* alt, bool nde)
 {
@@ -1605,10 +1627,7 @@ static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const
                 ldoc_ent_t* usr;
                 TAILQ_FOREACH(usr, &(fmt->info.nde->ents), ldoc_ent_entries)
                 {
-                    if (*vcf_fmt)
-                        strcat(vcf_fmt, ":");
-                    
-                    strcat(vcf_fmt, usr->pld.pair.anno.str);
+                    vcf_proc_doc_smpl_fmt_ky(usr->pld.pair.anno.str);
                 }
                 
                 ldoc_res_free(fmt);
@@ -1633,10 +1652,7 @@ static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const
     
     if (fmt)
     {
-        if (*vcf_fmt)
-            strcat(vcf_fmt, ":");
-        
-        strcat(vcf_fmt, alt);
+        vcf_proc_doc_smpl_fmt_ky(alt);
         
         ldoc_res_free(fmt);
     }

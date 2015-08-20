@@ -31,6 +31,8 @@ typedef enum
     BI_VCF_OTHER,
     BI_VCF_GT
 } bi_vcf_info;
+
+void vcf_ldj_init();
     
 void vcf_cbcks(gen_cbcks_t* cbcks);
 
