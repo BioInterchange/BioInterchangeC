@@ -36,11 +36,6 @@ static char vcf_smpls[1024 * 1024];
 static char vcf_fmt[512];
 static ldoc_trie_t* vcf_fmt_keys;
 
-void vcf_ldj_init()
-{
-    vcf_fmt_keys = ldoc_trie_new();
-}
-
 void vcf_cbcks(gen_cbcks_t* cbcks)
 {
     cbcks->proc_ln = &vcf_proc_ln;
@@ -1676,6 +1671,9 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
             {
                 char* sid = smpl->mkup.anno.str;
                 
+                // Appending a NULL at the very end is *not* to end the
+                // string; this has already been done by strcat. It ensures
+                // that it is possible to find the end of vcf_smpls.
                 if (!*vcf_smpls)
                 {
                     strcat(vcf_smpls, sid);
@@ -1683,9 +1681,11 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
                 }
                 else
                 {
-                    char* s = &vcf_smpls[strlen(vcf_smpls)];
+                    char* s = vcf_smpls;
                     
-                    s++;
+                    while (*s)
+                        s += strlen(s) + 1;
+                    
                     strcat(s, sid);
                     s[strlen(s) + 1] = 0;
                 }
@@ -1698,6 +1698,9 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
     }
     
     vcf_fmt[0] = 0;
+    vcf_fmt_keys = ldoc_trie_new();
+    
+    // TODO: Error handling.
     
     if (res)
         TAILQ_FOREACH(smpl, &(res->info.nde->dscs), ldoc_nde_entries)
@@ -1860,7 +1863,11 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
         if (!smpl_res)
             gen_err(MAIN_ERR_JFMT_KY, sid);
         
-        char* fmt = strdup(vcf_fmt);
+        // Note that vcf_fmt is one NULL character longer than strlen will report!
+        size_t fmt_len = strlen(vcf_fmt) + 2;
+        char* fmt = (char*)malloc(fmt_len); // strdup(vcf_fmt);
+        memcpy(fmt, vcf_fmt, fmt_len);
+        
         char* fid = fmt;
         while (*fid)
         {
@@ -2252,6 +2259,7 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
     
     ldoc_res_free(ref);
     ldoc_res_free(ref_seq);
+    ldoc_trie_free(vcf_fmt_keys);
     
     return NULL;
 }

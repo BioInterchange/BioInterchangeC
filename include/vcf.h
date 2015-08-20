@@ -32,8 +32,6 @@ typedef enum
     BI_VCF_GT
 } bi_vcf_info;
 
-void vcf_ldj_init();
-    
 void vcf_cbcks(gen_cbcks_t* cbcks);
 
 char* vcf_proc_doc_ftr(ldoc_nde_t* ftr);
