@@ -743,6 +743,10 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
         xseq++;
     }
     
+    // Has to come before `gen_splt_attrs`, because Start_range and
+    // End_range go into lc!
+    ldoc_nde_dsc_push(ftr, lc);
+    
     // Generic implementation for parsing attributes:
     gen_splt_attrs(ftr, attrs, ref, vars, coff[8], BI_VAL);
     
@@ -756,8 +760,6 @@ inline ldoc_doc_t* gvf_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char* ln, si
     ldoc_nde_ent_push(lc, st);
     ldoc_nde_ent_push(lc, en);
     ldoc_nde_ent_push(lc, strnd);
-    
-    ldoc_nde_dsc_push(ftr, lc);
 
     // Reference & variants:
     gen_nde_dsc_opt(ftr, ref, (char*)GEN_REFERENCE);

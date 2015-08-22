@@ -95,7 +95,9 @@ const char* GEN_DEPTH_VCF = "DP";                       // N/A
 const char* GEN_EFFECT = "effect";                      // (documented)
 const char* GEN_EFFECTS = "effects";                    // (documented)
 const char* GEN_END = "end";                            // (documented)
-const char* GEN_END_VCF = "END";
+const char* GEN_END_VCF = "END";                        // N/A
+const char* GEN_END_RANGE = "end-range";                //
+const char* GEN_END_RANGE_GVF = "End_range";            // N/A
 const char* GEN_FILE_DATE = "file-date";                // (documented)
 const char* GEN_FILE_DATE_VCF1 = "filedate";
 const char* GEN_FILE_DATE_VCF2 = "fileDate";
@@ -175,6 +177,8 @@ const char* GEN_SEQUENCE_REGION_VCF = "contig";
 const char* GEN_SEQUENCES = "sequences";                // (documented)
 const char* GEN_SEX = "sex";                            // (documented)
 const char* GEN_START = "start";                        // (documented)
+const char* GEN_START_RANGE = "start-range";            //
+const char* GEN_START_RANGE_GVF = "Start_range";        // N/A
 const char* GEN_STRAND = "strand";                      // (documented)
 const char* GEN_STRAND_BIAS = "strand-bias";            // (documented)
 const char* GEN_STRAND_BIAS_VCF = "SB";
@@ -655,6 +659,21 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     }
                 }
             }
+            else if (*str == 'n')
+            {
+                str++;
+                if (*str == 'd')
+                {
+                    str++;
+                    if (!strcmp(str, "_range"))
+                    {
+                        // GVF: End_range
+                        kwd->attr = BI_CSEP;
+                        kwd->alt = GEN_END_RANGE;
+                        return;
+                    }
+                }
+            }
         }
         else if (*str == 'F')
         {
@@ -984,6 +1003,21 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     }
                 }
             }
+            else if (*str == 't')
+            {
+                str++;
+                if (*str == 'a')
+                {
+                    str++;
+                    if (!strcmp(str, "rt_range"))
+                    {
+                        // GVF: Start_range
+                        kwd->attr = BI_CSEP;
+                        kwd->alt = GEN_START_RANGE;
+                        return;
+                    }
+                }
+            }
         }
         else if (*str == 'T')
         {
@@ -1053,6 +1087,8 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
             }
         }
         
+        // Some uppercase key, so should be associated with
+        // a feature instead of becoming a 'user-defined' entry.
         kwd->attr = upfail;
         kwd->alt = NULL;
         return;
@@ -1694,13 +1730,23 @@ void gen_splt_attrs(ldoc_nde_t* ftr, ldoc_nde_t* usr, ldoc_nde_t* ref, ldoc_nde_
             {
                 dst = ftr;
                 
-                gen_lwrhyph(attr);
-                
                 // Fall back to comma separated list handing, if
                 // this is a comma separated variant list but no
                 // variant node is given:
                 if (kwd.attr == BI_CSEPVAR && !vars)
                     kwd.attr = BI_CSEP;
+                else if (kwd.attr == BI_CSEP &&
+                         (!strcmp(attr, GEN_START_RANGE_GVF) ||
+                          !strcmp(attr, GEN_END_RANGE_GVF)))
+                {
+                    // Start_range/End_range have to go into locus!
+                    const char* pth[] = { GEN_LOCUS };
+                    ldoc_res_t* lc = ldoc_find_anno_nde(ftr, (char**)pth, 1);
+                    dst = lc->info.nde;
+                    ldoc_res_free(lc);
+                }
+                
+                gen_lwrhyph(attr);
             }
             else
                 dst = usr;
