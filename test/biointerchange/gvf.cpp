@@ -20,6 +20,9 @@
 
 #define GVF_GVF_SMALL "../test-data/small.gvf"
 
+#define GVF_GVF_REGIONS "../test-data/regions.gvf"
+#define GVF_GVF_REGIONS_TMP "../test-data/regions.tmp"
+
 // Line taken from: test-data/Saccharomyces_cerevisiae_incl_consequences.gvf
 // Modified to include more information about variants.
 static const char* gvf_ftr1 = "I\tSGRP\tSNV\t675\t675\t.\t+\t.\tID=76;variant_peptide=1 P YAL068W-A,0 P YAL068W-A;Variant_seq=G,T;reference_peptide=P;Variant_effect=upstream_gene_variant 1 transcript YAL067W-A,upstream_gene_variant 0 transcript YAL067W-A,downstream_gene_variant 1 transcript YAL069W,downstream_gene_variant 0 transcript YAL069W,synonymous_variant 1 mRNA YAL068W-A,synonymous_variant 0 mRNA YAL068W-A,downstream_gene_variant 1 transcript YAL068C,downstream_gene_variant 0 transcript YAL068C;Dbxref=SGRP:s01-675;Variant_codon=GAG,GGG;Reference_seq=A;Reference_codon=GAG";
@@ -66,7 +69,7 @@ TEST(gvf, gvf_rd)
 TEST(gvf, gvf_serialize_ftr)
 {
     ldoc_doc_t* doc = ldoc_doc_new();
-    char* qk = qk_alloc(10*1024*1024);
+    qk_alloc(10*1024*1024);
     
     // Line taken from: test-data/Saccharomyces_cerevisiae_incl_consequences.gvf
     // Modified to include more information about variants.
@@ -83,11 +86,10 @@ TEST(gvf, gvf_serialize_ftr)
     free(cmt);
 }
 
-
 TEST(gvf, gvf_serialize_ftr_empty_seqs)
 {
     ldoc_doc_t* doc = ldoc_doc_new();
-    char* qk = qk_alloc(10*1024*1024);
+    qk_alloc(10*1024*1024);
     
     // Line taken from: test-data/Saccharomyces_cerevisiae_incl_consequences.gvf
     // Modified to include more information about variants.
@@ -100,6 +102,63 @@ TEST(gvf, gvf_serialize_ftr_empty_seqs)
     gvf_proc_doc(doc, GEN_FMT_FTR);
     
     qk_free();
+}
+
+TEST(gvf, gvf_serialize_regions)
+{
+    gen_init();
+    gvf_init();
+    
+    int fd = fio_opn(GVF_GVF_REGIONS);
+    size_t mx = fio_len(fd);
+    
+    gen_cbcks_t cbcks;
+    gvf_cbcks(&cbcks);
+    
+    FILE* tmp = fopen(GVF_GVF_REGIONS_TMP, "w+");
+    gen_ctxt_t ctxt =
+    {
+        GEN_FMT_GVF,
+        false, // No Python API.
+        false, // Not "quick".
+        (char*)"unit-test.gvf", // Input filename; this file does not really exist.
+        NULL,
+        NULL,
+        tmp,
+        NULL, // User data.
+        (char*)BIOINTERCHANGE_VERSION
+    };
+    
+    gen_rd(fd, mx, NULL, &cbcks, &ctxt);
+    
+    fflush(tmp);
+    fseek(tmp, 0, SEEK_SET);
+    size_t lines = 0;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    while ((read = getline(&line, &len, tmp)) != -1)
+    {
+        lines++;
+        
+        // Meta document:
+        if (lines == 2)
+        {
+            // Make sure no "isolated" contig entries exist -- means that
+            // the code did not pick up existing "contig" keys.
+            EXPECT_EQ((char*)NULL, strstr(line, "\"contig\":{\"15\":{\"start\":1,\"end\":104043685}}"));
+            
+            // Ordering preserved by LibDocument:
+            EXPECT_NE((char*)NULL, strstr(line, "\"contig\":{\"15\":{\"start\":1,\"end\":104043685},\"6\":{\"start\":1,\"end\":149736546},\"16\":{\"start\":1,\"end\":98207768},\"10\":{\"start\":1,\"end\":130694993},\"2\":{\"start\":1,\"end\":182113224},\"3\":{\"start\":1,\"end\":160039680},\"11\":{\"start\":1,\"end\":122082543},\"MT\":{\"start\":1,\"end\":16299},\"7\":{\"start\":1,\"end\":145441459},\"12\":{\"start\":1,\"end\":120129022},\"19\":{\"start\":1,\"end\":61431566},\"1\":{\"start\":1,\"end\":195471971},\"17\":{\"start\":1,\"end\":94987271},\"9\":{\"start\":1,\"end\":124595110},\"X\":{\"start\":1,\"end\":171031299},\"18\":{\"start\":1,\"end\":90702639},\"Y\":{\"start\":1,\"end\":91744698},\"4\":{\"start\":1,\"end\":156508116},\"14\":{\"start\":1,\"end\":124902244},\"13\":{\"start\":1,\"end\":120421639},\"5\":{\"start\":1,\"end\":151834684},\"8\":{\"start\":1,\"end\":129401213}}"));
+        }
+    }
+    fclose(tmp);
+    remove(GVF_GVF_REGIONS_TMP);
+    
+    // 1 context, 1 meta, 1 feature, 1 summary
+    EXPECT_EQ(4, lines);
+    
+    fio_cls(fd);
 }
 
 TEST(gvf, gvf_tags_technology)
@@ -152,7 +211,7 @@ TEST(gvf, gvf_tags_index_use)
     // Features:
     
     ldoc_doc_t* doc = ldoc_doc_new();
-    char* qk = qk_alloc(10*1024*1024);
+    qk_alloc(10*1024*1024);
     
     // Line taken from: test-data/Saccharomyces_cerevisiae_incl_consequences.gvf
     // Modified to include more information about variants.

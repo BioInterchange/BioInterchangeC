@@ -1041,7 +1041,7 @@ static inline void gvf_proc_sctn(ldoc_nde_t* nde, char* sctn, char* ky, char* va
     }
 }
 
-static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
+ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen, char** cmt)
 {
     bool usr_nw;
     ldoc_nde_t* usr = gen_ctx(doc->rt, &usr_nw, JSONLD_GVF_X1);
@@ -1078,7 +1078,22 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             val++;
     }
     
-    ldoc_nde_t* stmt = gen_find_nde(doc->rt, usr, ln);
+    char* alt;
+    if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
+        alt = strdup(GEN_SEQUENCE_REGION);
+    else if (!strcmp(ln, GEN_INDIVIDUALS_GVF1) ||
+             !strcmp(ln, GEN_INDIVIDUALS_GVF2))
+        alt = strdup(GEN_INDIVIDUALS);
+    else if (!strncmp(ln, "technology-platform-", 20))
+        alt = strdup(ln + 20);
+    else
+        alt = NULL;
+    
+    ldoc_nde_t* stmt;
+    if (alt)
+        stmt = gen_find_nde(doc->rt, usr, alt);
+    else
+        stmt = gen_find_nde(doc->rt, usr, ln);
     
     ldoc_struct_t tpe = gvf_prgm_tpe(ln);
     if (!stmt)
@@ -1105,13 +1120,8 @@ static inline ldoc_doc_t* gvf_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             // TODO: Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_UA : tpe);
             
-            if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
-                stmt->mkup.anno.str = strdup(GEN_SEQUENCE_REGION);
-            else if (!strcmp(ln, GEN_INDIVIDUALS_GVF1) ||
-                     !strcmp(ln, GEN_INDIVIDUALS_GVF2))
-                stmt->mkup.anno.str = strdup(GEN_INDIVIDUALS);
-            else if (!strncmp(ln, "technology-platform-", 20))
-                stmt->mkup.anno.str = strdup(ln + 20);
+            if (alt)
+                stmt->mkup.anno.str = alt;
             else
                 stmt->mkup.anno.str = strdup(ln);
             

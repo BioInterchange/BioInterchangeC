@@ -26,6 +26,9 @@
 #define GFF_GFF_FA_REF1_LLEN 60
 #define GFF_GFF_FA_NME1 "DDB0220052"
 
+#define GFF_GFF_REGIONS "../test-data/regions.gff"
+#define GFF_GFF_REGIONS_TMP "../test-data/regions.tmp"
+
 /**
  * Pragma statements including the FASTA separator.
  */
@@ -250,5 +253,61 @@ TEST(gff, gff_serialize_ftr)
     
     free(cmt);
     free(attrs_str);
+}
+
+TEST(gff, gff_serialize_regions)
+{
+    gen_init();
+    
+    int fd = fio_opn(GFF_GFF_REGIONS);
+    size_t mx = fio_len(fd);
+    
+    gen_cbcks_t cbcks;
+    gff_cbcks(&cbcks);
+    
+    FILE* tmp = fopen(GFF_GFF_REGIONS_TMP, "w+");
+    gen_ctxt_t ctxt =
+    {
+        GEN_FMT_GFF3,
+        false, // No Python API.
+        false, // Not "quick".
+        (char*)"unit-test.gff", // Input filename; this file does not really exist.
+        NULL,
+        NULL,
+        tmp,
+        NULL, // User data.
+        (char*)BIOINTERCHANGE_VERSION
+    };
+    
+    gen_rd(fd, mx, NULL, &cbcks, &ctxt);
+    
+    fflush(tmp);
+    fseek(tmp, 0, SEEK_SET);
+    size_t lines = 0;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    while ((read = getline(&line, &len, tmp)) != -1)
+    {
+        lines++;
+        
+        // Meta document:
+        if (lines == 2)
+        {
+            // Make sure no "isolated" contig entries exist -- means that
+            // the code did not pick up existing "contig" keys.
+            EXPECT_EQ((char*)NULL, strstr(line, "\"contig\":{\"15\":{\"start\":1,\"end\":104043685}}"));
+            
+            // Ordering preserved by LibDocument:
+            EXPECT_NE((char*)NULL, strstr(line, "\"contig\":{\"15\":{\"start\":1,\"end\":104043685},\"6\":{\"start\":1,\"end\":149736546},\"16\":{\"start\":1,\"end\":98207768},\"10\":{\"start\":1,\"end\":130694993},\"2\":{\"start\":1,\"end\":182113224},\"3\":{\"start\":1,\"end\":160039680},\"11\":{\"start\":1,\"end\":122082543},\"MT\":{\"start\":1,\"end\":16299},\"7\":{\"start\":1,\"end\":145441459},\"12\":{\"start\":1,\"end\":120129022},\"19\":{\"start\":1,\"end\":61431566},\"1\":{\"start\":1,\"end\":195471971},\"17\":{\"start\":1,\"end\":94987271},\"9\":{\"start\":1,\"end\":124595110},\"X\":{\"start\":1,\"end\":171031299},\"18\":{\"start\":1,\"end\":90702639},\"Y\":{\"start\":1,\"end\":91744698},\"4\":{\"start\":1,\"end\":156508116},\"14\":{\"start\":1,\"end\":124902244},\"13\":{\"start\":1,\"end\":120421639},\"5\":{\"start\":1,\"end\":151834684},\"8\":{\"start\":1,\"end\":129401213}}"));
+        }
+    }
+    fclose(tmp);
+    remove(GFF_GFF_REGIONS_TMP);
+    
+    // 1 context, 1 meta, 1 feature, 1 summary
+    EXPECT_EQ(4, lines);
+    
+    fio_cls(fd);
 }
 

@@ -18,6 +18,9 @@
 #include "fio.h"
 #include "vcf.h"
 
+#define VCF_VCF_REGIONS "../test-data/playground-vcf.vcf"
+#define VCF_VCF_REGIONS_TMP "../test-data/playground-vcf.tmp"
+
 // Lines taken from: test-data/mgp.v3.indels.rsIDdbSNPv137.vcf
 // Command: head -n 69 test-data/mgp.v3.indels.rsIDdbSNPv137.vcf | tail -n 2 | tr $'\t' '^' | sed 's/\^/\\t/g'
 static const char* vcf_ftr1_1 = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t129P2\t129S1\t129S5\tAJ\tAKRJ\tBALBcJ\tC3HHeJ\tC57BL6NJ\tCASTEiJ\tCBAJ\tDBA2J\tFVBNJ\tLPJ\tNODShiLtJ\tNZOHlLtJ\tPWKPhJ\tSPRETEiJ\tWSBEiJ";
@@ -26,7 +29,7 @@ static const char* vcf_ftr1_2 = "1\t3000019\t.\tG\tGA\t40.49\tQual;MinAB;MinDP\t
 TEST(vcf, vcf_serialize_ftr)
 {
     gen_init();
-    char* qk = qk_alloc(10*1024*1024);
+    qk_alloc(10*1024*1024);
     
     ldoc_doc_t* doc;
     ldoc_doc_t* fdoc = ldoc_doc_new();
@@ -52,5 +55,58 @@ TEST(vcf, vcf_serialize_ftr)
     qk_free();
     
     free(cmt);
+}
+
+TEST(vcf, vcf_serialize_regions)
+{
+    gen_init();
+    
+    int fd = fio_opn(VCF_VCF_REGIONS);
+    size_t mx = fio_len(fd);
+    
+    gen_cbcks_t cbcks;
+    vcf_cbcks(&cbcks);
+    
+    FILE* tmp = fopen(VCF_VCF_REGIONS_TMP, "w+");
+    gen_ctxt_t ctxt =
+    {
+        GEN_FMT_VCF,
+        false, // No Python API.
+        false, // Not "quick".
+        (char*)"unit-test.vcf", // Input filename; this file does not really exist.
+        NULL,
+        NULL,
+        tmp,
+        NULL, // User data.
+        (char*)BIOINTERCHANGE_VERSION
+    };
+    
+    gen_rd(fd, mx, NULL, &cbcks, &ctxt);
+    
+    fflush(tmp);
+    fseek(tmp, 0, SEEK_SET);
+    size_t lines = 0;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    while ((read = getline(&line, &len, tmp)) != -1)
+    {
+        lines++;
+        
+        // Meta document:
+        if (lines == 2)
+        {
+            // Make sure no "isolated" contig entries exist -- means that
+            // the code did not pick up existing "contig" keys.
+            EXPECT_EQ((char*)NULL, strstr(line, "\"contig\":{\"1\":{\"length\":195471971}}"));
+            
+            // Ordering preserved by LibDocument:
+            EXPECT_NE((char*)NULL, strstr(line, "\"contig\":{\"1\":{\"length\":195471971},\"3\":{\"length\":918278173}}"));
+        }
+    }
+    fclose(tmp);
+    remove(VCF_VCF_REGIONS_TMP);
+    
+    fio_cls(fd);
 }
 

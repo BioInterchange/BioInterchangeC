@@ -375,7 +375,18 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
     if (*ln == '#' && !*(ln + 1))
         return NULL;
     
-    ldoc_nde_t* stmt = gen_find_nde(doc->rt, usr, ln);
+    char* alt;
+    if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
+        alt = strdup(GEN_SEQUENCE_REGION);
+    else
+        alt = NULL;
+    
+    ldoc_nde_t* stmt;
+    if (alt)
+        stmt = gen_find_nde(doc->rt, usr, alt);
+    else
+        stmt = gen_find_nde(doc->rt, usr, ln);
+    
     ldoc_struct_t tpe = gff_prgm_tpe(ln);
     if (!stmt)
     {
@@ -399,8 +410,8 @@ static inline ldoc_doc_t* gff_proc_prgm(ldoc_doc_t* doc, char* ln, size_t lnlen,
             // TODO Use own types, so that this conversion is not necessary:
             stmt = ldoc_nde_new(tpe == LDOC_NDE_OO ? LDOC_NDE_UA : tpe);
             
-            if (!strcmp(ln, GEN_SEQUENCE_REGION_GFF3))
-                stmt->mkup.anno.str = strdup(GEN_SEQUENCE_REGION);
+            if (alt)
+                stmt->mkup.anno.str = alt;
             else
                 stmt->mkup.anno.str = strdup(ln);
             
