@@ -1014,7 +1014,7 @@ static inline ldoc_ent_t* vcf_proc_num(char* val, size_t len, char* lbl, size_t 
         else if (*lbl == 'G' && *(lbl + 1) == 'Q') // GQ: genotype quality
             ent->pld.pair.anno.str = qk_strdup(GEN_GENOTYPE_QUAL);
         else if (*lbl == 'M' && *(lbl + 1) == 'Q') // MQ: mapping quality
-            ent->pld.pair.anno.str = qk_strdup(GEN_QUALITY_MAP_VCF);
+            ent->pld.pair.anno.str = qk_strdup(GEN_QUALITY_MAP);
         else if (*lbl == 'N' && *(lbl + 1) == 'S') // NS: number of samples with data
             ent->pld.pair.anno.str = qk_strdup(GEN_SAMPLES_DATA);
         else if (*lbl == 'P' && *(lbl + 1) == 'S') // PS: phase set
