@@ -503,8 +503,10 @@ lic_status_t lic_valid(char* lstr, gen_fstat* stat)
     lic_status_t status;
     switch (*lstr)
     {
+        /* Disable offline licenses for trial versions for now.
         case 'A':
             return lic_valid_fmt1(lstr, NULL);
+         */
         case 'B':
             status = lic_valid_fmt1(lstr, NULL);
             
