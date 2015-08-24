@@ -65,6 +65,12 @@ const char* GEN_ALLELE_CNTEXP = "allele-count-expected"; // (documented)
 const char* GEN_ALLELE_CNTEXP_VCF = "EC";               // N/A
 const char* GEN_ALLELE_FRQ = "allele-frequency";        // (documented)
 const char* GEN_ALLELE_FRQ_VCF = "AF";                  // N/A
+const char* GEN_ALLELE_DEPTH = "depth";                 //
+const char* GEN_ALLELE_DEPTH_VCF = "AD";                // N/A
+const char* GEN_ALLELE_DEPTHFWD = "depth-forward";      //
+const char* GEN_ALLELE_DEPTHFWD_VCF = "ADF";            // N/A
+const char* GEN_ALLELE_DEPTHREV = "depth-reverse";      //
+const char* GEN_ALLELE_DEPTHREV_VCF = "ADR";            // N/A
 const char* GEN_ALLELE_TTL = "allele-total-number";     // (documented)
 const char* GEN_ALLELE_TTL_VCF = "AN";                  // N/A
 const char* GEN_ANCESTRAL_ALLELE = "ancestral-allele";  // (documented)
@@ -499,6 +505,31 @@ inline void gen_kwd(char* str, gen_attr_t* kwd, bi_attr upfail)
                     // VCF: AC, allele count
                     kwd->attr = BI_CSEPVARN;
                     kwd->alt = GEN_ALLELE_CNT;
+                    return;
+                }
+            }
+            if (*str == 'D')
+            {
+                str++;
+                if (!*str)
+                {
+                    // VCF: AD, allele depth
+                    kwd->attr = BI_CSEPVARN;
+                    kwd->alt = GEN_ALLELE_DEPTH;
+                    return;
+                }
+                else if (!strcmp(str, "F"))
+                {
+                    // VCF: ADF, allele depth forward
+                    kwd->attr = BI_CSEPVARN;
+                    kwd->alt = GEN_ALLELE_DEPTHFWD;
+                    return;
+                }
+                else if (!strcmp(str, "R"))
+                {
+                    // VCF: ADR, allele depth reverse
+                    kwd->attr = BI_CSEPVARN;
+                    kwd->alt = GEN_ALLELE_DEPTHREV;
                     return;
                 }
             }
@@ -2647,7 +2678,6 @@ bool gen_proc_nde(ldoc_nde_t* vars, char* attr, char* pre, char* astr, size_t vn
 void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
 {
     off_t err;
-    off_t nxt;
     
     // NOTE: A lot of this code is derived from gen_rd. It might
     //       be possible to write a function for this.
@@ -2664,12 +2694,10 @@ void gen_rd_doc(int fd, off_t mx, gen_ctxt_t* ctxt)
     st.vcf_ftr_sct = false;
     st.vcf_col = 0;
     
-    bool fdoc_purged = false;
     char* mem_cpy = NULL;
     size_t mem_len = 0;
     size_t lnlen;
     uint64_t ln_no = 0;
-    gen_fstat stat = { 0, 0, 0, false, 0, 0 };
     // Temporary -- will be replaced with the actual output once '@context'
     // has been read:
     gen_filetype_t out = GEN_FMT_LDJ;

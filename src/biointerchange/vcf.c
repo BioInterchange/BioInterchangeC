@@ -377,8 +377,7 @@ static inline void vcf_proc_optlst(ldoc_nde_t* ftr, char* id, char* lst)
     
     // Check whether there is no list:
     if (!lst ||
-        (lst[0] == '.' && !lst[1]) ||
-        !strcmp(lst, "PASS"))
+        (lst[0] == '.' && !lst[1]))
     {
         ent = ldoc_ent_new(LDOC_ENT_OR);
         
@@ -397,6 +396,11 @@ static inline void vcf_proc_optlst(ldoc_nde_t* ftr, char* id, char* lst)
     // TODO Error handling.
     
     nde->mkup.anno.str = id;
+    
+    ldoc_nde_dsc_push(ftr, nde);
+    
+    if (!strcmp(lst, "PASS"))
+        return;
     
     char* f;
     bool cnt = true;
@@ -420,8 +424,6 @@ static inline void vcf_proc_optlst(ldoc_nde_t* ftr, char* id, char* lst)
         
         ldoc_nde_ent_push(nde, ent);
     }
-    
-    ldoc_nde_dsc_push(ftr, nde);
 }
 
 static inline void vcf_proc_idlst(ldoc_nde_t* ftr, char* lst)
@@ -774,7 +776,7 @@ static inline ldoc_nde_t* vcf_proc_gle(char* val, size_t len, char* ref, char** 
     return nde;
 }
 
-static inline void vcf_proc_ec(ldoc_nde_t* cntnr, char* val, size_t len)
+static inline void vcf_proc_smpl_var(ldoc_nde_t* cntnr, char* val, size_t len, char* lbl)
 {
     const char* pth[] = { GEN_VARIANTS };
     ldoc_res_t* res = ldoc_find_anno_nde(cntnr, (char**)pth, 1);
@@ -829,7 +831,7 @@ static inline void vcf_proc_ec(ldoc_nde_t* cntnr, char* val, size_t len)
             
             ldoc_ent_t* ent = ldoc_ent_new(LDOC_ENT_NR);
             
-            ent->pld.pair.anno.str = (char*)GEN_ALLELE_CNTEXP;
+            ent->pld.pair.anno.str = lbl;
             
             slen = len ? val - v : val - v + 1;
             if (slen == 1 && *v == '.')
@@ -1090,10 +1092,25 @@ static inline void vcf_proc_smpl(ldoc_nde_t* smpls, gen_prsr_t* stt, size_t i, c
             
             ldoc_nde_dsc_push(s, gt);
         }
+        else if (fmt - id == 2 && id[0] == 'A' && id[1] == 'D')
+        {
+            // AD: allele read depth
+            vcf_proc_smpl_var(s, val, smpl - val, (char*)GEN_ALLELE_DEPTH);
+        }
+        else if (fmt - id == 3 && id[0] == 'A' && id[1] == 'D' && id[2] == 'F')
+        {
+            // ADF: allele read depth forward
+            vcf_proc_smpl_var(s, val, smpl - val, (char*)GEN_ALLELE_DEPTHFWD);
+        }
+        else if (fmt - id == 3 && id[0] == 'A' && id[1] == 'D' && id[2] == 'R')
+        {
+            // ADR: allele read depth reverse
+            vcf_proc_smpl_var(s, val, smpl - val, (char*)GEN_ALLELE_DEPTHREV);
+        }
         else if (fmt - id == 2 && id[0] == 'E' && id[1] == 'C')
         {
-            // PL: phred-scaled genotype likelihoods
-            vcf_proc_ec(s, val, smpl - val);
+            // EC: expected allele count
+            vcf_proc_smpl_var(s, val, smpl - val, (char*)GEN_ALLELE_CNTEXP);
         }
         else if (fmt - id == 2 && id[0] == 'F' && id[1] == 'T')
         {
@@ -1608,6 +1625,7 @@ static inline void vcf_proc_doc_smpl_fmt_ky(const char* ky)
 {
     ldoc_trie_nde_t* nde = ldoc_trie_lookup(vcf_fmt_keys, ky, false);
     
+    // If this key has been seen already: bail out.
     if (nde)
         return;
     
@@ -1643,11 +1661,20 @@ static inline void vcf_proc_doc_smpl_fmt(ldoc_nde_t* smpl, const char* ky, const
                 return;
             }
         }
+        
         if (!strcmp(ky, GEN_GENOTYPE_LIKE) ||
             !strcmp(ky, GEN_GENOTYPE_LIKEP))
         {
             const char* fld_pth[] = { "AA", ky };
             fmt = ldoc_find_anno_nde(smpl, (char**)fld_pth, 2);
+        }
+        else if (!strcmp(ky, GEN_ALLELE_CNTEXP) ||
+                 !strcmp(ky, GEN_ALLELE_DEPTH) ||
+                 !strcmp(ky, GEN_ALLELE_DEPTHFWD) ||
+                 !strcmp(ky, GEN_ALLELE_DEPTHREV))
+        {
+            const char* fld_pth[] = { GEN_VARIANTS, "B", ky };
+            fmt = ldoc_find_anno_nde(smpl, (char**)fld_pth, 3);
         }
         else
         {
@@ -1735,10 +1762,14 @@ static inline void vcf_proc_doc_smpl_hdrfmt(ldoc_nde_t* ftr)
             vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_SET, GEN_PHASE_SET_VCF, true);
             vcf_proc_doc_smpl_fmt(smpl, GEN_PHASE_QUAL, GEN_PHASE_QUAL_VCF, true);
             vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_CNTEXP, GEN_ALLELE_CNTEXP_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_DEPTH, GEN_ALLELE_DEPTH_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_DEPTHFWD, GEN_ALLELE_DEPTHFWD_VCF, true);
+            vcf_proc_doc_smpl_fmt(smpl, GEN_ALLELE_DEPTHREV, GEN_ALLELE_DEPTHREV_VCF, true);
             vcf_proc_doc_smpl_fmt(smpl, GEN_QUALITY_MAP, GEN_QUALITY_MAP_VCF, true);
             vcf_proc_doc_smpl_fmt(smpl, GEN_ATTRS, NULL, true);
         }
     
+    vcf_fmt[strlen(vcf_fmt) + 1] = 0;
     vcf_hdr = true;
     
     ldoc_res_free(res);
@@ -1861,7 +1892,73 @@ static inline void vcf_proc_doc_glgppl(ldoc_nde_t* smpl, gen_alt_t tpe)
     }
 }
 
-static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
+static inline void vcf_proc_doc_var(ldoc_nde_t* nde, char* attrs, const char* ky, const char* inf_ky)
+{
+    const char* vars_id[] = { GEN_VARIANTS };
+    ldoc_res_t* vars = ldoc_find_anno_nde(nde, (char**)vars_id, 1);
+    off_t allele = 0;
+    ldoc_res_t* var;
+    ldoc_res_t* res;
+    char* str;
+    while (true) // See "Break condition" below.
+    {
+        const char* var_id[] = { &GEN_ALLELE[(allele + 1) * 2] };
+        var = ldoc_find_anno_nde(vars->info.nde, (char**)var_id, 1);
+        
+        if (!var) // Break condition.
+            break;
+        
+        // Obviously, only works with entity types.
+        res = ldoc_find_anno_ent(var->info.nde, (char*)ky);
+        
+        // No entry. Skip! (Hopefully only occurs on the first entry?)
+        if (!res)
+            return;
+        
+        if (!res->info.ent->pld.pair.dtm.str)
+        {
+            str = strdup(".");
+            if (!str)
+                gen_err(MAIN_ERR_SYSMALL, "VCF information field (out of memory; unknown value).");
+        }
+        else
+        {
+            str = strdup(res->info.ent->pld.pair.dtm.str);
+            if (!str)
+                gen_err(MAIN_ERR_SYSMALL, "VCF information field (out of memory; assigned value).");
+        }
+        
+        ldoc_res_free(res);
+        
+        if (allele)
+            qk_strcat(",");
+        else if (attrs)
+        {
+            if (inf_ky)
+            {
+                if (qk_working_ptr() != attrs)
+                    qk_strcat(";");
+                
+                qk_strcat(inf_ky);
+                qk_strcat("=");
+            }
+            else
+            {
+                if (qk_working_ptr() != attrs)
+                    qk_strcat(":");
+            }
+        }
+        
+        qk_strcat(str);
+        free(str);
+        
+        ldoc_res_free(var);
+        
+        allele++;
+    }
+}
+
+static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr)
 {
     const char* smpl_pth[] = { "samples" };
     ldoc_res_t* res = ldoc_find_anno_nde(ftr, (char**)smpl_pth, 1);
@@ -1921,6 +2018,14 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
                 vcf_proc_doc_gt(smpl_nde->anno.pld); // GT: genotype
             else if (!strcmp(fid, GEN_DEPTH_VCF))
                 vcf_proc_doc_ent(smpl_nde->anno.pld, GEN_DEPTH); // DP: depth
+            else if (!strcmp(fid, GEN_ALLELE_DEPTH_VCF))
+                vcf_proc_doc_var(smpl_nde->anno.pld, NULL, GEN_ALLELE_DEPTH, NULL); // AD: depth
+            else if (!strcmp(fid, GEN_ALLELE_DEPTHFWD_VCF))
+                vcf_proc_doc_var(smpl_nde->anno.pld, NULL, GEN_ALLELE_DEPTHFWD, NULL); // ADF: allele depth forward
+            else if (!strcmp(fid, GEN_ALLELE_DEPTHREV_VCF))
+                vcf_proc_doc_var(smpl_nde->anno.pld, NULL, GEN_ALLELE_DEPTHREV, NULL); // ADF: allele depth reverse
+            else if (!strcmp(fid, GEN_ALLELE_CNTEXP_VCF))
+                vcf_proc_doc_var(smpl_nde->anno.pld, NULL, GEN_ALLELE_CNTEXP, NULL); // EC: allele count
             else if (!strcmp(fid, GEN_ANNOTATIONS_VCF))
                 vcf_proc_doc_lst(smpl_nde->anno.pld, GEN_ANNOTATIONS, ";"); // FT: filter
             else if (!strcmp(fid, GEN_GENOTYPE_LIKE_VCF))
@@ -1986,16 +2091,6 @@ static inline bool vcf_proc_doc_smpl(ldoc_nde_t* ftr, char* attrs)
 
 static inline bool vcf_proc_doc_info(ldoc_nde_t* ftr, char* attrs)
 {
-    /*
-    ldoc_res_t* res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_CNT);
-    if (res)
-        gen_join_attrs_ent((char*)GEN_ALLELE_CNT_VCF, res->info.ent, attrs);
-
-    res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_FRQ);
-    if (res)
-        gen_join_attrs_ent((char*)GEN_ALLELE_FRQ_VCF, res->info.ent, attrs);
-    */
-    
     // Alleles:
     
     ldoc_res_t* res = ldoc_find_anno_ent(ftr, (char*)GEN_ALLELE_TTL);
@@ -2108,9 +2203,9 @@ static inline bool vcf_proc_doc_info(ldoc_nde_t* ftr, char* attrs)
     res = ldoc_find_anno_nde(ftr, (char**)algn_pth, 1);
     if (res && res->nde)
     {
-        res = ldoc_find_anno_ent(res->info.nde, (char*)GEN_CIGAR);
+        ldoc_res_t* res_ = ldoc_find_anno_ent(res->info.nde, (char*)GEN_CIGAR);
         
-        if (res && !res->nde)
+        if (res_ && !res_->nde)
         {
             // Add attribute separator, if other attributes are present:
             if (qk_working_ptr() != attrs)
@@ -2118,14 +2213,22 @@ static inline bool vcf_proc_doc_info(ldoc_nde_t* ftr, char* attrs)
 
             qk_strcat(GEN_CIGAR_VCF);
             qk_strcat("=");
-            qk_strcat(res->info.ent->pld.pair.dtm.str);
+            qk_strcat(res_->info.ent->pld.pair.dtm.str);
+            
+            ldoc_res_free(res_);
         }
-    }
-    
-    if (res)
+        
         ldoc_res_free(res);
+    }
 
-    vcf_proc_doc_smpl(ftr, attrs);
+    // Variation specific fields:
+
+    vcf_proc_doc_var(ftr, attrs, GEN_ALLELE_CNT, GEN_ALLELE_CNT_VCF);
+    vcf_proc_doc_var(ftr, attrs, GEN_ALLELE_CNTEXP, GEN_ALLELE_CNTEXP_VCF);
+    vcf_proc_doc_var(ftr, attrs, GEN_ALLELE_FRQ, GEN_ALLELE_FRQ_VCF);
+    vcf_proc_doc_var(ftr, attrs, GEN_ALLELE_DEPTH, GEN_ALLELE_DEPTH_VCF);
+    vcf_proc_doc_var(ftr, attrs, GEN_ALLELE_DEPTHFWD, GEN_ALLELE_DEPTHFWD_VCF);
+    vcf_proc_doc_var(ftr, attrs, GEN_ALLELE_DEPTHREV, GEN_ALLELE_DEPTHREV_VCF);
     
     return true;
 }
@@ -2223,7 +2326,7 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
         {
             str = strdup(".");
             if (!str)
-                gen_err(MAIN_ERR_SYSMALL, "VCF sequence decoding (unknown sequence).");
+                gen_err(MAIN_ERR_SYSMALL, "VCF variant iteration (out of memory).");
         }
         else
         {
@@ -2274,29 +2377,8 @@ inline char* vcf_proc_doc_ftr(ldoc_nde_t* ftr)
         ldoc_res_free(usr);
     }
     
-    /*
-    ldoc_res_t* nme = ldoc_find_anno_ent(ftr, "name");
-    
-    const char* dbxref_id[] = { "dbxref" };
-    ldoc_res_t* dbxref = ldoc_find_anno_nde(ftr, (char**)dbxref_id, 1);
-    
-    const char* prnt_pth[] = { "parent" };
-    ldoc_res_t* prnt = ldoc_find_anno_nde(ftr, (char**)prnt_pth, 1);
-    
-    char* attrs = qk_working_ptr();
-    
-    if (id && !id->nde)
-        gen_join_attrs_ent("ID", id->info.ent, attrs);
-    
-    if (nme && !nme->nde)
-        gen_join_attrs_ent("Name", nme->info.ent, attrs);
-    
-    if (prnt && prnt->nde)
-        gen_join_attrs_nde("Parent", prnt->info.nde, attrs);
-    
-    if (dbxref && dbxref->nde)
-        gen_join_attrs_nde("Dbxref", dbxref->info.nde, attrs);
-    */
+    // Sample columns:
+    vcf_proc_doc_smpl(ftr);
     
     ldoc_res_free(ref);
     ldoc_res_free(ref_seq);
