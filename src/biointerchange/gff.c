@@ -684,6 +684,8 @@ static inline ldoc_doc_t* gff_proc_ftr(int fd, off_t mx, ldoc_trie_t* idx, char*
     // Do not add user defined sub-tree if it is empty:
     if (attrs->dsc_cnt || attrs->ent_cnt)
         ldoc_nde_dsc_push(ftr, attrs);
+    else
+        ldoc_nde_free(attrs);
 
     return doc;
 }
