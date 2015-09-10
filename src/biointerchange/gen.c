@@ -2223,7 +2223,7 @@ void gen_rd(int fd, off_t mx, ldoc_trie_t* idx, gen_cbcks_t* cbcks, gen_ctxt_t* 
 
         // Goto for increasing number of pages; note that `incr` is not set back, but kept on a high watermark:
     rd_incr_mem:
-        mem = fio_mmap(NULL, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
+        mem = fio_mmap(mem, fd, mx, getpagesize() * (BI_GEN_PG_MUL + incr), off);
         
         // TODO: Error checking. -- figure out how to handle
         
