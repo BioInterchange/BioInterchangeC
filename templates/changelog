@@ -4,6 +4,19 @@ biointerchange (VERSION)
 
 -- Joachim Baran <kim@codamono.com> DATE
 
+biointerchange (2.0.3+100)
+
+ * Update: VCF 4.3 support
+ * Update: better support for samples in VCF
+ * Update: "-q" parameter for faster GFF3/GVF loading
+ * Bugfix: corrected wrong/missing VCF key/value pairs
+ * Bugfix: better handling of locus ranges in GVF
+ * Bugfix: sequence region serialization for GFF3/GVF
+ * Bugfix: genotype field bugfix when converting LDJ to VCF
+ * Bugfix: better special character handling 
+
+-- Joachim Baran <kim@codamono.com> Mon Aug 24 02:23:18 UTC 2015
+
 biointerchange (2.0.2+84)
 
  * Bugfix: Memory leak that affected reading GVF/VCF and LDJ.
