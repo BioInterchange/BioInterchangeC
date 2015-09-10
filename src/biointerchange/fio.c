@@ -55,6 +55,7 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
     else
     {
         // Change page size/offset of an existing memory mapping:
+        msync(mem->pg, mem->ln, MS_INVALIDATE);
         munmap(mem->pg, mem->ln);
         
         // TODO: Error checking. -- not clear how.
@@ -75,10 +76,11 @@ fio_mem* fio_mmap(fio_mem* mem, int fd, size_t mx, size_t len, off_t off)
     return mem;
 }
 
-void fio_munmap(fio_mem* m)
+void fio_munmap(fio_mem* mem)
 {
     // TODO Error checking. -- not clear what to check for
-    munmap(m->pg, m->ln);
+    msync(mem->pg, mem->ln, MS_INVALIDATE);
+    munmap(mem->pg, mem->ln);
 }
 
 inline char* fio_rd(fio_mem* mem, size_t len, off_t off)
