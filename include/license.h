@@ -42,9 +42,9 @@
 #endif // NDEBUG
 
 #ifdef __APPLE__
-#define EXE_SYMID   "mH2kuYvd0KYBpThg"
+#define EXE_SYMID   "3dXBVGC1tq9Fo2nP"
 #else
-#define EXE_SYMID   "9SDYi2ZXv3JzfWJn"
+#define EXE_SYMID   "2xqjMGm2ZNnZLHjN"
 #endif
 
 #ifdef BIOINTERCHANGE_CRYPT
