@@ -4,6 +4,13 @@ biointerchange (VERSION)
 
 -- Joachim Baran <kim@codamono.com> DATE
 
+biointerchange (2.0.4+105)
+
+ * Update: improved file access
+ * Bugfix: memory leak that affected features with little/no data
+
+-- Joachim Baran <kim@codamono.com> Thu Sep 10 16:39:05 UTC 2015
+
 biointerchange (2.0.3+100)
 
  * Update: VCF 4.3 support
