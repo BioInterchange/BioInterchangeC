@@ -83,6 +83,7 @@ include_directories(src/curl/include/curl)
 include_directories(src/python)
 include_directories(src/python/Include)
 include_directories(src/libdocument/include)
+include_directories(src/openssl/include)
 
 link_directories(lib)
 
