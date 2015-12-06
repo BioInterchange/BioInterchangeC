@@ -49,6 +49,15 @@ ExternalProject_Add(googletest-lib
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 
+if(APPLE)
+ExternalProject_Add(curl-lib
+    GIT_REPOSITORY https://github.com/bagder/curl.git
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
+    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
+    CONFIGURE_COMMAND cmake -DCURL_STATICLIB=ON -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -DOPENSSL_LIBRARIES=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl -DOPENSSL_INCLUDE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl/include -G "Unix Makefiles"
+    BUILD_COMMAND ${MAKE}
+    INSTALL_COMMAND true)
+else(APPLE)
 ExternalProject_Add(curl-lib
     GIT_REPOSITORY https://github.com/bagder/curl.git
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
@@ -56,6 +65,7 @@ ExternalProject_Add(curl-lib
     CONFIGURE_COMMAND cmake -DCURL_STATICLIB=ON -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -G "Unix Makefiles"
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
+endif(APPLE)
 
 if(APPLE)
 ExternalProject_Add(openssl-lib
@@ -64,7 +74,7 @@ ExternalProject_Add(openssl-lib
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/openssl
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/openssl
     CONFIGURE_COMMAND ./Configure no-shared darwin64-x86_64-cc
-    BUILD_COMMAND ${MAKE}
+    BUILD_COMMAND make build_crypto build_ssl
     INSTALL_COMMAND true)
 endif(APPLE)
 
