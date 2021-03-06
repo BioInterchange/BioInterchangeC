@@ -39,9 +39,8 @@ ExternalProject_Add(libdocument-lib
     INSTALL_COMMAND true)
 
 ExternalProject_Add(googletest-lib
-    SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk
-    SVN_REVISION -r "700"
-    SVN_TRUST_CERT 1
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    #SVN_REVISION -r "700"
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/googletest
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/googletest
     UPDATE_COMMAND ""
