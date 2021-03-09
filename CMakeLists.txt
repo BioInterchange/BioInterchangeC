@@ -11,9 +11,9 @@ add_definitions(-DBIOINTERCHANGE_VERSION="${BIOINTERCHANGE_VERSION_CMPLD}")
 
 project(biointerchange VERSION ${BIOINTERCHANGE_VERSION_CMAKE} LANGUAGES C CXX)
 
-set(PYTHON_VERSION "3.4")
-set(PYTHON_PATCH "3")
-set(PYTHON_SUFFIX "m")
+set(PYTHON_VERSION "3.9")
+set(PYTHON_PATCH "1")
+set(PYTHON_SUFFIX "")
 
 file(GLOB_RECURSE biointerchange_SRC
     FOLLOW_SYMLINKS
@@ -53,7 +53,7 @@ ExternalProject_Add(curl-lib
     GIT_REPOSITORY https://github.com/bagder/curl.git
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
-    CONFIGURE_COMMAND cmake -DCURL_STATICLIB=ON -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -DOPENSSL_LIBRARIES=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl -DOPENSSL_INCLUDE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl/include -G "Unix Makefiles"
+    CONFIGURE_COMMAND cmake -DBUILD_SHARED_LIBS=OFF -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -DOPENSSL_ROOT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl -DOPENSSL_INCLUDE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl/include -G "Unix Makefiles"
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 else(APPLE)
@@ -61,7 +61,7 @@ ExternalProject_Add(curl-lib
     GIT_REPOSITORY https://github.com/bagder/curl.git
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
-    CONFIGURE_COMMAND cmake -DCURL_STATICLIB=ON -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -G "Unix Makefiles"
+    CONFIGURE_COMMAND cmake -DBUILD_SHARED_LIBS=OFF -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -G "Unix Makefiles"
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 endif(APPLE)
@@ -69,17 +69,17 @@ endif(APPLE)
 if(APPLE)
 ExternalProject_Add(openssl-lib
     GIT_REPOSITORY https://github.com/openssl/openssl.git
-    GIT_TAG OpenSSL_1_0_1m
+    GIT_TAG OpenSSL_1_1_1j
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/openssl
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/openssl
     CONFIGURE_COMMAND ./Configure no-shared darwin64-x86_64-cc
-    BUILD_COMMAND make build_crypto build_ssl
+    BUILD_COMMAND make build_libs
     INSTALL_COMMAND true)
 endif(APPLE)
 
 ExternalProject_Add(python
-    HG_REPOSITORY https://hg.python.org/cpython
-    HG_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
+    GIT_REPOSITORY https://github.com/python/cpython.git
+    GIT_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
     CONFIGURE_COMMAND ./configure
@@ -127,13 +127,10 @@ set_target_properties(biointerchange-static PROPERTIES
 
 if(APPLE)
 add_dependencies(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
+find_library(INTL_LIB NAMES intl libintl HINTS "/usr/local/lib")
+target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static ${INTL_LIB})
 else(APPLE)
 add_dependencies(biointerchange-static libdocument-static libcurl-static libpython-static)
-endif(APPLE)
-
-if(APPLE)
-target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
-else(APPLE)
 target_link_libraries(biointerchange-static libdocument-static dl m pthread util ssl crypto libcurl-static libpython-static)
 endif(APPLE)
 
