@@ -18,9 +18,8 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 
-// External (license *will* be external eventually):
+// External:
 #include "document.h"
-#include "license.h"
 
 // Internal headers (part of BioInterchange):
 #include "ext-python.h"
