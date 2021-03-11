@@ -4,8 +4,8 @@
    1. [GFF3, GVF, VCF to JSON](#gff3-gvf-vcf-to-json)
    2. [JSON to GFF3, GVF, VCF](#json-to-gff3-gvf-vcf)
    3. [Python API](#python-api)
-   4. [RethinkDB](#rethinkdb)
-   5. [MongoDB](#mongodb)
+   4. [MongoDB](#mongodb)
+   5. [RethinkDB](#rethinkdb) (legacy support)
 2. [Data Model](#data-model)
    1. [Overview](#overview)
       1. [Context Objects](#context-objects)
@@ -21,33 +21,18 @@ BioInterchange is a command line tool. On OS X, it can be run via the [Terminal]
 
 Running BioInterchange will cause the software to perform a quick system check before anything else happens. If there are incompatibility problems, then these will be reported and the software exits.
 
-BioInterchange is open source now and free to use. If your version of BioInterchange complains about a missing licensing file, then update your BioInterchange installation to the latest verion.
+**Note:** The tool BioInterchange 2.0 and its source code are licensed under the short, simple, and permissive [MIT License](https://github.com/indiedotkim/BioInterchangeC/blob/master/LICENSE.txt). If your version of BioInterchange compains about a missing license file, then please update to version 2.0.5 or later.
 
-<div class="row">
-    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-10 col-xs-offset-0 col-sm-offset-1 col-md-offset-1 col-lg-offset-1">
-        <div class="panel panel-info" role="alert">
-            <div class="panel-heading">
-                Note
-            </div>
-            <div class="panel-body">
-                Trial licenses and licenses for reviewers in the peer-review process are free.
-            </div>
-        </div>
-    </div>
-</div>
+### Abbreviations
 
-##### Abbreviations
+* [GFF3](http://www.sequenceontology.org/gff3.shtml): Generic Feature Format Version 3
+* [GVF](http://www.sequenceontology.org/resources/gvf.html): Genome Variation Format
+* [JSON](http://json.org/): JavaScript Object Notation
+* [JSON-LD](http://json-ld.org/): JSON Linked Data
+* [LDJ/LDJSON](https://en.wikipedia.org/wiki/Line_Delimited_JSON): Line Delimited JSON
+* [VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf): Variant Call Format
 
-<dl class="dl-horizontal">
-    <dt>GFF3</dt><dd><a href="http://www.sequenceontology.org/gff3.shtml">Generic Feature Format Version 3</a></dd>
-    <dt>GVF</dt><dd><a href="http://www.sequenceontology.org/resources/gvf.html">Genome Variation Format</a></dd>
-    <dt>JSON</dt><dd><a href="http://json.org/">JavaScript Object Notation</a></dd>
-    <dt>JSON-LD</dt><dd><a href="http://json-ld.org/">JSON Linked Data</a></dd>
-    <dt>LDJ/LDJSON</dt><dd><a href="https://en.wikipedia.org/wiki/Line_Delimited_JSON">Line Delimited JSON</a></dd>
-    <dt>VCF</dt><dd><a href="https://samtools.github.io/hts-specs/VCFv4.2.pdf">Variant Call Format</a></dd>
-</dl>
-
-### GFF3, GVF, VCF to JSON
+### GFF3, GVF, VCF to JSON (Converting to a unified data representation.)
 
 Converting genomic file formats to a series of JSON objects:
 
@@ -73,57 +58,68 @@ A brief help text is shown with the "-h" parameter:
 
     biointerchange -h
 
-### JSON to GFF3, GVF, VCF
+### JSON to GFF3, GVF, VCF (Converting to tool-specific data representations.)
 
 Converting JSON objects back to their original genomic file format:
 
     biointerchange -o example.vcf example.ldj
 
-<div class="row">
-    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-10 col-xs-offset-0 col-sm-offset-1 col-md-offset-1 col-lg-offset-1">
-        <div class="panel panel-info" role="alert">
-            <div class="panel-heading">
-                Note
-            </div>
-            <div class="panel-body">
-                Modified JSON objects (for example, when using the Python API) will only translate back correctly when non-standard key/value pairs are put under the &ldquo;user-defined&rdquo; key.
-            </div>
-        </div>
-    </div>
-</div>
+**Note:** Modified JSON objects (for example, when using the Python API) will only translate back correctly when non-standard key/value pairs are put under the &ldquo;user-defined&rdquo; key.
 
 ### Python API
 
-Genomics data can be accessed and modified via the Python API. Each JSON object will be passed on to a Python function and changes made by the Python code will be preserved:
+Genomics data can be accessed and processed via the Python API directly through BioInterchange. Each JSON object will be passed on to a Python function and changes made by the Python code will be preserved.
 
-    biointerchange -p simplepy.simple test-data/playground.gff3
+**For example:**
 
-<div class="row">
-    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-10 col-xs-offset-0 col-sm-offset-1 col-md-offset-1 col-lg-offset-1">
-        <div class="panel panel-info" role="alert">
-            <div class="panel-heading">
-                Compatibility
-            </div>
-            <div class="panel-body">
-                Requires Python 3.4 or newer.
-            </div>
-        </div>
-    </div>
-</div>
+One of BioInterchange's unit-tests calculates the accumulated lengths of all genomic features in a given file. The Python file `simple.py` (see below) in the module `simplepy` can be called like this:
 
-<dl>
-    <dt>Example: Directory structure.</dt>
-    <dd markdown="1">
-* ./simplepy/\_\_init\_\_.py
-* ./simplepy/simple.py
-</dd>
-    <dt>Example: Environment variables.</dt>
-    <dd markdown="1">
+    PYTHONPATH="`pwd`/test-data" ./biointerchange -p simplepy.simple examples/chromosome_BF.gff
+
+This assumes that you have a correct PYTHONHOME set as well. For using BioInterchange as part of a bigger project, it is recommended to add the necessary paths in PYTHONPATH to your shell initialization (e.g., .bashrc, .zshrc).
+
+Just to look at the last LD-JSON line, use this (your JSON pretty-printer might be called something else than `json_pp`):
+
+    PYTHONPATH="`pwd`/test-data" ./biointerchange -p simplepy.simple examples/chromosome_BF.gff | tail -n 1 | json_pp
+
+Accumulated output (see `accumulated-length`):
+
+    {
+       "@context" : "https://www.codamono.com/jsonld/biointerchange-s1.json",
+       "statistics" : {
+          "features" : 432,
+          "features-filtered" : 430,
+          "meta-lines" : 3,
+          "meta-lines-filtered" : false,
+          "comment-lines" : 1
+       },
+       "@type" : "https://www.codamono.com/gfvo-squared#Summary",
+       "runtime" : {
+          "invocation" : "Wed Mar 10 15:01:28 2021",
+          "finish" : "Wed Mar 10 15:01:28 2021",
+          "lapsed-seconds" : "0"
+       },
+       "my-user-data" : {
+          "accumulated-length" : 115528
+       }
+    }
+
+**Compatibility:** Requires Python 3.9.1 or newer. For older versions of Python you might have to recompile BioInterchange from source.
+
+#### Python simple.py
+
+**Directory structure:**
+
+* simplepy/\_\_init\_\_.py
+* simplepy/simple.py
+
+**Environment variables:**
+
 * PYTHONHOME needs to be set to where Python is installed on your system
-* PYTHONPATH needs to include "." for this example, so that "simple.py" can be found
-</dd>
-    <dt>Example: &ldquo;simple.py&rdquo; source code.</dt>
-    <dd markdown="1">
+* PYTHONPATH needs to include "./test-data" for this example, so that "simple.py" can be found; the code is in `test-data` because the code is part of the Google Test unit testing for BioInterchange.
+
+**&ldquo;simple.py&rdquo; source code:**
+
 ~~~ python
 # This variable will be used to accumulate the
 # length (in basepairs) of all features that are
@@ -173,43 +169,10 @@ def process_feature(feature):
 
     return feature
 ~~~
-</dd>
-</dl>
-
-### RethinkDB
-
-Take the cat lovers example from the main page:
-
-    wget ftp://ftp.ensembl.org/pub/release-81/variation/vcf/felis_catus/Felis_catus_incl_consequences.vcf.gz
-    gunzip Felis_catus_incl_consequences.vcf.gz
-    biointerchange -o Felis_catus_incl_consequences.ldj Felis_catus_incl_consequences.vcf
-
-Import line-delimited JSON-LD documents into RethinkDB:
-
-    rethinkdb import -f Felis_catus_incl_consequences.ldj --table genomics.felis_catus
-
-Check that the data is actually in the database using RethinkDB's "Data Explorer" (for local installation at `http://localhost:8080/#dataexplorer`):
-
-    r.db('genomics').table('felis_catus')
-
-Voila!
 
 ### MongoDB
 
-<div class="row">
-    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-10 col-xs-offset-0 col-sm-offset-1 col-md-offset-1 col-lg-offset-1">
-        <div class="panel panel-info" role="alert">
-            <div class="panel-heading">
-                Note
-            </div>
-            <div class="panel-body">
-                MongoDB can be a bit much to begin with. Have a look at RethinkDB for starters! RethinkDB has a great intuitive web-interface, easy-peasy indexing and sharding support, and a cool query language (ReQL).
-            </div>
-        </div>
-    </div>
-</div>
-
-Take the cat lovers example from the main page:
+Download and convert cat features:
 
     wget ftp://ftp.ensembl.org/pub/release-81/variation/vcf/felis_catus/Felis_catus_incl_consequences.vcf.gz
     gunzip Felis_catus_incl_consequences.vcf.gz
@@ -224,7 +187,23 @@ Check that the data is actually in the database:
     mongo genomics
     > db.felis_catus.find()
 
-Voila!
+### RethinkDB (legacy support)
+
+**Note:** RethinkDB did not make it as a company, but their database is still available as an open-source project. Adopting it now would probably a bad choice, but if you work with legacy code, then this is how you load/query features in RethinkDB!
+
+Download and convert cat features:
+
+    wget ftp://ftp.ensembl.org/pub/release-81/variation/vcf/felis_catus/Felis_catus_incl_consequences.vcf.gz
+    gunzip Felis_catus_incl_consequences.vcf.gz
+    biointerchange -o Felis_catus_incl_consequences.ldj Felis_catus_incl_consequences.vcf
+
+Import line-delimited JSON-LD documents into RethinkDB:
+
+    rethinkdb import -f Felis_catus_incl_consequences.ldj --table genomics.felis_catus
+
+Check that the data is actually in the database using RethinkDB's "Data Explorer" (for local installation at `http://localhost:8080/#dataexplorer`):
+
+    r.db('genomics').table('felis_catus')
 
 ## Data Model
 
@@ -243,37 +222,15 @@ Relationships between objects:
 * meta objects themselves are also independent, but they can be referenced (linked to) by feature objects
 * feature objects can reference meta objects as well as other feature objects
 
-<div class="row">
-    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-10 col-xs-offset-0 col-sm-offset-1 col-md-offset-1 col-lg-offset-1">
-        <div class="panel panel-info" role="alert">
-            <div class="panel-heading">
-                Note
-            </div>
-            <div class="panel-body">
-                In a nutshell: meta objects and feature objects contain the genomics data from GFF3, GVF, and VCF files; these objects are referencing each other (they are linked). Context and summary objects stand on their own.
-            </div>
-        </div>
-    </div>
-</div>
+**In a nutshell:** meta objects and feature objects contain the genomics data from GFF3, GVF, and VCF files; these objects are referencing each other (they are linked). Context and summary objects stand on their own.
 
-**All** objects contain a "@context" key and a "@type" key, which are called context key and type key in the following.
+*All* objects contain a "@context" key and a "@type" key, which are called context key and type key in the following.
 
 The context key turns the JSON objects into JSON-LD objects. Never heard of JSON-LD? Just skip to the next part and ignore the "@context" key. This is what makes JSON-LD so great: you can handle JSON-LD objects just like JSON objects.
 
 If you do want to make use of the context key, then feed the JSON-LD objects to a Linked Data tool and it will annotate key/value pairs with type information. JSON-LD objects can also be turned into Triple Store compatible data formats, such as RDF N-Triples, RDF N-Quads, and RDF Turtle. Want to see a real-life example of this magic? Head over to the [JSON-LD Playground](http://json-ld.org/playground/) and copy/paste any JSON-LD object into the "JSON-LD Input" text field: the "N-Quads" tab will instantly show a triples representation of the JSON-LD object that can be loaded into a triple store.
 
-<div class="row">
-    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-10 col-xs-offset-0 col-sm-offset-1 col-md-offset-1 col-lg-offset-1">
-        <div class="panel panel-info" role="alert">
-            <div class="panel-heading">
-                Note
-            </div>
-            <div class="panel-body">
-                All JSON-LD annotations are making use of GFVO<sup>2</sup>. Is it legit? Well, it is based on all the lessons learned when designing the <a href="https://peerj.com/articles/933/">Genomic Feature and Variation Ontology</a> (<a href="https://peerj.com/articles/933/">GFVO</a>). So, there is a team behind GFVO<sup>2</sup> too? Yes, stay tuned&hellip;
-            </div>
-        </div>
-    </div>
-</div>
+**Note:** All JSON-LD annotations are making use of GFVO<sup>2</sup>. Is it legit? Well, it is based on all the lessons learned when designing the <a href="https://peerj.com/articles/933/">Genomic Feature and Variation Ontology</a> (<a href="https://peerj.com/articles/933/">GFVO</a>). So, there is a team behind GFVO<sup>2</sup> too? Yes, stay tuned&hellip;
 
 #### Context Objects
 
@@ -288,9 +245,8 @@ In essence, a context objects contains information about:
 * whether the Python API was utilized (if so, name of the Python module)
 * additional user-defined parameters
 
-<dl>
-    <dt>Example</dt>
-    <dd markdown="1">
+**Example:**
+
     {
         "@context" : "https://www.codamono.com/jsonld/vcf-c1.json",
         "biointerchange-version" : "2.0.0+36",
@@ -300,22 +256,19 @@ In essence, a context objects contains information about:
         "python-callback" : null,
         "user-defined" : null
     }
-</dd>
-</dl>
 
 Detailed information about each key/value-pair can be found in the JSON Reference Card section.
 
 #### Meta Objects
 
-For each genomic file, one meta object is being created. The meta object contain data of information/pragma lines.
+One meta object is being created for each genomic data file. The meta object contain data of information/pragma lines.
 
 Meta objects are helpful for determining data provenance, establishing links to ontologies that were used, and providing extra annotations that were not attached to features to reduce data redundancy.
 
 For example, the following example provides a textual descriptions for analytic filters that have been applied in a VCF file. Instead of adding this description to every genomic feature for which the filter applies, the textual description is only given once in this meta object, where it can be looked up via the filter keys ("MinAB", "MinDP", "MinMQ", and "Qual").
 
-<dl>
-    <dt>Example:</dt>
-    <dd markdown="1">
+**Example:**
+
     {
         "@context" : "https://www.codamono.com/jsonld/vcf-x1.json",
         "vcf-version" : "4.2",
@@ -348,8 +301,6 @@ For example, the following example provides a textual descriptions for analytic 
             ]
         }
     }
-</dd>
-</dl>
 
 #### Feature Objects
 
@@ -359,9 +310,8 @@ Sequences, sequence variations, sequence annotations, genotyping samples, etc., 
 
 Most basic information about features includes an identifier, a genomic locus, provenane ("SGRP" stands for the Saccharomyces Genome Resequencing Project), feature type information ("SNV" -- single nucleotide variant; a Sequence Ontology term), and references to external databases (SGRP, again, and European Molecular Biology Laboratory accession).
 
-<dl>
-    <dt>Example</dt>
-    <dd markdown="1">
+**Example:**
+
     {
         "@context" : "https://www.codamono.com/jsonld/gvf-f1.json",
         "id" : "76",
@@ -378,16 +328,13 @@ Most basic information about features includes an identifier, a genomic locus, p
             "EMBL:AA816246"
         ]
     }
-</dd>
-</dl>
 
 ##### Variant and Reference Sequences
 
 Information about reference sequences is stored under the "reference" key. Variations are stored under the "variants" key and allele specific informations is labeled by "B", "C", etc. ("A" is denoting the reference, which is not explicitly labeled).
 
-<dl>
-    <dt>Example: GVF (basic information omitted)</dt>
-    <dd markdown="1">
+**Example:** GVF (basic information omitted)
+
     {
         "@context" : "https://www.codamono.com/jsonld/gvf-f1.json",
         "reference" : {
@@ -405,9 +352,9 @@ Information about reference sequences is stored under the "reference" key. Varia
             }
         }
     }
-</dd>
-    <dt>Example: VCF (basic information omitted)</dt>
-    <dd markdown="1">
+    
+**Example:** VCF (basic information omitted)
+
     {
         "@context" : "https://www.codamono.com/jsonld/vcf-f1.json",
         "reference" : {
@@ -420,16 +367,13 @@ Information about reference sequences is stored under the "reference" key. Varia
             }
         }
     }
-</dd>
-</dl>
 
 ##### Genomic/Genotyping Samples
 
 VCF genomic files contain information about samples. Reference, variant, and other information is repeated for each sample.
 
-<dl>
-    <dt>Example: VCF (basic and non-sample specific information omitted)</dt>
-    <dd markdown="1">
+**Example:** VCF (basic and non-sample specific information omitted)
+
     {
         "@context" : "https://www.codamono.com/jsonld/vcf-f1.json",
         "samples" : [
@@ -468,8 +412,6 @@ VCF genomic files contain information about samples. Reference, variant, and oth
             }
         ]
     }
-</dd>
-</dl>
 
 #### Summary Objects
 
@@ -482,9 +424,8 @@ Genomics data statistics capture how many comments were seen, how much metadata 
 
 Runtime information tell you when BioInterchange was invoked, when it finished processing the data, and how many seconds it took to process the data.
 
-<dl>
-    <dt>Example:</dt>
-    <dd markdown="1">
+**Example:**
+
     {
         "@context" : "https://www.codamono.com/jsonld/biointerchange-s1.json",
         "runtime" : {
@@ -500,8 +441,6 @@ Runtime information tell you when BioInterchange was invoked, when it finished p
             "comment-lines" : 0
         }
     }
-</dd>
-</dl>
 
 ## Python API Reference Cards
 
