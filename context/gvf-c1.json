@@ -1,0 +1,362 @@
+{
+    "@context" : {
+        "@vocab" : "https://www.codamono.com/gfvo-squared#unknownProperty-",
+        "B" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleB"
+        },
+        "C" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleC"
+        },
+        "D" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleD"
+        },
+        "AA" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeAA"
+        },
+        "AB" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeAB"
+        },
+        "BA" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeBA"
+        },
+        "BB" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeBB"
+        },
+        "AC" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeAC"
+        },
+        "BC" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeBC"
+        },
+        "CA" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeCA"
+        },
+        "CB" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeCB"
+        },
+        "CC" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeCC"
+        },
+        "affected-features" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#affectedFeatures"
+        },
+        "affected-feature-type" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#affectedFeatureType"
+        },
+        "alignment" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alignment"
+        },
+        "allele-count" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleCount"
+        },
+        "allele-count-expected" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleCountExpected"
+        },
+        "allele-format" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleFormat"
+        },
+        "allele-frequency" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleFrequency"
+        },
+        "allele-total-number" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleTotalNumber"
+        },
+        "alleles" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleles"
+        },
+        "ancestral-allele" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#ancestralAllele"
+        },
+        "annotation-format" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#annotationFormat"
+        },
+        "annotations" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#annotations",
+            "@container" : "@list"
+        },
+        "attribute-method" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#attributeMethod"
+        },
+        "base-quality-rms" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#baseQualityRMS"
+        },
+        "biointerchange-version" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#biointerchangeVersion"
+        },
+        "breakpoint-fasta" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#breakpointFASTA"
+        },
+        "build" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#build"
+        },
+        "cigar-string" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#cigarString"
+        },
+        "codon" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#codon"
+        },
+        "codon-phase" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#codonPhase"
+        },
+        "comment" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#comment"
+        },
+        "comment-lines" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#commentLines"
+        },
+        "contig" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#contig"
+        },
+        "data-source" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#dataSource"
+        },
+        "data-type" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#dataType"
+        },
+        "dbxref" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#dbxref",
+            "@container" : "@list"
+        },
+        "depth" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#depth"
+        },
+        "description" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#description"
+        },
+        "effect" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#effect"
+        },
+        "effects" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#effects",
+            "@container" : "@list"
+        },
+        "end" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#end"
+        },
+        "experimentally-validated" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#experimentallyValidated"
+        },
+        "feature-format" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#alleleFormat"
+        },
+        "features" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#features"
+        },
+        "features-filtered" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#featuresFiltered"
+        },
+        "file-date" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#fileDate"
+        },
+        "finish" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#finish"
+        },
+        "genotype" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotype"
+        },
+        "genotype-likelihood-phred-scaled" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeLikelihoodPhredScaled"
+        },
+        "genotype-quality" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeQuality"
+        },
+        "genotype-probabilities-phred-scaled" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeProbabilitiesPhredScaled"
+        },
+        "genome-build" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genomeBuild",
+            "@container" : "@list"
+        },
+        "genomic-source" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genomicSource"
+        },
+        "genotype" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotype"
+        },
+        "genotype-format" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeFormat"
+        },
+        "genotype-likelihood" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeLikelihood"
+        },
+        "genotype-likelihood-phred-scaled" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#genotypeLikelihoodPhredScaled"
+        },
+        "gff-version" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#gffVersion"
+        },
+        "global" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#global"
+        },
+        "gvf-version" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#gvfVersion"
+        },
+        "id" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#id"
+        },
+        "individuals" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#individuals",
+            "@container" : "@list"
+        },
+        "input-file" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#inputFile"
+        },
+        "input-filetype" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#inputFiletype"
+        },
+        "invocation" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#invocation"
+        },
+        "landmark" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#landmark"
+        },
+        "landmarks" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#landmarks",
+            "@container" : "@list"
+        },
+        "lapsed-seconds" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#lapsed-seconds"
+        },
+        "length" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#length"
+        },
+        "locus" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#locus"
+        },
+        "mapping-quality-rms" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#mappingQualityRMS"
+        },
+        "membership-1000G" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#membership1000G"
+        },
+        "membership-dbsnp" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#membershipDbSNP"
+        },
+        "membership-hapmap-2" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#membershipHapMap2"
+        },
+        "membership-hapmap-3" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#membershipHapMap3"
+        },
+        "meta-lines" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#metaLines"
+        },
+        "meta-lines-filtered" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#metaLinesFiltered"
+        },
+        "ontology" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#ontology"
+        },
+        "ontology-term" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#ontologyTerm",
+            "@container" : "@list"
+        },
+        "output-file" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#outputFile"
+        },
+        "phase-set" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#phaseSet"
+        },
+        "phased" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#phased"
+        },
+        "phased-genotypes" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#phasedGenotypes"
+        },
+        "phenotype-description" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#phenotypeDescription"
+        },
+        "phasing-quality" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#phasingQuality"
+        },
+        "population" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#population"
+        },
+        "python-callback" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#pythonCallback"
+        },
+        "read-pair-span" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#readPairSpan",
+            "@container" : "@list"
+        },
+        "reads-with-zero-mapping-quality" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#readsWithZeroMappingQuality"
+        },
+        "reference" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#reference"
+        },
+        "reference-fasta" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#referenceFASTA"
+        },
+        "runtime" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#runtime"
+        },
+        "samples" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#samples",
+            "@container" : "@list"
+        },
+        "samples-with-data" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#samplesWithData"
+        },
+        "score-method" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#scoreMethod"
+        },
+        "sequence" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#sequence"
+        },
+        "sequences" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#sequences",
+            "@container" : "@list"
+        },
+        "sex" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#sex"
+        },
+        "somatic-mutation" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#somaticMutation"
+        },
+        "source" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#source"
+        },
+        "source-method" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#sourceMethod"
+        },
+        "sources" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#sources",
+            "@container" : "@list"
+        },
+        "start" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#start"
+        },
+        "statistics" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#statistics"
+        },
+        "strand" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#strand"
+        },
+        "strand-bias" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#strandBias"
+        },
+        "technology-platform" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#technologyPlatform"
+        },
+        "type" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#type"
+        },
+        "types" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#types",
+            "@container" : "@list"
+        },
+        "user-defined" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#userDefined"
+        },
+        "user-parameter" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#userParameter"
+        },
+        "variants" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#variants"
+        },
+        "vcf-version" : {
+            "@id" : "https://www.codamono.com/gfvo-squared#vcfVersion"
+        }
+    }
+}
