@@ -31,27 +31,27 @@ const char* JSONLD_TPE = "@type";
 }
  */
 
-const char* JSONLD_CLSS_CTX = "https://www.codamono.com/gfvo-squared#Context";
-const char* JSONLD_CLSS_MTA = "https://www.codamono.com/gfvo-squared#Meta";
-const char* JSONLD_CLSS_FTR = "https://www.codamono.com/gfvo-squared#Feature";
-const char* JSONLD_CLSS_SUM = "https://www.codamono.com/gfvo-squared#Summary";
+const char* JSONLD_CLSS_CTX = "https://github.com/BioInterchange/Ontologies/gfvo-squared#Context";
+const char* JSONLD_CLSS_MTA = "https://github.com/BioInterchange/Ontologies/gfvo-squared#Meta";
+const char* JSONLD_CLSS_FTR = "https://github.com/BioInterchange/Ontologies/gfvo-squared#Feature";
+const char* JSONLD_CLSS_SUM = "https://github.com/BioInterchange/Ontologies/gfvo-squared#Summary";
 
-const char* JSONLD_GFF3_CTX1 = "https://www.codamono.com/jsonld/gff3-c1.json";
-const char* JSONLD_GTF_CTX1 = "https://www.codamono.com/jsonld/gtf-c1.json";
-const char* JSONLD_GVF_CTX1 = "https://www.codamono.com/jsonld/gvf-c1.json";
-const char* JSONLD_VCF_CTX1 = "https://www.codamono.com/jsonld/vcf-c1.json";
+const char* JSONLD_GFF3_CTX1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gff3-c1.json";
+const char* JSONLD_GTF_CTX1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gtf-c1.json";
+const char* JSONLD_GVF_CTX1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gvf-c1.json";
+const char* JSONLD_VCF_CTX1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/vcf-c1.json";
 
-const char* JSONLD_GFF3_X1 = "https://www.codamono.com/jsonld/gff3-x1.json";
-const char* JSONLD_GTF_X1 = "https://www.codamono.com/jsonld/gtf-x1.json";
-const char* JSONLD_GVF_X1 = "https://www.codamono.com/jsonld/gvf-x1.json";
-const char* JSONLD_VCF_X1 = "https://www.codamono.com/jsonld/vcf-x1.json";
+const char* JSONLD_GFF3_X1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gff3-x1.json";
+const char* JSONLD_GTF_X1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gtf-x1.json";
+const char* JSONLD_GVF_X1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gvf-x1.json";
+const char* JSONLD_VCF_X1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/vcf-x1.json";
 
-const char* JSONLD_GFF3_1 = "https://www.codamono.com/jsonld/gff3-f1.json";
-const char* JSONLD_GTF_1 = "https://www.codamono.com/jsonld/gtf-f1.json";
-const char* JSONLD_GVF_1 = "https://www.codamono.com/jsonld/gvf-f1.json";
-const char* JSONLD_VCF_1 = "https://www.codamono.com/jsonld/vcf-f1.json";
+const char* JSONLD_GFF3_1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gff3-f1.json";
+const char* JSONLD_GTF_1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gtf-f1.json";
+const char* JSONLD_GVF_1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/gvf-f1.json";
+const char* JSONLD_VCF_1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/vcf-f1.json";
 
-const char* JSONLD_STAT_1 = "https://www.codamono.com/jsonld/biointerchange-s1.json";
+const char* JSONLD_STAT_1 = "https://raw.githubusercontent.com/BioInterchange/BioInterchangeC/context/biointerchange-s1.json";
 
 const char* GEN_AFFECTED = "affected-features";         // (documented)
 const char* GEN_AFFECTED_TPE = "affected-feature-type"; // (documented)
