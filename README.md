@@ -1,8 +1,8 @@
 ## Table of Contents
 
 1. [Usage](#usage)
-   1. [GFF3, GVF, VCF to JSON](#gff3-gvf-vcf-to-json)
-   2. [JSON to GFF3, GVF, VCF](#json-to-gff3-gvf-vcf)
+   1. [GFF3, GVF, VCF to JSON (Converting to a unified data representation.)](#gff3-gvf-vcf-to-json-converting-to-a-unified-data-representation)
+   2. [JSON to GFF3, GVF, VCF (Converting to tool-specific data representations.)](#json-to-gff3-gvf-vcf-converting-to-tool-specific-data-representations)
    3. [Python API](#python-api)
    4. [MongoDB](#mongodb)
    5. [RethinkDB](#rethinkdb) (legacy support)
@@ -120,7 +120,7 @@ Accumulated output (see `accumulated-length`):
 
 **&ldquo;simple.py&rdquo; source code:**
 
-~~~ python
+```python
 # This variable will be used to accumulate the
 # length (in basepairs) of all features that are
 # not filtered out in `process_feature` below.
@@ -168,7 +168,7 @@ def process_feature(feature):
         del feature['comment']
 
     return feature
-~~~
+```
 
 ### MongoDB
 
