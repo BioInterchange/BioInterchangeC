@@ -2,13 +2,12 @@
 
 set -e
 
-license_version=2
 version="`./biointerchange -v`"
 
 mkdir -p brew/biointerchange
 
 cp biointerchange brew/biointerchange
-cp biointerchange-l$license_version.txt brew/biointerchange/license.txt
+cp LICENSE.txt brew/biointerchange/license.txt
 
 cd brew
 
