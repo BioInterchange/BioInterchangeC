@@ -3,9 +3,10 @@
 1. [Usage](#usage)
    1. [GFF3, GVF, VCF to JSON (Converting to a unified data representation.)](#gff3-gvf-vcf-to-json-converting-to-a-unified-data-representation)
    2. [JSON to GFF3, GVF, VCF (Converting to tool-specific data representations.)](#json-to-gff3-gvf-vcf-converting-to-tool-specific-data-representations)
-   3. [Python API](#python-api)
-   4. [MongoDB](#mongodb)
-   5. [RethinkDB](#rethinkdb) (legacy support)
+   3. [Abbreviations](#Abbreviations)
+   4. [Python API](#python-api)
+   5. [MongoDB](#mongodb)
+   6. [RethinkDB (legacy support)](#rethinkdb-legacy-support)
 2. [Data Model](#data-model)
    1. [Overview](#overview)
       1. [Context Objects](#context-objects)
@@ -17,9 +18,9 @@
 
 ## Usage
 
-BioInterchange is a command line tool. On OS X, it can be run via the [Terminal](https://en.wikipedia.org/wiki/Terminal_(OS_X)) application. On Linux, well, you use Linux, so you know what a command line is.
+BioInterchange is a command line tool and you will need to run it in a "terminal" or "shell". On OS X, it can be run via the default [Terminal](https://en.wikipedia.org/wiki/Terminal_(OS_X)) application. On Linux, well, you use Linux, so you know what a terminal is.
 
-Running BioInterchange will cause the software to perform a quick system check before anything else happens. If there are incompatibility problems, then these will be reported and the software exits.
+Running BioInterchange will cause the software to perform a quick system check before anything else happens. If there are incompatibility problems, then these will be shown to you and the software will exit. If you are making use of the Python interface and your Python settings are wrong, then a cryptic Python error might occur. In that case, check your `PYTHONHOME` and `PYTHONPATH` environment variables and have a look at examples in the [Python API](#python-api) section.
 
 **Note:** The tool BioInterchange 2.0 and its source code are licensed under the short, simple, and permissive [MIT License](https://github.com/indiedotkim/BioInterchangeC/blob/master/LICENSE.txt). If your version of BioInterchange compains about a missing license file, then please update to version 2.0.5 or later.
 
