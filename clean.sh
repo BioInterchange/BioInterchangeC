@@ -14,6 +14,7 @@ rm -rf CMakeCache.txt \
        doc/html \
        doc/Doxyfile \
        doxygen-prefix \
+       libbiointerchange-static.a \
        biointerchange \
        biointerchange.dylib \
        biointerchange.build \
