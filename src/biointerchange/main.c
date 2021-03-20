@@ -27,9 +27,6 @@
 
 #define MIN_PAGESIZE 2048
 
-// Relative to the home directory:
-#define MAIN_LICPATH "/.biointerchange/biointerchange-license"
-
 // Check size of int without consulting limit.h:
 // http://www.pixelbeat.org/programming/gcc/static_assert.html
 #define ASSERT_CONCAT_(a, b) a##b
