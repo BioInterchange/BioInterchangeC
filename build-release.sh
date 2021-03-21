@@ -11,7 +11,6 @@ if [[ "`uname`" == "Darwin" ]] ; then
 fi
 
 make curl-lib
-#make googletest-lib
 make libdocument-lib
 
 make biointerchange
