@@ -15,6 +15,9 @@ set(PYTHON_VERSION "3.9")
 set(PYTHON_PATCH "1")
 set(PYTHON_SUFFIX "")
 
+# Prevent `make install` to re-build all external projects yet again.
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+
 file(GLOB_RECURSE biointerchange_SRC
     FOLLOW_SYMLINKS
     "include/*.h"
@@ -86,13 +89,13 @@ ExternalProject_Add(python
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 
-include_directories(include)
-include_directories(src/googletest/include)
-include_directories(src/curl/include/curl)
-include_directories(src/python)
-include_directories(src/python/Include)
-include_directories(src/libdocument/include)
-include_directories(src/openssl/include)
+include_directories("${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/src/googletest/include"
+    "${CMAKE_SOURCE_DIR}/src/curl/include/curl"
+    "${CMAKE_SOURCE_DIR}/src/python"
+    "${CMAKE_SOURCE_DIR}/src/python/Include"
+    "${CMAKE_SOURCE_DIR}/src/libdocument/include"
+    "${CMAKE_SOURCE_DIR}/src/openssl/include")
 
 link_directories(lib)
 
@@ -101,19 +104,23 @@ set_target_properties(libdocument-static PROPERTIES
     IMPORTED_LOCATION src/libdocument/lib/libdocument-static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_library(libcurl-static STATIC IMPORTED)
+set_target_properties(libcurl-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libcurl-static PROPERTIES
     IMPORTED_LOCATION src/curl/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_library(libpython-static STATIC IMPORTED)
+set_target_properties(libpython-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libpython-static PROPERTIES
     IMPORTED_LOCATION src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 if(APPLE)
 add_library(libcrypto-static STATIC IMPORTED)
+set_target_properties(libcrypto-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libcrypto-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_library(libssl-static STATIC IMPORTED)
+set_target_properties(libssl-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libssl-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif(APPLE)
@@ -141,6 +148,8 @@ add_executable(tests ${test_SRC})
 add_dependencies(tests biointerchange-static googletest-lib)
 
 target_link_libraries(biointerchange biointerchange-static)
+
+install(PROGRAMS biointerchange TYPE BIN)
 
 # As suggested in the googletest README: link libgtest statically:
 add_library(gtest STATIC IMPORTED)
