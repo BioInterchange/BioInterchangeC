@@ -11,8 +11,9 @@ add_definitions(-DBIOINTERCHANGE_VERSION="${BIOINTERCHANGE_VERSION_CMPLD}")
 
 project(biointerchange VERSION ${BIOINTERCHANGE_VERSION_CMAKE} LANGUAGES C CXX)
 
+# Note: Currently using LibDocument's build!
 set(PYTHON_VERSION "3.9")
-set(PYTHON_PATCH "1")
+set(PYTHON_PATCH "2")
 set(PYTHON_SUFFIX "")
 
 # Prevent `make install` to re-build all external projects yet again.
@@ -80,20 +81,21 @@ ExternalProject_Add(openssl-lib
     INSTALL_COMMAND true)
 endif(APPLE)
 
-ExternalProject_Add(python
-    GIT_REPOSITORY https://github.com/python/cpython.git
-    GIT_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
-    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
-    CONFIGURE_COMMAND ./configure
-    BUILD_COMMAND ${MAKE}
-    INSTALL_COMMAND true)
+# Note: Currently using LibDocument's build.
+#ExternalProject_Add(python
+#    GIT_REPOSITORY https://github.com/python/cpython.git
+#    GIT_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
+#    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
+#    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
+#    CONFIGURE_COMMAND ./configure
+#    BUILD_COMMAND ${MAKE}
+#    INSTALL_COMMAND true)
 
 include_directories("${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/src/googletest/include"
     "${CMAKE_SOURCE_DIR}/src/curl/include/curl"
-    "${CMAKE_SOURCE_DIR}/src/python"
-    "${CMAKE_SOURCE_DIR}/src/python/Include"
+    "${CMAKE_SOURCE_DIR}/src/libdocument/src/python"
+    "${CMAKE_SOURCE_DIR}/src/libdocument/src/python/Include"
     "${CMAKE_SOURCE_DIR}/src/libdocument/include"
     "${CMAKE_SOURCE_DIR}/src/openssl/include")
 
@@ -104,23 +106,20 @@ set_target_properties(libdocument-static PROPERTIES
     IMPORTED_LOCATION src/libdocument/lib/libdocument-static${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_library(libcurl-static STATIC IMPORTED)
-set_target_properties(libcurl-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libcurl-static PROPERTIES
     IMPORTED_LOCATION src/curl/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+# Note: This is pulled in from LibDocument's build, so we do not have to compile it twice.
 add_library(libpython-static STATIC IMPORTED)
-set_target_properties(libpython-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libpython-static PROPERTIES
-    IMPORTED_LOCATION src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
+    IMPORTED_LOCATION src/libdocument/src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 if(APPLE)
 add_library(libcrypto-static STATIC IMPORTED)
-set_target_properties(libcrypto-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libcrypto-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 add_library(libssl-static STATIC IMPORTED)
-set_target_properties(libssl-static PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libssl-static PROPERTIES
     IMPORTED_LOCATION src/openssl/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif(APPLE)
