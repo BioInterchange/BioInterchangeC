@@ -2,14 +2,15 @@
 
 set -e
 
-version=`./biointerchange -v`
+version=`./biointerchange -v | sed -E 's/\+.*//'`
 
+# Note: Does not copy GFF, GVF, VCF, etc., examples.
 tar czf biointerchange-${version}.tar.gz \
     xcode.sh \
     clean.sh \
     build-release.sh \
     build-deb.sh \
-    build-brew.sh \
+    build-brew-binary.sh \
     build-tarball.sh \
     README.md \
     LICENSE.txt \
@@ -17,7 +18,6 @@ tar czf biointerchange-${version}.tar.gz \
     test \
     test-data/simplepy \
     templates \
-    examples \
     context \
     scripts \
     lib \
