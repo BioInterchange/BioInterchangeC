@@ -81,22 +81,28 @@ ExternalProject_Add(openssl-lib
     INSTALL_COMMAND true)
 endif(APPLE)
 
-# Note: Currently using LibDocument's build.
-#ExternalProject_Add(python
-#    GIT_REPOSITORY https://github.com/python/cpython.git
-#    GIT_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
-#    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
-#    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
-#    CONFIGURE_COMMAND ./configure
-#    BUILD_COMMAND ${MAKE}
-#    INSTALL_COMMAND true)
+if(BREW_BUILD)
+# NOTE: For brew, the LibDocument CPython build cannot be re-used.
+ExternalProject_Add(python
+    GIT_REPOSITORY https://github.com/python/cpython.git
+    GIT_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
+    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
+    CONFIGURE_COMMAND ./configure
+    BUILD_COMMAND ${MAKE}
+    INSTALL_COMMAND true)
+endif(BREW_BUILD)
 
+# NOTE: The brew build will not see LibDocument's CPython build and other build
+#       will not see `src/python` since the external project wull not be included.
 include_directories("${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/src/googletest/include"
     "${CMAKE_SOURCE_DIR}/src/curl/include/curl"
+    "${CMAKE_SOURCE_DIR}/src/python"
+    "${CMAKE_SOURCE_DIR}/src/python/Include"
+    "${CMAKE_SOURCE_DIR}/src/libdocument/include"
     "${CMAKE_SOURCE_DIR}/src/libdocument/src/python"
     "${CMAKE_SOURCE_DIR}/src/libdocument/src/python/Include"
-    "${CMAKE_SOURCE_DIR}/src/libdocument/include"
     "${CMAKE_SOURCE_DIR}/src/openssl/include")
 
 link_directories(lib)
@@ -109,10 +115,15 @@ add_library(libcurl-static STATIC IMPORTED)
 set_target_properties(libcurl-static PROPERTIES
     IMPORTED_LOCATION src/curl/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-# Note: This is pulled in from LibDocument's build, so we do not have to compile it twice.
 add_library(libpython-static STATIC IMPORTED)
+if(BREW_BUILD)
+# NOTE: For brew we cannot rely on the CPython build from LibDocument
+set_target_properties(libpython-static PROPERTIES
+    IMPORTED_LOCATION src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
+else(BREW_BUILD)
 set_target_properties(libpython-static PROPERTIES
     IMPORTED_LOCATION src/libdocument/src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif(BREW_BUILD)
 
 if(APPLE)
 add_library(libcrypto-static STATIC IMPORTED)
@@ -137,7 +148,7 @@ find_library(INTL_LIB NAMES intl libintl HINTS "/usr/local/lib")
 target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static ${INTL_LIB})
 else(APPLE)
 add_dependencies(biointerchange-static libdocument-static libcurl-static libpython-static)
-target_link_libraries(biointerchange-static libdocument-static dl m pthread util ssl crypto libcurl-static libpython-static)
+target_link_libraries(biointerchange-static libdocument-static pthread ssl crypto libcurl-static libpython-static dl m util)
 endif(APPLE)
 
 add_executable(biointerchange src/biointerchange/main.c)

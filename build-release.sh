@@ -4,8 +4,6 @@ set -e
 
 cmake -DCMAKE_BUILD_TYPE=Release -G 'Unix Makefiles'
 
-make python
-
 if [[ "`uname`" == "Darwin" ]] ; then
     make openssl-lib
 fi
