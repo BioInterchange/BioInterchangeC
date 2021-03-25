@@ -11,13 +11,25 @@ add_definitions(-DBIOINTERCHANGE_VERSION="${BIOINTERCHANGE_VERSION_CMPLD}")
 
 project(biointerchange VERSION ${BIOINTERCHANGE_VERSION_CMAKE} LANGUAGES C CXX)
 
-# Note: Currently using LibDocument's build!
-set(PYTHON_VERSION "3.9")
+# NOTE: Versionis must match with brew Formula!
+set(CURL_VER "7.75.0")
+set(GTEST_VER "1.10.0")
+set(ICONV_VER "1.16")
+set(OPENSSL_VER "1.1")
+set(OPENSSL_PATCH "1j")
+
+# NOTE: Currently using LibDocument's build -- except for brew builds
+#       where CPython is also build in this project directly.
+set(PYTHON_VER "3.9")
 set(PYTHON_PATCH "2")
-set(PYTHON_SUFFIX "")
+set(PYTHON_SUFFIX "_1")
 
 # Prevent `make install` to re-build all external projects yet again.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+
+if(APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+endif(APPLE)
 
 file(GLOB_RECURSE biointerchange_SRC
     FOLLOW_SYMLINKS
@@ -42,98 +54,24 @@ ExternalProject_Add(libdocument-lib
     BUILD_COMMAND ${MAKE}
     INSTALL_COMMAND true)
 
-ExternalProject_Add(googletest-lib
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    #SVN_REVISION -r "700"
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/googletest
-    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/googletest
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND autoreconf -fi COMMAND ./configure
-    BUILD_COMMAND ${MAKE}
-    INSTALL_COMMAND true)
-
-if(APPLE)
-ExternalProject_Add(curl-lib
-    GIT_REPOSITORY https://github.com/bagder/curl.git
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
-    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
-    CONFIGURE_COMMAND cmake -DBUILD_SHARED_LIBS=OFF -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -DOPENSSL_ROOT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl -DOPENSSL_INCLUDE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/src/openssl/include -G "Unix Makefiles"
-    BUILD_COMMAND ${MAKE}
-    INSTALL_COMMAND true)
-else(APPLE)
-ExternalProject_Add(curl-lib
-    GIT_REPOSITORY https://github.com/bagder/curl.git
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
-    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/curl
-    CONFIGURE_COMMAND cmake -DBUILD_SHARED_LIBS=OFF -DHTTP_ONLY=ON -DCURL_ZLIB=OFF -G "Unix Makefiles"
-    BUILD_COMMAND ${MAKE}
-    INSTALL_COMMAND true)
-endif(APPLE)
-
-if(APPLE)
-ExternalProject_Add(openssl-lib
-    GIT_REPOSITORY https://github.com/openssl/openssl.git
-    GIT_TAG OpenSSL_1_1_1j
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/openssl
-    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/openssl
-    CONFIGURE_COMMAND ./Configure no-shared darwin64-x86_64-cc
-    BUILD_COMMAND make build_libs
-    INSTALL_COMMAND true)
-endif(APPLE)
-
-if(BREW_BUILD)
-# NOTE: For brew, the LibDocument CPython build cannot be re-used.
-ExternalProject_Add(python
-    GIT_REPOSITORY https://github.com/python/cpython.git
-    GIT_TAG v${PYTHON_VERSION}.${PYTHON_PATCH}
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
-    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/python
-    CONFIGURE_COMMAND ./configure
-    BUILD_COMMAND ${MAKE}
-    INSTALL_COMMAND true)
-endif(BREW_BUILD)
-
 # NOTE: The brew build will not see LibDocument's CPython build and other build
 #       will not see `src/python` since the external project wull not be included.
 include_directories("${CMAKE_SOURCE_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/src/googletest/include"
-    "${CMAKE_SOURCE_DIR}/src/curl/include/curl"
+    "/usr/local/Cellar/curl/${CURL_VER}/include/curl"
+    "/usr/local/Cellar/googletest/${GTEST_VER}/include/gtest"
+    "/usr/local/Cellar/openssl@${OPENSSL_VER}/${OPENSSL_VER}.${OPENSSL_PATCH}/include"
+    "/usr/local/Cellar/python@${PYTHON_VER}/${PYTHON_VER}.${PYTHON_PATCH}${PYTHON_SUFFIX}/Frameworks/Python.framework/Versions/${PYTHON_VER}/include/python${PYTHON_VER}"
     "${CMAKE_SOURCE_DIR}/src/python"
     "${CMAKE_SOURCE_DIR}/src/python/Include"
     "${CMAKE_SOURCE_DIR}/src/libdocument/include"
     "${CMAKE_SOURCE_DIR}/src/libdocument/src/python"
-    "${CMAKE_SOURCE_DIR}/src/libdocument/src/python/Include"
-    "${CMAKE_SOURCE_DIR}/src/openssl/include")
+    "${CMAKE_SOURCE_DIR}/src/libdocument/src/python/Include")
 
 link_directories(lib)
 
 add_library(libdocument-static STATIC IMPORTED)
 set_target_properties(libdocument-static PROPERTIES
     IMPORTED_LOCATION src/libdocument/lib/libdocument-static${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-add_library(libcurl-static STATIC IMPORTED)
-set_target_properties(libcurl-static PROPERTIES
-    IMPORTED_LOCATION src/curl/lib/libcurl${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-add_library(libpython-static STATIC IMPORTED)
-if(BREW_BUILD)
-# NOTE: For brew we cannot rely on the CPython build from LibDocument
-set_target_properties(libpython-static PROPERTIES
-    IMPORTED_LOCATION src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
-else(BREW_BUILD)
-set_target_properties(libpython-static PROPERTIES
-    IMPORTED_LOCATION src/libdocument/src/python/libpython${PYTHON_VERSION}${PYTHON_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX})
-endif(BREW_BUILD)
-
-if(APPLE)
-add_library(libcrypto-static STATIC IMPORTED)
-set_target_properties(libcrypto-static PROPERTIES
-    IMPORTED_LOCATION src/openssl/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-add_library(libssl-static STATIC IMPORTED)
-set_target_properties(libssl-static PROPERTIES
-    IMPORTED_LOCATION src/openssl/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-endif(APPLE)
 
 add_library(biointerchange-static STATIC ${biointerchange_SRC})
 set_target_properties(biointerchange-static PROPERTIES
@@ -142,28 +80,41 @@ set_target_properties(biointerchange-static PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_RELEASE lib
     IMPORT_LOCATION lib/${CMAKE_CFG_INTDIR}/biointerchange${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+find_library(CURL NAMES libcurl${CMAKE_STATIC_LIBRARY_SUFFIX}
+    HINTS "/usr/local/Cellar/curl/${CURL_VER}/lib" "/usr/local/lib" "/usr/lib")
+
+# NOTE: Windows builds are not supported as such, but these names
+#       can only be used with OpenSSL 1.1 and later.
+find_library(CRYPTO_LIB NAMES libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+    HINTS "/usr/local/Cellar/openssl@${OPENSSL_VER}/${OPENSSL_VER}.${OPENSSL_PATCH}/lib" "/usr/local/lib" "/usr/lib")
+find_library(SSL_LIB NAMES libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+    HINTS "/usr/local/Cellar/openssl@${OPENSSL_VER}/${OPENSSL_VER}.${OPENSSL_PATCH}/lib" "/usr/local/lib" "/usr/lib")
+
+find_library(PYTHON_LIB NAMES libpython${PYTHON_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}
+    HINTS "/usr/local/Cellar/python@${PYTHON_VER}/${PYTHON_VER}.${PYTHON_PATCH}${PYTHON_SUFFIX}/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/config-${PYTHON_VER}-darwin" "/usr/local/lib" "/usr/lib")
+
+add_dependencies(biointerchange-static libdocument-static)
 if(APPLE)
-add_dependencies(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static)
-find_library(INTL_LIB NAMES intl libintl HINTS "/usr/local/lib")
-target_link_libraries(biointerchange-static libdocument-static libssl-static libcrypto-static libcurl-static libpython-static ${INTL_LIB})
+    find_library(CORE_FOUNDATION_LIB CoreFoundation)
+    find_library(ICONV_LIB NAMES libiconv${CMAKE_STATIC_LIBRARY_SUFFIX}
+        HINTS "/usr/local/Cellar/libiconv/${ICONV_VER}/lib" "/usr/local/lib")
+    target_link_libraries(biointerchange-static libdocument-static ${CORE_FOUNDATION_LIB} ${ICONV_LIB} ${SSL_LIB} ${CRYPTO_LIB} ${CURL_LIB} ${PYTHON_LIB} ${INTL_LIB})
 else(APPLE)
-add_dependencies(biointerchange-static libdocument-static libcurl-static libpython-static)
-target_link_libraries(biointerchange-static libdocument-static pthread ssl crypto libcurl-static libpython-static dl m util)
+    target_link_libraries(biointerchange-static libdocument-static pthread ${SSL_LIB} ${CRYPTO_LIB} ${CURL_LIB} ${PYTHON_LIB} dl m util)
 endif(APPLE)
 
 add_executable(biointerchange src/biointerchange/main.c)
 add_dependencies(biointerchange biointerchange-static)
 
 add_executable(tests ${test_SRC})
-add_dependencies(tests biointerchange-static googletest-lib)
+add_dependencies(tests biointerchange-static)
 
 target_link_libraries(biointerchange biointerchange-static)
 
 install(PROGRAMS biointerchange TYPE BIN)
 
 # As suggested in the googletest README: link libgtest statically:
-add_library(gtest STATIC IMPORTED)
-set_target_properties(gtest PROPERTIES
-    IMPORTED_LOCATION src/googletest/lib/.libs/libgtest${CMAKE_STATIC_LIBRARY_SUFFIX})
-target_link_libraries(tests biointerchange-static gtest)
+find_library(SSL_LIB NAMES libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+    HINTS "/usr/local/Cellar/googletest/${GTEST_VER}/lib" "/usr/local/lib" "/usr/lib")
+target_link_libraries(tests biointerchange-static ${GTEST_LIB})
 
