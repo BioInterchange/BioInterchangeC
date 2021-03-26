@@ -18,11 +18,9 @@ set(ICONV_VER "1.16")
 set(OPENSSL_VER "1.1")
 set(OPENSSL_PATCH "1j")
 
-# NOTE: Currently using LibDocument's build -- except for brew builds
-#       where CPython is also build in this project directly.
 set(PYTHON_VER "3.9")
 set(PYTHON_PATCH "2")
-set(PYTHON_SUFFIX "_1")
+set(PYTHON_SUFFIX "_2")
 
 # Prevent `make install` to re-build all external projects yet again.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
@@ -57,7 +55,7 @@ ExternalProject_Add(libdocument-lib
 # NOTE: The brew build will not see LibDocument's CPython build and other build
 #       will not see `src/python` since the external project wull not be included.
 include_directories("${CMAKE_SOURCE_DIR}/include"
-    "/usr/local/Cellar/curl/${CURL_VER}/include/curl"
+    "/usr/local/Cellar/curl/${CURL_VER}/include"
     "/usr/local/Cellar/googletest/${GTEST_VER}/include/gtest"
     "/usr/local/Cellar/openssl@${OPENSSL_VER}/${OPENSSL_VER}.${OPENSSL_PATCH}/include"
     "/usr/local/Cellar/python@${PYTHON_VER}/${PYTHON_VER}.${PYTHON_PATCH}${PYTHON_SUFFIX}/Frameworks/Python.framework/Versions/${PYTHON_VER}/include/python${PYTHON_VER}"
@@ -90,16 +88,17 @@ find_library(CRYPTO_LIB NAMES libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
 find_library(SSL_LIB NAMES libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
     HINTS "/usr/local/Cellar/openssl@${OPENSSL_VER}/${OPENSSL_VER}.${OPENSSL_PATCH}/lib" "/usr/local/lib" "/usr/lib")
 
-find_library(PYTHON_LIB NAMES libpython${PYTHON_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}
-    HINTS "/usr/local/Cellar/python@${PYTHON_VER}/${PYTHON_VER}.${PYTHON_PATCH}${PYTHON_SUFFIX}/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/config-${PYTHON_VER}-darwin" "/usr/local/lib" "/usr/lib")
-
 add_dependencies(biointerchange-static libdocument-static)
 if(APPLE)
+    find_library(PYTHON_LIB NAMES libpython${PYTHON_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}
+        HINTS "/usr/local/Cellar/python@${PYTHON_VER}/${PYTHON_VER}.${PYTHON_PATCH}${PYTHON_SUFFIX}/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/config-${PYTHON_VER}-darwin" "/usr/local/lib" "/usr/lib")
     find_library(CORE_FOUNDATION_LIB CoreFoundation)
     find_library(ICONV_LIB NAMES libiconv${CMAKE_STATIC_LIBRARY_SUFFIX}
         HINTS "/usr/local/Cellar/libiconv/${ICONV_VER}/lib" "/usr/local/lib")
     target_link_libraries(biointerchange-static libdocument-static ${CORE_FOUNDATION_LIB} ${ICONV_LIB} ${SSL_LIB} ${CRYPTO_LIB} ${CURL_LIB} ${PYTHON_LIB} ${INTL_LIB})
 else(APPLE)
+    find_library(PYTHON_LIB NAMES libpython${PYTHON_VER}${CMAKE_SHARED_LIBRARY_SUFFIX}
+    HINTS "/usr/local/Cellar/python@${PYTHON_VER}/${PYTHON_VER}.${PYTHON_PATCH}${PYTHON_SUFFIX}/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/config-${PYTHON_VER}-darwin" "/usr/local/lib" "/usr/lib")
     target_link_libraries(biointerchange-static libdocument-static pthread ${SSL_LIB} ${CRYPTO_LIB} ${CURL_LIB} ${PYTHON_LIB} dl m util)
 endif(APPLE)
 
