@@ -29,7 +29,7 @@
 #endif // BIOINTERCHANGE_CRYPT
 
 #define CURL_STATICLIB 1
-#include <curl.h>
+#include <curl/curl.h>
 #include <openssl/ssl.h>
 
 #include "gen.h"
