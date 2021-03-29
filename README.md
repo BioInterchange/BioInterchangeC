@@ -1,12 +1,13 @@
 ## Table of Contents
 
 1. [Usage](#usage)
-   1. [GFF3, GVF, VCF to JSON (Converting to a unified data representation.)](#gff3-gvf-vcf-to-json-converting-to-a-unified-data-representation)
-   2. [JSON to GFF3, GVF, VCF (Converting to tool-specific data representations.)](#json-to-gff3-gvf-vcf-converting-to-tool-specific-data-representations)
-   3. [Abbreviations](#Abbreviations)
-   4. [Python API](#python-api)
-   5. [MongoDB](#mongodb)
-   6. [RethinkDB (legacy support)](#rethinkdb-legacy-support)
+   1. [Installation](#Installation)
+   2. [Abbreviations](#Abbreviations)
+   3. [GFF3, GVF, VCF to JSON (Converting to a unified data representation.)](#gff3-gvf-vcf-to-json-converting-to-a-unified-data-representation)
+   4. [JSON to GFF3, GVF, VCF (Converting to tool-specific data representations.)](#json-to-gff3-gvf-vcf-converting-to-tool-specific-data-representations)
+   5. [Python API](#python-api)
+   6. [MongoDB](#mongodb)
+   7. [RethinkDB (legacy support)](#rethinkdb-legacy-support)
 2. [Data Model](#data-model)
    1. [Overview](#overview)
       1. [Context Objects](#context-objects)
@@ -23,6 +24,35 @@ BioInterchange is a command line tool and you will need to run it in a "terminal
 Running BioInterchange will cause the software to perform a quick system check before anything else happens. If there are incompatibility problems, then these will be shown to you and the software will exit. If you are making use of the Python interface and your Python settings are wrong, then a cryptic Python error might occur. In that case, check your `PYTHONHOME` and `PYTHONPATH` environment variables and have a look at examples in the [Python API](#python-api) section.
 
 **Note:** The tool BioInterchange 2.0 and its source code are licensed under the short, simple, and permissive [MIT License](https://github.com/indiedotkim/BioInterchangeC/blob/master/LICENSE.txt). If your version of BioInterchange compains about a missing license file, then please update to version 2.0.5 or later.
+
+### Installation
+
+*Work in progress. Currently submitted to Homebrew-bio, Docker images and apt packages are being rebuild.*
+
+**Debian/Linux from source:**
+
+    apt update
+    apt -y install build-essential git cmake libffi-dev libssl-dev libpython3.9-dev libcurl4-openssl-dev curl file
+    git clone https://github.com/BioInterchange/BioInterchangeC.git
+    cd BioInterchangeC
+    ./clean.sh
+    ./build-release.sh
+
+**OS X from source:**
+
+*Note:* Requires command-line tools (Xcode) installed. CMake paths currently rely on brew package installations, but you could also compile the dependencies yourself (as it was done for previous BioInterchange versions).
+
+    git clone https://github.com/BioInterchange/BioInterchangeC.git
+    cd BioInterchangeC
+    brew install cmake
+    brew install googletest
+    brew install curl
+    brew install gettext
+    brew install libiconv
+    brew install openssl@1.1
+    brew install python@3.9
+    ./clean.sh
+    ./build-release.sh
 
 ### Abbreviations
 
