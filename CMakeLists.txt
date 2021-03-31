@@ -8,16 +8,19 @@ add_definitions(-DBIOINTERCHANGE_VERSION="${BIOINTERCHANGE_VERSION_CMPLD}")
 
 project(biointerchange VERSION ${BIOINTERCHANGE_VERSION_CMAKE} LANGUAGES C CXX)
 
-# NOTE: Versionis must match with brew Formula!
-set(CURL_VER "7.75.0")
-set(GTEST_VER "1.10.0")
-set(ICONV_VER "1.16")
-set(OPENSSL_VER "1.1")
-set(OPENSSL_PATCH "1j")
+find_program(BASH bash HINTS /bin)
 
-set(PYTHON_VER "3.9")
-set(PYTHON_PATCH "2")
-set(PYTHON_SUFFIX "_2")
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions curl | sed -E 's/.* //'" OUTPUT_VARIABLE CURL_VER OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions googletest | sed -E 's/.* //'" OUTPUT_VARIABLE GTEST_VER OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(APPLE)
+    execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions libiconv | sed -E 's/.* //'" OUTPUT_VARIABLE ICONV_VER OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(APPLE)
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions openssl@1.1 | sed -E 's/.* //' | sed -E 's/\\.[[:digit:]]+[[:alnum:]]?$//'" OUTPUT_VARIABLE OPENSSL_VER OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions openssl@1.1 | sed -E 's/.* //' | sed -E 's/[[:digit:]]+\\.[[:digit:]]+\\.//'" OUTPUT_VARIABLE OPENSSL_PATCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions python@3.9 | sed -E 's/.* //' | sed -E 's/\\.[[:digit:]]+_?[[:alnum:]]*$//'" OUTPUT_VARIABLE PYTHON_VER OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions python@3.9 | sed -E 's/.* //' | sed -E 's/(^[[:digit:]]+\\.[[:digit:]]\\.|_[[:alnum:]]*$)//g'" OUTPUT_VARIABLE PYTHON_PATCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${BASH} -l -c "/usr/bin/env brew list --versions python@3.9 | sed -E 's/.* //' | sed -E 's/^[[:digit:]]+\\.[[:digit:]]+\\.[[:digit:]]+//'" OUTPUT_VARIABLE PYTHON_SUFFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Prevent `make install` to re-build all external projects yet again.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
