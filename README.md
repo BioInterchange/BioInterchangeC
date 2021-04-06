@@ -29,6 +29,14 @@ Running BioInterchange will cause the software to perform a quick system check b
 
 *Work in progress. Currently submitted to Homebrew-bio, Docker images and apt packages are being rebuild.*
 
+**Homebrew Bio (Linux & OS X):**
+
+*Note:* This assumes that you have Homebrew installed. Please consult [https://brew.sh/](https://brew.sh/) for their installation instructions.
+
+    brew install brewsci/bio/biointerchange
+
+If the brew installtion fails, but you are set on installing via brew, then please file an issue with the [Homebrew Bio team](https://github.com/brewsci/homebrew-bio/issues).
+
 **Debian/Linux from source:**
 
     apt update
