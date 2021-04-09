@@ -81,6 +81,8 @@ Here, the genomics file "example.vcf" is the input. The output of BioInterchange
 
     biointerchange example.vcf
 
+**Note:** It is not possible to "pipe" data to BioInterchange due to performance reasons. BioInterchange always expects to read from a file. The file can be a symlink though.
+
 The optional "-u" parameter can be used to add a custom user annotation to the [context object](#context-objects). This can be useful when including BioInterchange in a genomics analysis pipeline:
 
     biointerchange -u "CNV Analysis; Smith Lab" -o cnv.ldj cnv.gvf
