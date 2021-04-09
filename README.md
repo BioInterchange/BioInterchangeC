@@ -31,7 +31,7 @@ Running BioInterchange will cause the software to perform a quick system check b
 
 **Homebrew Bio (Linux & OS X):**
 
-*Note:* This assumes that you have Homebrew installed. Please consult [https://brew.sh/](https://brew.sh/) for their installation instructions.
+**Note:** This assumes that you have Homebrew installed. Please consult [https://brew.sh/](https://brew.sh/) for their installation instructions.
 
     brew install brewsci/bio/biointerchange
 
@@ -48,7 +48,7 @@ If the brew installtion fails, but you are set on installing via brew, then plea
 
 **OS X from source:**
 
-*Note:* Requires command-line tools (Xcode) installed. CMake paths currently rely on brew package installations, but you could also compile the dependencies yourself (as it was done for previous BioInterchange versions).
+**Note:** Requires command-line tools (Xcode) installed. CMake paths currently rely on brew package installations, but you could also compile the dependencies yourself (as it was done for previous BioInterchange versions).
 
     git clone https://github.com/BioInterchange/BioInterchangeC.git
     cd BioInterchangeC
