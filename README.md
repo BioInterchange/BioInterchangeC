@@ -37,6 +37,10 @@ Running BioInterchange will cause the software to perform a quick system check b
 
 If the brew installtion fails, but you are set on installing via brew, then please file an issue with the [Homebrew Bio team](https://github.com/brewsci/homebrew-bio/issues).
 
+**OS X Installer:**
+
+Download this [disk-image](http://indie.kim/assets/biointerchange/BioInterchange-2.0.5+139.dmg) file and double click it when the download is finished. You can then drag-and-drop the executable `biointerchange` to your system's folder for executables, or, anywhere else where your command line can find it. See `PATH` variable in the documentation for your command line (a.k.a. terminal or shell).
+
 **Debian/Linux from source:**
 
     apt update
