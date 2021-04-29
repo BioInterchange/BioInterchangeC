@@ -23,7 +23,7 @@ BioInterchange is a command line tool and you will need to run it in a "terminal
 
 Running BioInterchange will cause the software to perform a quick system check before anything else happens. If there are incompatibility problems, then these will be shown to you and the software will exit. If you are making use of the Python interface and your Python settings are wrong, then a cryptic Python error might occur. In that case, check your `PYTHONHOME` and `PYTHONPATH` environment variables and have a look at examples in the [Python API](#python-api) section.
 
-**Note:** The tool BioInterchange 2.0 and its source code are licensed under the short, simple, and permissive [MIT License](https://github.com/indiedotkim/BioInterchangeC/blob/master/LICENSE.txt). If your version of BioInterchange compains about a missing license file, then please update to version 2.0.5 or later.
+**Note:** The current version of the tool and its source code are licensed under the short, simple, and permissive [MIT License](https://github.com/indiedotkim/BioInterchangeC/blob/master/LICENSE.txt). If your version of BioInterchange compains about a missing license file, then please update to version 2.0.5 or later.
 
 ### Installation
 
